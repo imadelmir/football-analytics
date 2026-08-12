@@ -205,6 +205,37 @@ Vince sulle variabili base, vince su quelle spaziali, e in più:
   scende di 0,003. Per un progetto che deve restare in piedi anche fra un anno
   non è un dettaglio.
 
+### L'accordo con StatsBomb (M5-T8)
+
+Domanda diversa dalle precedenti: non *quale* modello sia migliore, ma **quanto
+i due si somiglino**.
+
+| | Per tiro | Per partita |
+| --- | ---: | ---: |
+| Correlazione di Pearson | 0,9076 | **0,9529** |
+| Correlazione di Spearman | 0,8863 | |
+| Scarto medio, con segno | +0,0034 | +0,082 xG |
+| Scarto assoluto mediano | 0,0142 | 0,176 xG |
+| **Scarto relativo mediano** | **29,5 %** | |
+
+**Su un singolo tiro i due modelli discordano tipicamente del 30 %**, e sui
+totali di partita concordano a 0,95. È il numero da dichiarare nella pagina di
+metodologia: l'xG di un tiro va letto come una stima grezza, quello di una
+partita regge.
+
+Lo scarto assoluto medio **non va letto da solo**: uno scarto grande è possibile
+solo dove l'xG è grande, e l'xG è grande sotto porta. Guardandolo senza
+normalizzare si conclude che i modelli discordano di più sui tiri ravvicinati,
+quando discordano esattamente uguale. C'è un test che lo dimostra.
+
+**Perché l'aggregazione aiuta, e quando non aiuterebbe.** Sommando tiri con
+errori indipendenti crescono di pari passo segnale e rumore, e la correlazione
+non si muove: verificato su dati sintetici, 0,9472 → 0,9464. Migliora solo se
+esiste una componente **condivisa dentro la partita**: 0,9551 → 0,9916. I dati
+veri si comportano come il secondo caso, quindi **le partite differiscono
+davvero fra loro** nel tipo di occasioni che producono, e i due modelli lo
+vedono allo stesso modo anche dove discordano tiro per tiro.
+
 ### La curva di calibrazione (M5-T7)
 
 Le metriche riassuntive dicono **quanto** un modello sbaglia; la curva dice

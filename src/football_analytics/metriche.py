@@ -276,6 +276,92 @@ def errore_di_calibrazione(
     return float(np.average(np.abs(curva["scarto"].to_numpy()), weights=pesi))
 
 
+def accordo(nostro: npt.ArrayLike, altrui: npt.ArrayLike) -> dict[str, float]:
+    """Misura **quanto due modelli xG si somigliano**, non quale sia migliore.
+
+    E' una domanda diversa da quella di :func:`metriche`. Un modello puo' essere
+    peggiore e somigliante, o migliore e diverso: sapere quale dei due casi si
+    ha in mano cambia cosa si puo' dire nella pagina di metodologia.
+
+    La correlazione di Spearman e' calcolata come Pearson sui **ranghi**, che e'
+    la sua definizione. Farlo a mano evita di aggiungere SciPy alle dipendenze
+    per due righe, su un progetto che deve stare sotto il gigabyte di RAM.
+
+    **``scarto_assoluto_medio`` va letto con cautela.** Uno scarto grande e'
+    possibile solo dove l'xG e' grande, e l'xG e' grande sotto porta: la
+    quantita' cresce con il livello anche quando l'accordo relativo e' identico.
+    Per questo c'e' anche ``scarto_relativo_mediano``, che divide per la media
+    dei due valori.
+
+    Args:
+        nostro: Le probabilita' previste dal modello del progetto.
+        altrui: Le probabilita' del modello di confronto, sugli stessi tiri.
+
+    Returns:
+        Correlazioni e scarti. ``scarto_medio`` ha segno: positivo vuol dire che
+        il nostro modello assegna piu' xG.
+
+    Raises:
+        ValueError: Se le due sequenze hanno lunghezza diversa.
+    """
+    a = np.asarray(nostro, dtype=np.float64)
+    b = np.asarray(altrui, dtype=np.float64)
+    if a.shape != b.shape:
+        msg = f"Le due serie hanno forme diverse: {a.shape} contro {b.shape}."
+        raise ValueError(msg)
+
+    differenza = a - b
+    media_coppia = (a + b) / 2.0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        relativo = np.where(media_coppia > 0.0, np.abs(differenza) / media_coppia, np.nan)
+
+    return {
+        "pearson": float(np.corrcoef(a, b)[0, 1]),
+        "spearman": float(
+            np.corrcoef(pd.Series(a).rank().to_numpy(), pd.Series(b).rank().to_numpy())[0, 1]
+        ),
+        "scarto_medio": float(differenza.mean()),
+        "scarto_assoluto_medio": float(np.abs(differenza).mean()),
+        "scarto_assoluto_mediano": float(np.median(np.abs(differenza))),
+        "scarto_relativo_mediano": float(np.nanmedian(relativo)),
+        "xg_totale_nostro": float(a.sum()),
+        "xg_totale_altrui": float(b.sum()),
+    }
+
+
+def accordo_aggregato(
+    nostro: npt.ArrayLike, altrui: npt.ArrayLike, gruppi: npt.ArrayLike
+) -> dict[str, float]:
+    """L'accordo dopo aver sommato l'xG dentro ogni gruppo, di solito la partita.
+
+    E' la misura che conta per la dashboard: nessuno guarda l'xG di un singolo
+    tiro, si guarda quello di una partita o di un giocatore. Due modelli
+    possono discordare parecchio tiro per tiro e concordare bene sui totali,
+    perche' gli scarti con segno opposto si compensano.
+
+    Args:
+        nostro: Le probabilita' del modello del progetto.
+        altrui: Le probabilita' del modello di confronto.
+        gruppi: L'identificativo del gruppo di ciascun tiro, per esempio
+            ``match_id``.
+
+    Returns:
+        Le stesse chiavi di :func:`accordo`, calcolate sui totali di gruppo,
+        piu' ``gruppi`` con quanti ne sono stati formati.
+    """
+    tabella = pd.DataFrame(
+        {
+            "gruppo": np.asarray(gruppi),
+            "nostro": np.asarray(nostro, dtype=np.float64),
+            "altrui": np.asarray(altrui, dtype=np.float64),
+        }
+    )
+    somme = tabella.groupby("gruppo", observed=True)[["nostro", "altrui"]].sum()
+    risultato = accordo(somme["nostro"].to_numpy(), somme["altrui"].to_numpy())
+    risultato["gruppi"] = float(len(somme))
+    return risultato
+
+
 def confronta(
     reali: npt.ArrayLike, previsioni_per_modello: Mapping[str, npt.ArrayLike]
 ) -> dict[str, dict[str, float]]:

@@ -987,6 +987,68 @@ calibrazione. Sono i test del riferimento e delle due trappole, scritti a
 M5-T5 per ragioni completamente diverse. E' il motivo per cui vale la pena
 scrivere test su casi banali che «ovviamente funzionano».
 
+## M5-T8 — Un test scritto su un'intuizione che non regge
+
+**Il sintomo:** avevo scritto `test_sommare_per_partita_riduce_il_disaccordo_
+casuale`, dando per scontato che aggregando i tiri per partita la correlazione
+fra due modelli salga. Misurato sui dati sintetici: **da 0,9472 a 0,9464**. Non
+sale.
+
+**La causa:** sommando `n` termini indipendenti crescono **sia** la varianza del
+segnale **sia** quella del rumore, entrambe proporzionalmente a `n`. Il rapporto
+fra le due resta identico, e la correlazione con lui. «Gli errori si
+compensano» e' vero in valore assoluto ma non in **rapporto**, e la
+correlazione guarda il rapporto.
+
+L'aggregazione aiuta solo se esiste una componente **condivisa dentro il
+gruppo**: allora la varianza dei totali cresce con `n²` mentre quella del rumore
+resta lineare. Verificato: 0,9551 → 0,9916.
+
+**Cosa dicono i dati veri:** il nostro modello e quello di StatsBomb passano da
+0,9076 per tiro a 0,9529 per partita. Si comportano come il secondo caso.
+Quindi **le partite differiscono sistematicamente fra loro** nel tipo di
+occasioni che producono, e i due modelli concordano su quella differenza anche
+dove discordano tiro per tiro. Non lo sapevo prima di misurarlo, e non l'avrei
+scoperto se il test fosse passato.
+
+**Risolto:** due test al posto di uno. Il primo verifica che l'aggregazione
+**non** migliori l'accordo quando il rumore e' indipendente — cosi' nessuno
+«corregge» il codice inseguendo un miglioramento che non deve esserci. Il
+secondo verifica che migliori quando la componente condivisa c'e'.
+
+**Cosa insegna:** il test era sbagliato perche' avevo scritto l'affermazione
+prima di saperla dimostrare. Ma il fallimento ha prodotto **piu' informazione
+del successo**: mi ha costretto a distinguere due situazioni che confondevo, e a
+scoprire in quale delle due stanno i dati.
+
+## M5-T8 — Un modello salvato e' legato alla versione che l'ha scritto
+
+**Il sintomo:** caricando `xg_360.pkl` con scikit-learn 1.7.2, dopo che era
+stato scritto con la 1.9.0:
+
+```
+AttributeError: 'LogisticRegression' object has no attribute 'multi_class'
+```
+
+**La causa:** un pickle non salva la classe, salva **lo stato di un'istanza**.
+Alla rilettura scikit-learn ricostruisce l'oggetto con il codice della versione
+installata, e se quel codice si aspetta attributi che la versione precedente non
+scriveva, si rompe. Vale in entrambe le direzioni.
+
+**Perche' conta oltre l'episodio:** e' un rischio diretto per M7. Se
+Streamlit Cloud installasse una versione di scikit-learn diversa da quella con
+cui il modello e' stato addestrato, la dashboard fallirebbe **al caricamento
+del modello**, cioe' all'avvio e non durante lo sviluppo. Il progetto e' gia'
+protetto — `uv.lock` blocca l'intero albero e il deploy deve usare
+`uv sync --locked` — ma la protezione era nata per la riproducibilita' dei
+numeri, non per questo. Adesso e' anche un requisito di funzionamento, e come
+tale va scritto nella relazione di M7.
+
+E' anche il secondo argomento, arrivato per caso, a favore della regressione
+logistica in produzione: quattro chilobyte di coefficienti si potrebbero
+riscrivere in un formato neutro il giorno in cui servisse. I 368 KB di alberi
+del gradient boosting no.
+
 ---
 
 <!--

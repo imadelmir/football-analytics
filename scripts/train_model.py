@@ -241,11 +241,51 @@ def markdown_calibrazione(curva: pd.DataFrame, nome: str) -> str:
     return "\n".join(righe)
 
 
+def markdown_accordo(per_tiro: Mapping[str, float], per_partita: Mapping[str, float]) -> str:
+    """Formatta l'accordo con l'xG di StatsBomb come tabella markdown.
+
+    Args:
+        per_tiro: Il risultato di :func:`metriche.accordo`.
+        per_partita: Il risultato di :func:`metriche.accordo_aggregato`.
+
+    Returns:
+        Il frammento markdown.
+    """
+
+    def virgola(valore: float, decimali: int) -> str:
+        return f"{valore:.{decimali}f}".replace(".", ",")
+
+    voci = (
+        ("Correlazione di Pearson", "pearson", 4),
+        ("Correlazione di Spearman", "spearman", 4),
+        ("Scarto medio, con segno", "scarto_medio", 5),
+        ("Scarto assoluto medio", "scarto_assoluto_medio", 5),
+        ("Scarto assoluto mediano", "scarto_assoluto_mediano", 5),
+        ("Scarto relativo mediano", "scarto_relativo_mediano", 4),
+    )
+    righe = [
+        "### Accordo con l'xG di StatsBomb",
+        "",
+        "Non e' una misura di *quale* modello sia migliore — quella e' la tabella",
+        "sopra — ma di **quanto i due si somiglino**.",
+        "",
+        "| | Per tiro | Per partita |",
+        "| --- | ---: | ---: |",
+    ]
+    righe.extend(
+        f"| {etichetta} | {virgola(per_tiro[chiave], decimali)} "
+        f"| {virgola(per_partita[chiave], decimali)} |"
+        for etichetta, chiave, decimali in voci
+    )
+    return "\n".join(righe)
+
+
 def scrivi(
     incrociato: Mapping[str, Mapping[str, float]],
     gruppi: Mapping[str, Mapping[str, float]],
     contesto: Mapping[str, float],
     calibrazione: Mapping[str, pd.DataFrame],
+    accordi: tuple[Mapping[str, float], Mapping[str, float]],
 ) -> tuple[Path, Path]:
     """Scrive i risultati in markdown e in JSON.
 
@@ -257,6 +297,7 @@ def scrivi(
         gruppi: I punteggi dell'ablazione.
         contesto: Conteggi della divisione e versioni delle librerie.
         calibrazione: Una curva di calibrazione per modello.
+        accordi: L'accordo con StatsBomb, per tiro e per partita.
 
     Returns:
         I percorsi dei due file scritti.
@@ -292,6 +333,7 @@ def scrivi(
         markdown("Confronto fra classi di modello e insiemi di variabili", incrociato),
         markdown("Da dove viene il guadagno (regressione logistica)", gruppi),
     ]
+    sezioni.append(markdown_accordo(*accordi))
     sezioni.extend(markdown_calibrazione(curva, nome) for nome, curva in calibrazione.items())
 
     percorso_md.write_text("\n\n".join(sezioni) + "\n", encoding="utf-8")
@@ -305,6 +347,7 @@ def scrivi(
                 "calibrazione": {
                     nome: curva.to_dict(orient="records") for nome, curva in calibrazione.items()
                 },
+                "accordo": {"per_tiro": dict(accordi[0]), "per_partita": dict(accordi[1])},
             },
             indent=2,
             ensure_ascii=False,
@@ -387,8 +430,20 @@ def main() -> int:
             percorso = model.salva_modello(addestrati[chiave], nome_logico)
             print(f"salvato {percorso.name} ({percorso.stat().st_size / 1024:.0f} KB)")
 
+    nostro = stime_per_curva["logistica spaziale"]
+    loro = xg_statsbomb.to_numpy()
+    accordi = (
+        metriche.accordo(nostro, loro),
+        metriche.accordo_aggregato(nostro, loro, test["match_id"].to_numpy()),
+    )
+    print(
+        f"accordo con StatsBomb: Pearson {accordi[0]['pearson']:.4f} per tiro, "
+        f"{accordi[1]['pearson']:.4f} per partita   "
+        f"scarto relativo mediano {accordi[0]['scarto_relativo_mediano']:.1%}\n"
+    )
+
     contesto = {**divisione, "scartati": float(scartati)}
-    percorso_md, percorso_json = scrivi(incrociato, gruppi, contesto, calibrazione)
+    percorso_md, percorso_json = scrivi(incrociato, gruppi, contesto, calibrazione, accordi)
     print(f"\nrisultati in {percorso_md.name} e {percorso_json.name}")
     print(f"durata {time.perf_counter() - inizio:.1f}s")
     return 0

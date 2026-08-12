@@ -258,6 +258,116 @@ def test_lo_scarto_in_errori_standard_e_coerente_con_le_colonne() -> None:
     assert curva["scarto_in_se"].to_numpy() == pytest.approx(atteso.to_numpy(), nan_ok=True)
 
 
+# ---------------------------------------------------------------------------
+# L'accordo con un altro modello xG (M5-T8)
+# ---------------------------------------------------------------------------
+
+
+def test_un_modello_confrontato_con_se_stesso_e_in_accordo_perfetto() -> None:
+    _, probabilita = previsioni_oneste(quanti=5000)
+
+    risultato = m.accordo(probabilita, probabilita)
+
+    assert risultato["pearson"] == pytest.approx(1.0)
+    assert risultato["spearman"] == pytest.approx(1.0)
+    assert risultato["scarto_assoluto_medio"] == pytest.approx(0.0)
+
+
+def test_lo_spearman_non_cambia_dopo_una_trasformazione_monotona() -> None:
+    # E' la proprieta' che distingue Spearman da Pearson: se un modello e' una
+    # versione riscalata dell'altro, l'ordine e' identico e Spearman lo vede.
+    _, probabilita = previsioni_oneste(quanti=5000)
+    riscalato = probabilita**0.5
+
+    risultato = m.accordo(probabilita, riscalato)
+
+    assert risultato["spearman"] == pytest.approx(1.0)
+    assert risultato["pearson"] < 0.99
+
+
+def test_lo_scarto_medio_ha_segno() -> None:
+    _, probabilita = previsioni_oneste(quanti=5000)
+    piu_generoso = np.clip(probabilita + 0.02, 0.0, 1.0)
+
+    assert m.accordo(piu_generoso, probabilita)["scarto_medio"] > 0
+    assert m.accordo(probabilita, piu_generoso)["scarto_medio"] < 0
+
+
+def test_lo_scarto_assoluto_cresce_con_il_livello_dell_xg() -> None:
+    """Dimostra perche' lo scarto assoluto da solo inganna.
+
+    Due coppie di previsioni con lo **stesso** disaccordo relativo — il 20 % —
+    danno scarti assoluti dieci volte diversi solo perche' una coppia sta
+    intorno a 0,05 e l'altra intorno a 0,50. Chi legge solo la colonna assoluta
+    conclude che sui tiri ravvicinati i modelli discordano di piu', quando
+    discordano esattamente uguale.
+    """
+    bassi = np.full(1000, 0.05)
+    alti = np.full(1000, 0.50)
+
+    basso = m.accordo(bassi * 1.2, bassi)
+    alto = m.accordo(alti * 1.2, alti)
+
+    assert alto["scarto_assoluto_medio"] > 9 * basso["scarto_assoluto_medio"]
+    assert alto["scarto_relativo_mediano"] == pytest.approx(basso["scarto_relativo_mediano"])
+
+
+def test_aggregare_non_aiuta_se_il_rumore_e_indipendente() -> None:
+    """Il contrario di quello che sembra ovvio, e la prima stesura ci e' cascata.
+
+    Sommando ``n`` tiri crescono **sia** il segnale **sia** il rumore, entrambi
+    proporzionalmente a ``n``: il rapporto fra i due resta lo stesso e la
+    correlazione non si muove. Misurato: da 0,9472 a 0,9464.
+
+    Il test esiste per impedire che qualcuno «corregga» il codice inseguendo un
+    miglioramento che non deve esserci.
+    """
+    generatore = np.random.default_rng(7)
+    quanti, per_partita_ = 6000, 30
+    vero = generatore.beta(1.2, 11.0, quanti)
+    uno = np.clip(vero + generatore.normal(0, 0.02, quanti), 0.001, 0.999)
+    due = np.clip(vero + generatore.normal(0, 0.02, quanti), 0.001, 0.999)
+    partite = np.repeat(np.arange(quanti // per_partita_), per_partita_)
+
+    per_tiro = m.accordo(uno, due)["pearson"]
+    aggregato = m.accordo_aggregato(uno, due, partite)
+
+    assert abs(aggregato["pearson"] - per_tiro) < 0.01
+    assert aggregato["gruppi"] == quanti // per_partita_
+
+
+def test_aggregare_aiuta_se_le_partite_differiscono_fra_loro() -> None:
+    """E' il meccanismo che opera sui dati veri.
+
+    Quando le partite hanno una componente condivisa — serate in cui si creano
+    occasioni migliori — la varianza dei totali cresce con il **quadrato** del
+    numero di tiri mentre quella del rumore cresce solo linearmente, e
+    l'aggregazione fa emergere l'accordo. Misurato: da 0,9551 a 0,9916.
+
+    Sui dati veri il nostro modello e quello di StatsBomb passano da 0,9076 per
+    tiro a 0,9529 per partita, cioe' si comportano come questo caso e non come
+    quello precedente: **le partite differiscono davvero fra loro**, e i due
+    modelli lo vedono allo stesso modo anche dove discordano tiro per tiro.
+    """
+    generatore = np.random.default_rng(7)
+    quanti, per_partita_ = 6000, 30
+    partite = np.repeat(np.arange(quanti // per_partita_), per_partita_)
+    effetto = generatore.normal(0.0, 0.04, quanti // per_partita_)
+    vero = np.clip(generatore.beta(1.2, 11.0, quanti) + effetto[partite], 0.001, 0.999)
+    uno = np.clip(vero + generatore.normal(0, 0.02, quanti), 0.001, 0.999)
+    due = np.clip(vero + generatore.normal(0, 0.02, quanti), 0.001, 0.999)
+
+    per_tiro = m.accordo(uno, due)["pearson"]
+    aggregato = m.accordo_aggregato(uno, due, partite)["pearson"]
+
+    assert aggregato > per_tiro + 0.02
+
+
+def test_le_lunghezze_diverse_vengono_segnalate_anche_nell_accordo() -> None:
+    with pytest.raises(ValueError, match="forme diverse"):
+        m.accordo(np.array([0.1, 0.2, 0.3]), np.array([0.1, 0.2]))
+
+
 def test_la_tabella_contiene_una_riga_per_modello() -> None:
     esiti = esiti_finti(quanti=2000)
     costante = np.full(len(esiti), float(esiti.mean()))
