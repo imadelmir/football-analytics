@@ -955,6 +955,38 @@ riscrivere la relazione a ogni `uv lock`. E' il motivo per cui questo file di
 risultati **registra le versioni** con cui e' stato prodotto: senza, una
 differenza fra due esecuzioni sarebbe un mistero invece di un'informazione.
 
+## M5-T7 — La curva di calibrazione si rompeva sul modello di riferimento
+
+**Il sintomo:** quattro test gia' esistenti passati da giorni hanno iniziato a
+fallire tutti insieme con `ZeroDivisionError: Weights sum to zero`. Nessuno dei
+quattro riguardava la calibrazione.
+
+**La causa:** avevo aggiunto `errore_calibrazione` fra i valori restituiti da
+`metriche()`, quindi la nuova funzione veniva chiamata **su ogni modello
+valutato** — compreso quello che risponde sempre la frequenza media. Con
+previsioni tutte identiche non esistono quantili da tagliare: `pd.qcut`
+restituisce solo NaN, il raggruppamento resta vuoto, e la media pesata degli
+scarti divide per zero.
+
+**Risolto:** se le etichette sono tutte NaN, tutto finisce in un gruppo solo.
+Che e' la risposta giusta e non un ripiego: con una previsione sola c'e' un
+gruppo solo, e l'errore di calibrazione e' la distanza fra quel numero e la
+frequenza osservata. Verificato su tre casi degeneri — costante, sempre zero,
+sempre uno — che ora danno rispettivamente 0,000, 0,097 e 0,903.
+
+**Cosa insegna:** avevo provato la funzione nuova solo su previsioni
+realistiche, cioe' su una distribuzione continua. **Il caso limite non era
+esotico: era il riferimento**, l'oggetto che il modulo costruisce da solo a ogni
+confronto e su cui si regge tutta la scala del guadagno. Quando si aggiunge un
+campo a una struttura restituita ovunque, il costo non e' scrivere la funzione:
+e' che quella funzione viene chiamata su tutti gli ingressi che la struttura
+gia' riceveva, compresi quelli che nessuno aveva in mente.
+
+I quattro test che hanno segnalato il difetto non erano test della
+calibrazione. Sono i test del riferimento e delle due trappole, scritti a
+M5-T5 per ragioni completamente diverse. E' il motivo per cui vale la pena
+scrivere test su casi banali che «ovviamente funzionano».
+
 ---
 
 <!--

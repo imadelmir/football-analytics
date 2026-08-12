@@ -10,8 +10,8 @@
     "scartati": 34.0
   },
   "ambiente": {
-    "scikit_learn": "1.9.0",
-    "pandas": "3.0.5"
+    "scikit_learn": "1.7.2",
+    "pandas": "2.3.3"
   },
   "confronto": {
     "riferimento": {
@@ -21,58 +21,63 @@
       "xg_medio": 0.09497206703910614,
       "gol_reali": 0.09497206703910614,
       "scarto_calibrazione": 0.0,
+      "errore_calibrazione": 0.0,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
       "guadagno_log_loss": 0.0,
       "guadagno_brier": 0.0
     },
     "logistica base": {
-      "log_loss": 0.26150939234327725,
-      "brier": 0.07371218338518061,
+      "log_loss": 0.2615093923917329,
+      "brier": 0.07371218341802489,
       "auc": 0.7902874385994111,
-      "xg_medio": 0.09484577313917708,
+      "xg_medio": 0.09484577323403137,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": -0.00012629389992906137,
+      "scarto_calibrazione": -0.00012629380507477028,
+      "errore_calibrazione": 0.012841372726061973,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.16688333390841148,
-      "guadagno_brier": 0.1424066565560742
+      "guadagno_log_loss": 0.16688333375404152,
+      "guadagno_brier": 0.14240665617395232
     },
     "alberi base": {
-      "log_loss": 0.2627993099172296,
-      "brier": 0.07435904801745144,
-      "auc": 0.7861999496943839,
-      "xg_medio": 0.09427750140629991,
+      "log_loss": 0.26276250656033756,
+      "brier": 0.07434210228118944,
+      "auc": 0.7862360398763415,
+      "xg_medio": 0.09428475450608949,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": -0.0006945656328062322,
+      "scarto_calibrazione": -0.0006873125330166541,
+      "errore_calibrazione": 0.007250260490605564,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.16277391428445598,
-      "guadagno_brier": 0.13488080699812588
+      "guadagno_log_loss": 0.16289116242503,
+      "guadagno_brier": 0.1350779596254209
     },
     "logistica spaziale": {
-      "log_loss": 0.24882308249320587,
-      "brier": 0.07036713524882283,
-      "auc": 0.8157734898228839,
-      "xg_medio": 0.09625606220792962,
+      "log_loss": 0.24882308117723742,
+      "brier": 0.07036713522306935,
+      "auc": 0.8157736474219317,
+      "xg_medio": 0.09625606634429212,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": 0.001283995168823479,
+      "scarto_calibrazione": 0.0012839993051859816,
+      "errore_calibrazione": 0.01184850535501703,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.20729938196156295,
-      "guadagno_brier": 0.18132411746276966
+      "guadagno_log_loss": 0.20729938615397547,
+      "guadagno_brier": 0.18132411776239477
     },
     "alberi spaziale": {
-      "log_loss": 0.24924215492427604,
-      "brier": 0.07068862660132477,
-      "auc": 0.8134392903251836,
-      "xg_medio": 0.09587259929371557,
+      "log_loss": 0.247917481203641,
+      "brier": 0.0704700100840752,
+      "auc": 0.8167190841099814,
+      "xg_medio": 0.09573373209056271,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": 0.0009005322546094263,
+      "scarto_calibrazione": 0.0007616650514565698,
+      "errore_calibrazione": 0.006989593404792424,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.20596430094020612,
-      "guadagno_brier": 0.1775837745341151
+      "guadagno_log_loss": 0.21018444670210645,
+      "guadagno_brier": 0.18012723561951582
     },
     "StatsBomb": {
       "log_loss": 0.24475781294333562,
@@ -81,6 +86,7 @@
       "xg_medio": 0.09289669974403726,
       "gol_reali": 0.09497206703910614,
       "scarto_calibrazione": -0.0020753672950688806,
+      "errore_calibrazione": 0.011420626879921309,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
       "guadagno_log_loss": 0.22025051837698362,
@@ -95,70 +101,354 @@
       "xg_medio": 0.09497206703910614,
       "gol_reali": 0.09497206703910614,
       "scarto_calibrazione": 0.0,
+      "errore_calibrazione": 0.0,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
       "guadagno_log_loss": 0.0,
       "guadagno_brier": 0.0
     },
     "base": {
-      "log_loss": 0.26150939234327725,
-      "brier": 0.07371218338518061,
+      "log_loss": 0.2615093923917329,
+      "brier": 0.07371218341802489,
       "auc": 0.7902874385994111,
-      "xg_medio": 0.09484577313917708,
+      "xg_medio": 0.09484577323403137,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": -0.00012629389992906137,
+      "scarto_calibrazione": -0.00012629380507477028,
+      "errore_calibrazione": 0.012841372726061973,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.16688333390841148,
-      "guadagno_brier": 0.1424066565560742
+      "guadagno_log_loss": 0.16688333375404152,
+      "guadagno_brier": 0.14240665617395232
     },
     "+ solo portiere": {
-      "log_loss": 0.25346275220364123,
-      "brier": 0.07173620797773922,
+      "log_loss": 0.25346275252412326,
+      "brier": 0.07173620807690312,
       "auc": 0.8085735773218753,
-      "xg_medio": 0.09577735310109135,
+      "xg_medio": 0.09577735120119314,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": 0.0008052860619852109,
+      "scarto_calibrazione": 0.0008052841620869999,
+      "errore_calibrazione": 0.011352325181032193,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.19251832141804714,
-      "guadagno_brier": 0.16539584610938918
+      "guadagno_log_loss": 0.1925183203970554,
+      "guadagno_brier": 0.16539584495568171
     },
     "+ solo difensori": {
-      "log_loss": 0.25505410593640987,
-      "brier": 0.07193532839548,
+      "log_loss": 0.25505410623391944,
+      "brier": 0.07193532855947796,
       "auc": 0.8029403569555394,
-      "xg_medio": 0.095616886353383,
+      "xg_medio": 0.09561688544493838,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": 0.0006448193142768593,
+      "scarto_calibrazione": 0.0006448184058322343,
+      "errore_calibrazione": 0.012274924823270262,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.18744858642865792,
-      "guadagno_brier": 0.16307920947001653
+      "guadagno_log_loss": 0.18744858548085186,
+      "guadagno_brier": 0.1630792075620069
     },
     "+ solo cono": {
-      "log_loss": 0.25797926174973734,
-      "brier": 0.07281461063283305,
-      "auc": 0.7973440935659244,
-      "xg_medio": 0.09480654261281243,
+      "log_loss": 0.25797926180951236,
+      "brier": 0.07281461065989263,
+      "auc": 0.7973439359668765,
+      "xg_medio": 0.0948065424809265,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": -0.0001655244262937089,
+      "scarto_calibrazione": -0.00016552455817964162,
+      "errore_calibrazione": 0.014525514053141017,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.1781296245467886,
-      "guadagno_brier": 0.15284933213994056
+      "guadagno_log_loss": 0.17812962435635726,
+      "guadagno_brier": 0.15284933182511995
     },
     "+ tutto": {
-      "log_loss": 0.24882308249320587,
-      "brier": 0.07036713524882283,
-      "auc": 0.8157734898228839,
-      "xg_medio": 0.09625606220792962,
+      "log_loss": 0.24882308117723742,
+      "brier": 0.07036713522306935,
+      "auc": 0.8157736474219317,
+      "xg_medio": 0.09625606634429212,
       "gol_reali": 0.09497206703910614,
-      "scarto_calibrazione": 0.001283995168823479,
+      "scarto_calibrazione": 0.0012839993051859816,
+      "errore_calibrazione": 0.01184850535501703,
       "log_loss_riferimento": 0.31389288317817454,
       "brier_riferimento": 0.08595237352142568,
-      "guadagno_log_loss": 0.20729938196156295,
-      "guadagno_brier": 0.18132411746276966
+      "guadagno_log_loss": 0.20729938615397547,
+      "guadagno_brier": 0.18132411776239477
     }
+  },
+  "calibrazione": {
+    "logistica base": [
+      {
+        "gruppo": 0,
+        "tiri": 860,
+        "xg_previsto": 0.011888966949476379,
+        "gol_osservati": 0.019767441860465116,
+        "errore_standard": 0.004746686739527611,
+        "scarto": -0.007878474910988737,
+        "scarto_in_se": -1.659784043758658
+      },
+      {
+        "gruppo": 1,
+        "tiri": 859,
+        "xg_previsto": 0.022981335960887448,
+        "gol_osservati": 0.018626309662398137,
+        "errore_standard": 0.00461300614244834,
+        "scarto": 0.004355026298489311,
+        "scarto_in_se": 0.9440755472694631
+      },
+      {
+        "gruppo": 2,
+        "tiri": 859,
+        "xg_previsto": 0.03242620550383211,
+        "gol_osservati": 0.034924330616996506,
+        "errore_standard": 0.006263948044820346,
+        "scarto": -0.0024981251131643983,
+        "scarto_in_se": -0.3988099989478834
+      },
+      {
+        "gruppo": 3,
+        "tiri": 859,
+        "xg_previsto": 0.04302234264894046,
+        "gol_osservati": 0.025611175785797437,
+        "errore_standard": 0.005389944876799001,
+        "scarto": 0.017411166863143025,
+        "scarto_in_se": 3.230305181429467
+      },
+      {
+        "gruppo": 4,
+        "tiri": 859,
+        "xg_previsto": 0.05523108590876971,
+        "gol_osservati": 0.03841676367869616,
+        "errore_standard": 0.006557786114823084,
+        "scarto": 0.01681432223007355,
+        "scarto_in_se": 2.5640241898202207
+      },
+      {
+        "gruppo": 5,
+        "tiri": 859,
+        "xg_previsto": 0.07028779890060896,
+        "gol_osservati": 0.05355064027939464,
+        "errore_standard": 0.007681294971484563,
+        "scarto": 0.016737158621214318,
+        "scarto_in_se": 2.17895012277852
+      },
+      {
+        "gruppo": 6,
+        "tiri": 859,
+        "xg_previsto": 0.08976262755234289,
+        "gol_osservati": 0.08149010477299184,
+        "errore_standard": 0.009334644347566297,
+        "scarto": 0.008272522779351046,
+        "scarto_in_se": 0.8862172431355498
+      },
+      {
+        "gruppo": 7,
+        "tiri": 859,
+        "xg_previsto": 0.11680757013208558,
+        "gol_osservati": 0.13038416763678695,
+        "errore_standard": 0.011488929553671689,
+        "scarto": -0.013576597504701374,
+        "scarto_in_se": -1.1817112674663846
+      },
+      {
+        "gruppo": 8,
+        "tiri": 859,
+        "xg_previsto": 0.16268939338116556,
+        "gol_osservati": 0.19441210710128057,
+        "errore_standard": 0.013502728552514413,
+        "scarto": -0.03172271372011501,
+        "scarto_in_se": -2.349355805883231
+      },
+      {
+        "gruppo": 9,
+        "tiri": 860,
+        "xg_previsto": 0.34316789630233996,
+        "gol_osservati": 0.35232558139534886,
+        "errore_standard": 0.016289255486069333,
+        "scarto": -0.009157685093008905,
+        "scarto_in_se": -0.5621917527686032
+      }
+    ],
+    "logistica spaziale": [
+      {
+        "gruppo": 0,
+        "tiri": 860,
+        "xg_previsto": 0.009548070691323017,
+        "gol_osservati": 0.012790697674418604,
+        "errore_standard": 0.003831797156751468,
+        "scarto": -0.0032426269830955878,
+        "scarto_in_se": -0.8462418156405312
+      },
+      {
+        "gruppo": 1,
+        "tiri": 859,
+        "xg_previsto": 0.018521337924476106,
+        "gol_osservati": 0.024447031431897557,
+        "errore_standard": 0.005269166365407264,
+        "scarto": -0.005925693507421451,
+        "scarto_in_se": -1.1245979148284955
+      },
+      {
+        "gruppo": 2,
+        "tiri": 859,
+        "xg_previsto": 0.027030580963599685,
+        "gol_osservati": 0.023282887077997673,
+        "errore_standard": 0.005145247052008865,
+        "scarto": 0.0037476938856020117,
+        "scarto_in_se": 0.7283797741332547
+      },
+      {
+        "gruppo": 3,
+        "tiri": 859,
+        "xg_previsto": 0.036782360651485484,
+        "gol_osservati": 0.03608847497089639,
+        "errore_standard": 0.006363649766677551,
+        "scarto": 0.0006938856805890903,
+        "scarto_in_se": 0.10903894872130378
+      },
+      {
+        "gruppo": 4,
+        "tiri": 859,
+        "xg_previsto": 0.048817711513355524,
+        "gol_osservati": 0.024447031431897557,
+        "errore_standard": 0.005269166365407264,
+        "scarto": 0.024370680081457968,
+        "scarto_in_se": 4.62514910165952
+      },
+      {
+        "gruppo": 5,
+        "tiri": 859,
+        "xg_previsto": 0.06325546682399569,
+        "gol_osservati": 0.046565774155995346,
+        "errore_standard": 0.0071892270680612505,
+        "scarto": 0.01668969266800034,
+        "scarto_in_se": 2.321486372595701
+      },
+      {
+        "gruppo": 6,
+        "tiri": 859,
+        "xg_previsto": 0.08303965422711206,
+        "gol_osservati": 0.06286379511059371,
+        "errore_standard": 0.008281425024500468,
+        "scarto": 0.02017585911651834,
+        "scarto_in_se": 2.4362786666338674
+      },
+      {
+        "gruppo": 7,
+        "tiri": 859,
+        "xg_previsto": 0.1142609358193215,
+        "gol_osservati": 0.12572759022118743,
+        "errore_standard": 0.011312070432076386,
+        "scarto": -0.011466654401865936,
+        "scarto_in_se": -1.0136654002216265
+      },
+      {
+        "gruppo": 8,
+        "tiri": 859,
+        "xg_previsto": 0.17350393629044342,
+        "gol_osservati": 0.1839348079161816,
+        "errore_standard": 0.013218975775401905,
+        "scarto": -0.010430871625738192,
+        "scarto_in_se": -0.7890831939603169
+      },
+      {
+        "gruppo": 9,
+        "tiri": 860,
+        "xg_previsto": 0.3875624265069476,
+        "gol_osservati": 0.40930232558139534,
+        "errore_standard": 0.016767005662944975,
+        "scarto": -0.021739899074447733,
+        "scarto_in_se": -1.296588043892228
+      }
+    ],
+    "StatsBomb": [
+      {
+        "gruppo": 0,
+        "tiri": 860,
+        "xg_previsto": 0.008647683748385197,
+        "gol_osservati": 0.022093023255813953,
+        "errore_standard": 0.005012185335391769,
+        "scarto": -0.013445339507428756,
+        "scarto_in_se": -2.6825303949734782
+      },
+      {
+        "gruppo": 1,
+        "tiri": 859,
+        "xg_previsto": 0.01893532830718753,
+        "gol_osservati": 0.015133876600698487,
+        "errore_standard": 0.004165499742183913,
+        "scarto": 0.0038014517064890434,
+        "scarto_in_se": 0.9126039951441687
+      },
+      {
+        "gruppo": 2,
+        "tiri": 859,
+        "xg_previsto": 0.02703184442111097,
+        "gol_osservati": 0.01629802095459837,
+        "errore_standard": 0.004320187804141413,
+        "scarto": 0.0107338234665126,
+        "scarto_in_se": 2.4845733456825547
+      },
+      {
+        "gruppo": 3,
+        "tiri": 859,
+        "xg_previsto": 0.03536149745154367,
+        "gol_osservati": 0.02211874272409779,
+        "errore_standard": 0.005017954253929779,
+        "scarto": 0.01324275472744588,
+        "scarto_in_se": 2.639074423023068
+      },
+      {
+        "gruppo": 4,
+        "tiri": 859,
+        "xg_previsto": 0.04512617549272439,
+        "gol_osservati": 0.03608847497089639,
+        "errore_standard": 0.006363649766677551,
+        "scarto": 0.009037700521827993,
+        "scarto_in_se": 1.4202070907724638
+      },
+      {
+        "gruppo": 5,
+        "tiri": 859,
+        "xg_previsto": 0.05765136524306326,
+        "gol_osservati": 0.047729918509895226,
+        "errore_standard": 0.007274092752052621,
+        "scarto": 0.009921446733168034,
+        "scarto_in_se": 1.3639428408949523
+      },
+      {
+        "gruppo": 6,
+        "tiri": 859,
+        "xg_previsto": 0.07525307980904895,
+        "gol_osservati": 0.08381839348079162,
+        "errore_standard": 0.009455050845458763,
+        "scarto": -0.008565313671742666,
+        "scarto_in_se": -0.9058982137421889
+      },
+      {
+        "gruppo": 7,
+        "tiri": 859,
+        "xg_previsto": 0.10218495565951217,
+        "gol_osservati": 0.10593713620488941,
+        "errore_standard": 0.010500538229877,
+        "scarto": -0.0037521805453772372,
+        "scarto_in_se": -0.3573322112862008
+      },
+      {
+        "gruppo": 8,
+        "tiri": 859,
+        "xg_previsto": 0.1620862847139866,
+        "gol_osservati": 0.1781140861466822,
+        "errore_standard": 0.013054442214815115,
+        "scarto": -0.01602780143269561,
+        "scarto_in_se": -1.2277660867429567
+      },
+      {
+        "gruppo": 9,
+        "tiri": 860,
+        "xg_previsto": 0.396433499957933,
+        "gol_osservati": 0.42209302325581394,
+        "errore_standard": 0.01684161867926847,
+        "scarto": -0.02565952329788096,
+        "scarto_in_se": -1.5235782133855735
+      }
+    ]
   }
 }
