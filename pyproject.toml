@@ -117,7 +117,7 @@ docstring-code-format = true
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "tests", "scripts"]
+files = ["src", "tests", "scripts", "app"]
 strict = true
 warn_unreachable = true
 warn_unused_ignores = true
@@ -129,7 +129,7 @@ pretty = true
 # Queste librerie non distribuiscono annotazioni: senza la deroga `mypy`
 # fallirebbe all'import, e non per un difetto del nostro codice.
 [[tool.mypy.overrides]]
-module = ["statsbombpy.*", "sklearn.*", "joblib.*"]
+module = ["statsbombpy.*", "sklearn.*", "joblib.*", "streamlit.*", "plotly.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------

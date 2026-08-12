@@ -1,22 +1,28 @@
-# Tema di partenza: la tavolozza "campionato" (verde, il campo).
-# Il passaggio al blu delle finali di Champions avviene a runtime riscrivendo
-# le variabili CSS --st-* (M6-T1): questo file da' solo lo stato iniziale.
+# Tema statico di Streamlit.
+#
+# Streamlit legge questo file **all'avvio e mai piu'**: serve perche' i widget
+# nativi siano gia' del colore giusto al primo disegno, senza il lampo bianco
+# che si vedrebbe aspettando il CSS. Il cambio dinamico fra verde e blu passa
+# da app/theme.py, che inietta le variabili --st-* a ogni rerun.
+#
+# I valori qui sotto sono il tema verde di src/football_analytics/tema.py.
+# Sono l'unica duplicazione di colori del progetto, ed e' inevitabile: un file
+# TOML letto prima che Python parta non puo' importare niente. Se cambiano li',
+# vanno cambiati anche qui.
 
 [theme]
-base = "light"
-primaryColor = "#0F6E56"
-backgroundColor = "#F4F7F4"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#10231B"
-borderColor = "#E3E8E3"
-baseRadius = "9px"
-
-[theme.sidebar]
-backgroundColor = "#0B3A2C"
-textColor = "#C9E8DC"
-primaryColor = "#1D9E75"
+base = "dark"
+primaryColor = "#3fbf7f"
+backgroundColor = "#0d1411"
+secondaryBackgroundColor = "#16211c"
+textColor = "#e8f0ea"
+font = "sans serif"
 
 [server]
+# I Parquet stanno nel repository e non cambiano mentre l'app gira: ricaricare
+# a ogni modifica di file sprecherebbe memoria su Streamlit Cloud, che ne da'
+# meno di 1 GB.
+fileWatcherType = "none"
 headless = true
 
 [browser]
