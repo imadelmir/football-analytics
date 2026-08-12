@@ -690,6 +690,107 @@ stupido possibile. E' l'unica cosa che trasforma un numero in
 un'informazione — e nel caso del Brier score il modello stupido e' bravissimo,
 perche' rispondere sempre «quasi mai» su un evento raro e' quasi sempre giusto.
 
+## M5-T5 — Ho scritto un numero che non avevo calcolato
+
+**Il sintomo:** nella tabella di M5-T4 il log loss del modello di riferimento
+era **0,31703**. Il valore vero e' **0,31418**.
+
+**La causa:** il Brier del riferimento ha una formula chiusa che conosco a
+memoria, `p(1-p)`, e quello era giusto. Il log loss ha anch'esso una formula
+chiusa — `-(p·ln p + (1-p)·ln(1-p))` — ma invece di calcolarla l'ho **stimata a
+mente**, e poi l'ho scritta con cinque decimali. La precisione tipografica ha
+fatto passare per misura quella che era un'approssimazione.
+
+E' finito anche nel messaggio del commit `fbb48bb`, dove resta: `main` e'
+protetto contro la riscrittura, e va bene cosi'. Una correzione visibile vale
+piu' di una cronologia ripulita.
+
+**Risolto:** il riferimento smette di essere un numero e diventa una funzione,
+`metriche.riferimento()`, con due test che confrontano ciascuna formula chiusa
+con il calcolo diretto sui dati. Non c'e' piu' nessun punto del progetto in cui
+quel numero si possa scrivere a mano.
+
+**Cosa insegna:** il numero di decimali e' un'affermazione. Cinque decimali
+dicono «ho misurato»; se non e' vero, e' un'affermazione falsa messa li' senza
+accorgersene. La regola operativa e' piu' semplice del principio: **se un
+numero ha una formula, la formula va nel codice**, anche quando e' cosi'
+elementare che sembra piu' veloce farla a mente. Soprattutto allora.
+
+## M5-T5 — La terza soglia scritta senza derivarla
+
+**Il sintomo:** il test che verifica la previsione registrata — «gli alberi
+battono la logistica su una relazione a U» — chiedeva agli alberi un guadagno
+sul Brier superiore al **20 %**. Misurato: **2,3 %**. Il test sarebbe fallito
+accusando il codice.
+
+**La causa:** su quei dati sintetici il guadagno massimo **possibile** e' circa
+l'**8 %**. Con probabilita' vere fra 0,05 e 0,40, quasi tutto l'errore
+quadratico e' rumore che nessun modello puo' togliere: anche conoscendo la
+probabilita' esatta di ogni tiro si scende solo da 0,1389 a 0,1280. Avevo
+chiesto piu' del massimo teorico.
+
+**Risolto:** il generatore restituisce anche `probabilita_vera`, cioe' la
+probabilita' che ha prodotto l'esito, e il test costruisce l'**oracolo** — il
+modello imbattibile. Le soglie sono frazioni dell'ottenibile, non punti di
+Brier. Misurato su sei semi: la logistica cattura da -6 % a -1 % dell'oracolo,
+gli alberi dal 25 % al 71 %.
+
+**Cosa insegna:** e' la **terza** volta in questo progetto che scrivo una soglia
+senza saperla derivare — dopo il 2 % sulla frequenza dei gol e dopo lo 0,31703
+qui sopra. Il denominatore giusto non e' mai zero: la domanda non e' «quanto
+guadagna il modello», e' «quanto **si puo'** guadagnare, e quanta parte ne
+prende». Quando i dati sono sintetici quel massimo si puo' calcolare
+esattamente, quindi non c'e' nessuna scusa per indovinarlo.
+
+Vale anche per i dati veri: il 14,2 % del modello base non e' su 100, e' su un
+massimo che non conosciamo. Il numero utile e' il 70 % di StatsBomb, che e' il
+miglior tetto misurabile che abbiamo.
+
+## M5-T5 — Misurare la calibrazione nel posto sbagliato
+
+**Il sintomo:** `test_gli_alberi_restano_calibrati` falliva con uno scarto di
+**-0,056**, dieci volte la soglia. Sembrava che il gradient boosting fosse
+gravemente scalibrato.
+
+**La causa:** non era del modello. Era della divisione.
+
+```
+gol nell'addestramento  0,1998
+gol nella verifica      0,2470     <- 4,7 punti di differenza
+
+              addestramento    verifica
+logistica          -0,00000     -0,0521
+alberi             +0,00035     -0,0557
+```
+
+Entrambi i modelli sono calibrati **quasi esattamente** su cio' su cui hanno
+imparato, e sbagliano **insieme** sulla verifica. Con quel seme la divisione
+per partita ha prodotto un insieme di verifica che segna piu' dell'altro, a 3,3
+deviazioni standard: raro, non impossibile, e su 40 partite del tutto normale
+che capiti prima o poi.
+
+Un modello calibrato riproduce la distribuzione **da cui ha imparato**. Se
+l'insieme di verifica ne ha un'altra, lo scarto misura la differenza fra i due
+insiemi, non l'onesta' del modello.
+
+**Risolto:** due test al posto di uno. Il primo misura la calibrazione
+sull'addestramento — ed e' quello che smaschera `class_weight="balanced"`, che
+resta il difetto da sorvegliare. Il secondo **dimostra** che lo scarto sulla
+verifica e' della divisione, verificando che i due modelli non si allontanano
+mai piu' di 0,0058 l'uno dall'altro mentre lo scarto comune arriva a 0,056.
+
+**Cosa insegna:** il test di M5-T4 si chiamava
+`test_il_modello_e_calibrato_sul_suo_addestramento`, con l'insieme scritto nel
+nome. Scrivendo la versione per gli alberi ho tenuto l'idea e perso il
+complemento — e il nome che avevo scelto quando ci ragionavo era piu' preciso
+del codice che ho scritto dopo. **Quando un nome contiene una condizione,
+quella condizione e' parte dell'affermazione**: cambiarla senza cambiare il
+nome e' un modo silenzioso di verificare un'altra cosa.
+
+C'e' anche una conseguenza pratica per M5-T6: il confronto fra modello base e
+modello 360 deve avvenire **sullo stesso identico insieme di verifica**, o la
+differenza misurata sara' in parte quella fra due divisioni.
+
 ---
 
 <!--

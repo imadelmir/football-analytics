@@ -23,9 +23,11 @@ primo modello — una regressione logistica addestrata su 34.582 tiri.
 | --- | --- |
 | `src/football_analytics/features.py` | Distanza, angolo, cono di tiro, posizione del portiere |
 | `src/football_analytics/model.py` | Divisione per partita, pipeline, addestramento, salvataggio |
+| `src/football_analytics/metriche.py` | Log loss, Brier, AUC e il riferimento — mai l'accuratezza |
 | `tests/test_features.py` | 42 test, molti su casi geometrici calcolabili a mano |
 | `tests/test_divisione.py` | 19 test, compreso uno che dimostra il difetto evitato |
-| `tests/test_modello.py` | 8 test sulle proprietà che nessun errore segnalerebbe |
+| `tests/test_modello.py` | Proprietà che nessun messaggio d'errore segnalerebbe |
+| `tests/test_metriche.py` | Due test dimostrano le trappole invece di dichiararle |
 
 ## 3. Decisioni tecniche
 
@@ -76,9 +78,16 @@ schema di gioco e sotto pressione.
 
 | | Log loss | Brier | AUC |
 | --- | ---: | ---: | ---: |
-| Sempre la frequenza media | 0,31703 | 0,08606 | 0,500 |
+| Sempre la frequenza media | 0,31418 | 0,08606 | 0,500 |
 | **Modello base** | **0,26214** | **0,07387** | **0,7893** |
 | xG di StatsBomb | 0,24515 | 0,06858 | 0,8199 |
+
+> **Correzione.** La prima stesura di questa tabella riportava 0,31703 come log
+> loss del riferimento. Il valore vero è **0,31418**: l'avevo stimato a mente
+> invece di calcolarlo, e scritto con cinque decimali come se l'avessi
+> misurato. Il numero sbagliato resta nel messaggio del commit `fbb48bb`, che
+> non si riscrive. Da M5-T5 il riferimento è calcolato da
+> `metriche.riferimento()` e non è più scrivibile a mano.
 
 **Il Brier score va letto rispetto a un riferimento.** Un modello che risponde
 sempre «0,0951» ottiene 0,08606: è il punto di partenza. Su quella scala:

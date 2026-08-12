@@ -126,7 +126,7 @@ print(pd.read_parquet("data/processed/shots.parquet").shape)
 
 ```
 football-analytics/
-├── src/football_analytics/   il pacchetto: config, ingest, transform, model, viz
+├── src/football_analytics/   config, ingest, transform, features, model, metriche, viz
 ├── scripts/                  build_dataset.py e train_model.py
 ├── app/                      la dashboard Streamlit
 ├── tests/                    test automatici, senza rete

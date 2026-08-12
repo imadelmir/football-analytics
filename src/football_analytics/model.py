@@ -18,19 +18,24 @@ colloquio qualcuno chiede «come hai diviso i dati?».
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, cast
 
 import joblib
 import numpy as np
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss
+from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from football_analytics.config import MODELS_DIR, SEED
+from football_analytics.metriche import ETICHETTE
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from pathlib import Path
 
     import numpy.typing as npt
@@ -46,8 +51,16 @@ COLONNA_GRUPPO: Final[str] = "match_id"
 BERSAGLIO: Final[str] = "gol"
 
 #: I nomi con cui i modelli vengono salvati in ``models/``.
+#:
+#: ``xg_logistica`` e' il riferimento di M5-T4: resta salvato perche' i numeri
+#: di un confronto vanno riproducibili, non ricordati. ``xg_base`` e
+#: ``xg_360`` sono i due modelli che la dashboard usa davvero.
+NOME_LOGISTICA: Final[str] = "xg_logistica"
 NOME_BASE: Final[str] = "xg_base"
 NOME_SPAZIALE: Final[str] = "xg_360"
+
+#: Pieghe della validazione incrociata, sempre raggruppate per partita.
+PIEGHE: Final[int] = 5
 
 
 def partite_di_verifica(
@@ -163,6 +176,137 @@ def pipeline_logistica(
             ),
         ]
     )
+
+
+@dataclass(frozen=True, slots=True)
+class Iperparametri:
+    """Gli iperparametri del gradient boosting.
+
+    Stanno insieme in una classe invece che sparsi come argomenti perche'
+    vanno **scelti insieme** — abbassare il tasso senza alzare le iterazioni
+    produce un modello che non ha finito di imparare — e perche' cosi' la
+    combinazione usata si puo' salvare, confrontare e citare in una relazione.
+
+    I valori predefiniti sono prudenti di proposito: tasso basso e molte
+    iterazioni imparano piu' lentamente ma piu' stabilmente, e su 34.000 righe
+    costa qualche secondo.
+
+    Attributes:
+        iterazioni: Quanti alberi costruire.
+        tasso: Quanto pesa ogni albero. Piu' basso, piu' alberi servono.
+        foglie: Larghezza massima di un albero.
+        minimo_per_foglia: Quanti tiri servono per giustificare una foglia.
+            Con un gol ogni dieci tiri, una foglia da 20 righe puo' contenere
+            zero gol per puro caso.
+        regolarizzazione: Penalita' L2 sui valori delle foglie.
+    """
+
+    iterazioni: int = 300
+    tasso: float = 0.05
+    foglie: int = 31
+    minimo_per_foglia: int = 40
+    regolarizzazione: float = 1.0
+
+
+def pipeline_alberi(
+    numeriche: Sequence[str],
+    categoriche: Sequence[str],
+    booleane: Sequence[str],
+    iper: Iperparametri | None = None,
+    seed: int = SEED,
+) -> Pipeline:
+    """Costruisce il modello ad alberi: gradient boosting a istogrammi.
+
+    **Usa lo stesso preprocessore della regressione logistica, di proposito.**
+    Per un albero standardizzare e' inutile — un taglio su ``x > 18`` e uno su
+    ``x > 1,4`` dopo la standardizzazione separano le stesse righe, e le soglie
+    di binning sono quantili, quindi invarianti per trasformazioni affini. E'
+    tenuto perche' il confronto con M5-T4 deve cambiare **una cosa sola**: la
+    classe di modello. Un preprocessore diverso renderebbe impossibile dire da
+    dove viene la differenza.
+
+    **``early_stopping=False`` e' deliberato.** L'arresto anticipato di
+    scikit-learn ritaglia da solo un 10 % di validazione **a caso**, e finirebbe
+    per mettere tiri della stessa partita da entrambe le parti: e' lo stesso
+    difetto che abbiamo evitato al livello superiore, che rientra dalla finestra
+    un piano piu' sotto. Non falserebbe la verifica finale, ma sceglierebbe male
+    dove fermarsi. Il numero di iterazioni si sceglie con
+    :func:`logloss_incrociato`, che raggruppa per partita.
+
+    **Gli alberi a istogrammi trattano i valori mancanti da soli**, mandandoli
+    dal lato che riduce di piu' l'errore. Conta a M5-T6: le variabili spaziali
+    sono assenti dove non c'e' il fotogramma, e la regola del progetto e' che un
+    dato mancante non si riempie mai di zeri. Qui non serve nemmeno riempirlo.
+
+    Args:
+        numeriche: Le colonne continue.
+        categoriche: Le colonne a categorie.
+        booleane: Le colonne binarie.
+        iper: Gli iperparametri. Se assente, quelli predefiniti.
+        seed: Radice del generatore, per la riproducibilita'.
+
+    Returns:
+        La pipeline non ancora addestrata.
+    """
+    scelti = iper if iper is not None else Iperparametri()
+    return Pipeline(
+        [
+            ("preparazione", costruisci_preprocessore(numeriche, categoriche, booleane)),
+            (
+                "modello",
+                HistGradientBoostingClassifier(
+                    max_iter=scelti.iterazioni,
+                    learning_rate=scelti.tasso,
+                    max_leaf_nodes=scelti.foglie,
+                    min_samples_leaf=scelti.minimo_per_foglia,
+                    l2_regularization=scelti.regolarizzazione,
+                    early_stopping=False,
+                    random_state=seed,
+                ),
+            ),
+        ]
+    )
+
+
+def logloss_incrociato(
+    costruisci: Callable[[], Pipeline],
+    dati: pd.DataFrame,
+    variabili: Sequence[str],
+    pieghe: int = PIEGHE,
+) -> float:
+    """Stima il log loss con validazione incrociata **raggruppata per partita**.
+
+    Serve a scegliere gli iperparametri **senza mai guardare l'insieme di
+    verifica**. Provare due configurazioni sul test e tenere la migliore
+    significa usare il test per decidere: da quel momento non misura piu' come
+    il modello si comporta su dati mai visti, perche' li ha visti attraverso la
+    scelta.
+
+    Prende una **funzione** che costruisce la pipeline, non una pipeline: ogni
+    piega deve partire da un modello non addestrato, e riusare lo stesso oggetto
+    lo addestrerebbe cinque volte di fila sugli stessi parametri gia' adattati.
+
+    Args:
+        costruisci: Funzione senza argomenti che restituisce una pipeline nuova.
+        dati: Le righe di addestramento, con ``match_id`` e ``gol``.
+        variabili: Le colonne da usare come predittori.
+        pieghe: Quante pieghe. ``GroupKFold`` e' deterministico, quindi due
+            esecuzioni sugli stessi dati danno lo stesso numero.
+
+    Returns:
+        Il log loss medio sulle pieghe. Piu' basso e' meglio.
+    """
+    gruppi = dati[COLONNA_GRUPPO].to_numpy()
+    esiti = dati[BERSAGLIO].to_numpy()
+    divisore = GroupKFold(n_splits=pieghe)
+
+    punteggi: list[float] = []
+    for indici_train, indici_prova in divisore.split(dati, esiti, gruppi):
+        modello = addestra(costruisci(), dati.iloc[indici_train], variabili)
+        stime = previsioni(modello, dati.iloc[indici_prova], variabili)
+        punteggi.append(float(log_loss(esiti[indici_prova], stime, labels=ETICHETTE)))
+
+    return float(np.mean(punteggi))
 
 
 def addestra(modello: Pipeline, dati: pd.DataFrame, variabili: Sequence[str]) -> Pipeline:
