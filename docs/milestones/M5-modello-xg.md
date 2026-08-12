@@ -146,6 +146,65 @@ interpretabile — la classe di modello su queste variabili vale meno di zero,
 quindi un eventuale salto aggiungendo le variabili spaziali sarà attribuibile
 all'**informazione**, non all'algoritmo.
 
+### Il modello spaziale (M5-T6) — la risposta alla domanda del progetto
+
+> **Quanto vale, davvero, sapere dove sono i difensori?**
+
+I numeri sono in [`M5-risultati.md`](M5-risultati.md), generato da
+`scripts/train_model.py`. Questa sezione li **cita**, non li ricopia.
+
+Quattro modelli, due classi per due insiemi di variabili, sulle stesse
+identiche righe e sullo stesso identico insieme di verifica:
+
+| | Log loss | Brier | AUC | Guadagno |
+| --- | ---: | ---: | ---: | ---: |
+| Riferimento | 0,31389 | 0,08595 | 0,5000 | 0,0 % |
+| Logistica base | 0,26151 | 0,07371 | 0,7903 | 14,2 % |
+| Alberi base | 0,26280 | 0,07436 | 0,7862 | 13,5 % |
+| **Logistica spaziale** | **0,24882** | **0,07037** | **0,8158** | **18,1 %** |
+| Alberi spaziale | 0,24924 | 0,07069 | 0,8134 | 17,8 % |
+| xG di StatsBomb | 0,24476 | 0,06846 | 0,8203 | 20,4 % |
+
+**La risposta: +3,9 punti di guadagno**, da 14,2 % a 18,1 %. In termini
+relativi è **+27 % di capacità esplicativa**, con l'AUC che sale di 0,026.
+
+Detto nel modo più utile: il divario che ci separava dall'xG di StatsBomb era
+di 6,2 punti. **Il fotogramma ne chiude 3,9, cioè il 63 %.** Si passa dal
+catturare il 69,8 % del loro segnale all'88,7 %.
+
+#### Da dove viene il guadagno
+
+| Aggiunta al modello base | Variabili | Guadagno | Δ |
+| --- | ---: | ---: | ---: |
+| — | 0 | 14,2 % | |
+| Solo il portiere | 2 | 16,5 % | **+2,3** |
+| Solo i difensori | 3 | 16,3 % | +2,1 |
+| Solo i difensori nel cono | 1 | 15,3 % | +1,1 |
+| Tutto | 5 | 18,1 % | +3,9 |
+
+**Il portiere vale almeno quanto i difensori, con una variabile in meno.** E i
+due gruppi sono quasi indipendenti: presi da soli sommano 4,4 punti contro i
+3,9 che danno insieme, quindi si sovrappongono poco.
+
+Il risultato **contraddice la previsione registrata** prima di misurare, che
+attribuiva il guadagno soprattutto ai difensori nel cono. Il racconto
+dell'errore è in [`NOTES.md`](../../NOTES.md).
+
+#### Perché in produzione va la regressione logistica
+
+Vince sulle variabili base, vince su quelle spaziali, e in più:
+
+- pesa **4 KB contro 368 KB**, cosa che conta su Streamlit Cloud con meno di
+  1 GB di RAM;
+- ha la calibrazione **garantita dalla forma del modello** — massimizzare la
+  verosimiglianza con un'intercetta impone che la media prevista uguagli la
+  frequenza osservata — invece che verificata a posteriori;
+- **è riproducibile fra versioni delle librerie.** Le due regressioni
+  logistiche danno gli stessi identici cinque decimali con scikit-learn 1.7.2 e
+  1.9.0; i due modelli ad alberi no, e con 1.9.0 l'AUC del modello spaziale
+  scende di 0,003. Per un progetto che deve restare in piedi anche fra un anno
+  non è un dettaglio.
+
 ## 5. Problemi incontrati
 
 Il racconto a caldo è in [`NOTES.md`](../../NOTES.md).

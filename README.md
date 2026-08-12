@@ -189,6 +189,15 @@ Due modelli addestrati sulle stesse partite, uno con le variabili ricavate dal
 fotogramma e uno senza, misurano quanto di quel segnale un modello riesce
 davvero a catturare.
 
+**La risposta: +3,9 punti di guadagno sul Brier score**, da 14,2 % a 18,1 %
+rispetto a un modello che risponde sempre la media — cioe' **+27 % di capacita'
+esplicativa**. Il divario dall'xG di StatsBomb si riduce del 63 %.
+
+Il contributo piu' grande non viene dai difensori ma **dal portiere**, che con
+due sole variabili vale 2,3 punti contro i 2,1 delle tre variabili sui
+difensori. Era il contrario di quanto previsto prima di misurare, e il perche'
+e' in [`NOTES.md`](NOTES.md).
+
 ### 2. Chi segna piu' di quanto dovrebbe, e per quanto tempo?
 
 La differenza fra gol e xG e' la misura piu' fraintesa del calcio analitico: su

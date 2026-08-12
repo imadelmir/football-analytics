@@ -1,0 +1,164 @@
+{
+  "contesto": {
+    "tiri_train": 34553.0,
+    "tiri_test": 8592.0,
+    "partite_train": 1402.0,
+    "partite_test": 351.0,
+    "quota_test": 0.19914242670066057,
+    "gol_train": 0.09440569559806673,
+    "gol_test": 0.09497206703910614,
+    "scartati": 34.0
+  },
+  "ambiente": {
+    "scikit_learn": "1.9.0",
+    "pandas": "3.0.5"
+  },
+  "confronto": {
+    "riferimento": {
+      "log_loss": 0.31389288317817454,
+      "brier": 0.08595237352142568,
+      "auc": 0.5,
+      "xg_medio": 0.09497206703910614,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.0,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.0,
+      "guadagno_brier": 0.0
+    },
+    "logistica base": {
+      "log_loss": 0.26150939234327725,
+      "brier": 0.07371218338518061,
+      "auc": 0.7902874385994111,
+      "xg_medio": 0.09484577313917708,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": -0.00012629389992906137,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.16688333390841148,
+      "guadagno_brier": 0.1424066565560742
+    },
+    "alberi base": {
+      "log_loss": 0.2627993099172296,
+      "brier": 0.07435904801745144,
+      "auc": 0.7861999496943839,
+      "xg_medio": 0.09427750140629991,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": -0.0006945656328062322,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.16277391428445598,
+      "guadagno_brier": 0.13488080699812588
+    },
+    "logistica spaziale": {
+      "log_loss": 0.24882308249320587,
+      "brier": 0.07036713524882283,
+      "auc": 0.8157734898228839,
+      "xg_medio": 0.09625606220792962,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.001283995168823479,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.20729938196156295,
+      "guadagno_brier": 0.18132411746276966
+    },
+    "alberi spaziale": {
+      "log_loss": 0.24924215492427604,
+      "brier": 0.07068862660132477,
+      "auc": 0.8134392903251836,
+      "xg_medio": 0.09587259929371557,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.0009005322546094263,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.20596430094020612,
+      "guadagno_brier": 0.1775837745341151
+    },
+    "StatsBomb": {
+      "log_loss": 0.24475781294333562,
+      "brier": 0.06845976573290909,
+      "auc": 0.8202752278251835,
+      "xg_medio": 0.09289669974403726,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": -0.0020753672950688806,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.22025051837698362,
+      "guadagno_brier": 0.20351512205949895
+    }
+  },
+  "ablazione": {
+    "riferimento": {
+      "log_loss": 0.31389288317817454,
+      "brier": 0.08595237352142568,
+      "auc": 0.5,
+      "xg_medio": 0.09497206703910614,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.0,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.0,
+      "guadagno_brier": 0.0
+    },
+    "base": {
+      "log_loss": 0.26150939234327725,
+      "brier": 0.07371218338518061,
+      "auc": 0.7902874385994111,
+      "xg_medio": 0.09484577313917708,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": -0.00012629389992906137,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.16688333390841148,
+      "guadagno_brier": 0.1424066565560742
+    },
+    "+ solo portiere": {
+      "log_loss": 0.25346275220364123,
+      "brier": 0.07173620797773922,
+      "auc": 0.8085735773218753,
+      "xg_medio": 0.09577735310109135,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.0008052860619852109,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.19251832141804714,
+      "guadagno_brier": 0.16539584610938918
+    },
+    "+ solo difensori": {
+      "log_loss": 0.25505410593640987,
+      "brier": 0.07193532839548,
+      "auc": 0.8029403569555394,
+      "xg_medio": 0.095616886353383,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.0006448193142768593,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.18744858642865792,
+      "guadagno_brier": 0.16307920947001653
+    },
+    "+ solo cono": {
+      "log_loss": 0.25797926174973734,
+      "brier": 0.07281461063283305,
+      "auc": 0.7973440935659244,
+      "xg_medio": 0.09480654261281243,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": -0.0001655244262937089,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.1781296245467886,
+      "guadagno_brier": 0.15284933213994056
+    },
+    "+ tutto": {
+      "log_loss": 0.24882308249320587,
+      "brier": 0.07036713524882283,
+      "auc": 0.8157734898228839,
+      "xg_medio": 0.09625606220792962,
+      "gol_reali": 0.09497206703910614,
+      "scarto_calibrazione": 0.001283995168823479,
+      "log_loss_riferimento": 0.31389288317817454,
+      "brier_riferimento": 0.08595237352142568,
+      "guadagno_log_loss": 0.20729938196156295,
+      "guadagno_brier": 0.18132411746276966
+    }
+  }
+}

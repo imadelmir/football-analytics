@@ -120,6 +120,22 @@ VARIABILI_SPAZIALI: Final[tuple[str, ...]] = (
     "compagni_in_area",
 )
 
+#: Le variabili del modello spaziale: le base piu' quelle del fotogramma.
+#:
+#: Il modello base e quello spaziale differiscono **solo** per queste cinque
+#: colonne. E' la condizione perche' la differenza fra i loro punteggi si possa
+#: attribuire all'informazione invece che a una somma di cause.
+VARIABILI_COMPLETE: Final[tuple[str, ...]] = (*VARIABILI_BASE, *VARIABILI_SPAZIALI)
+
+#: Le numeriche del modello spaziale. Tutte e cinque le spaziali sono continue
+#: o conteggi, nessuna e' categorica: ``test_le_variabili_spaziali_sono_tutte_
+#: numeriche`` impedisce che questa tupla si sfasi se un giorno se ne aggiunge
+#: una di natura diversa.
+VARIABILI_NUMERICHE_COMPLETE: Final[tuple[str, ...]] = (
+    *VARIABILI_NUMERICHE,
+    *VARIABILI_SPAZIALI,
+)
+
 #: Limiti dell'area di rigore nel sistema di coordinate di StatsBomb.
 AREA_X: Final[float] = 102.0
 AREA_Y_MIN: Final[float] = 18.0
@@ -274,3 +290,49 @@ def variabili_base(tiri: pd.DataFrame) -> pd.DataFrame:
     fuori["gol"] = tiri["gol"]
     fuori["match_id"] = tiri["match_id"]
     return fuori
+
+
+def variabili_complete(tiri: pd.DataFrame, fotogrammi: pd.DataFrame) -> pd.DataFrame:
+    """Costruisce base e spaziali insieme, per il modello di M5-T6.
+
+    Args:
+        tiri: I tiri gia' filtrati da :func:`tiri_modellabili`.
+        fotogrammi: Le posizioni dei giocatori, una riga per giocatore.
+
+    Returns:
+        Una tabella con le colonne di :data:`VARIABILI_COMPLETE`, piu' ``gol`` e
+        ``match_id``. Le righe sono **le stesse** di :func:`variabili_base`
+        sugli stessi tiri, cosi' i due modelli si valutano sulle stesse partite
+        e sugli stessi tiri.
+    """
+    base = variabili_base(tiri)
+    spaziali = variabili_spaziali(tiri, fotogrammi)
+    return pd.concat([base, spaziali[list(VARIABILI_SPAZIALI)]], axis=1)
+
+
+def con_fotogramma_completo(variabili: pd.DataFrame) -> pd.DataFrame:
+    """Tiene solo i tiri in cui tutte le variabili spaziali sono note.
+
+    Sui dati veri scarta **34 tiri su 43.179**, lo 0,08 %: quelli in cui il
+    portiere avversario non e' inquadrato, e per i quali ``distanza_portiere`` e
+    ``portiere_avanzato`` sono assenti.
+
+    **Perche' scartare invece di riempire.** La regola del progetto vieta di
+    sostituire uno zero a un dato mancante, e riempire con la mediana
+    introdurrebbe un pezzo di pipeline presente in un modello e non nell'altro:
+    il gradient boosting tratta i valori mancanti da solo, la regressione
+    logistica no. Il confronto fra le due classi smetterebbe di cambiare una
+    cosa sola.
+
+    Con lo 0,08 % in gioco, scartare costa meno di qualunque alternativa e non
+    richiede di giustificare un'imputazione. **Va applicato a tutti e quattro i
+    modelli**, non solo a quelli spaziali, o le righe valutate non
+    coinciderebbero.
+
+    Args:
+        variabili: La tabella prodotta da :func:`variabili_complete`.
+
+    Returns:
+        Le sole righe senza valori mancanti fra le variabili spaziali.
+    """
+    return variabili.dropna(subset=list(VARIABILI_SPAZIALI)).copy()

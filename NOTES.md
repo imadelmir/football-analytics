@@ -838,6 +838,123 @@ correttamente in validazione incrociata, ma il punteggio in CV della logistica
 non l'ho registrato — quindi la conclusione e' giusta ma dimostrata nel posto
 sbagliato. Va colmato prima della relazione finale di M5.
 
+## M5-T6 — La previsione registrata era sbagliata, e l'ho scoperto perche' era scritta
+
+**Scritto prima di addestrare qualunque modello spaziale.**
+
+In `NOTES.md`, a M5-T5, avevo registrato che la distanza del portiere ha una
+**U**: si segna di piu' quando il portiere e' addosso — perche' vuol dire che si
+tira da vicino — e quando e' molto avanzato, perche' la porta e' sguarnita.
+
+Ho controllato la forma **sulle sole partite di addestramento**, tenendo la
+distanza di tiro quasi costante per non misurare un'altra cosa:
+
+```
+distanza di tiro 12-18        conv     scarto dal precedente
+  portiere  0-4   n= 247    19,4 %
+  portiere  4-6   n= 319    27,3 %     +7,8 pt = 2,2 SE
+  portiere  6-8   n= 467    28,1 %     +0,8 pt = 0,2 SE
+  portiere  8-10  n=1239    15,1 %    -13,0 pt = 5,6 SE
+  portiere 10-14  n=4551     8,6 %     -6,5 pt = 5,9 SE
+```
+
+**E' una ∩, non una U.** Si segna di piu' nel mezzo, con il portiere uscito dai
+pali ma non ancora addosso. Avevo previsto il contrario.
+
+E la parte non monotona e' **debole**: la salita iniziale vale 2,2 deviazioni
+standard nella banda 12-18, ma **1,0** nella banda 13-16 e **0,8** nella banda
+18-24. Su tre finestre indipendenti non regge. La discesa dopo il picco invece
+e' schiacciante ovunque, da 4 a 6 SE.
+
+C'e' anche un confondimento da dichiarare: la distanza tiratore-portiere
+**ricodifica in parte la distanza dalla porta**, perche' quando il portiere e'
+sulla linea le due quasi coincidono. Senza condizionare sulla distanza di tiro
+la relazione sembra monotona, ed e' un artefatto.
+
+**Conseguenza:** il meccanismo che avevo pre-registrato — «una logistica non
+puo' rappresentare una U, un albero si'» — **non e' supportato**. Quello che i
+dati mostrano con certezza e' una relazione in gran parte decrescente, che una
+regressione logistica rappresenta benissimo.
+
+**Previsione corretta, registrata ora, prima di misurare:**
+
+> Il guadagno delle variabili spaziali arrivera' soprattutto dai **difensori
+> nel cono di tiro**, non dal portiere, e sara' catturabile anche da una
+> regressione logistica. Il gradient boosting non dovrebbe recuperare il
+> divario che ha perso a M5-T5.
+
+**Cosa insegna:** la pre-registrazione ha fatto esattamente il lavoro per cui
+serve. Se avessi guardato i dati a M5-T6 senza aver scritto niente prima, avrei
+visto una relazione non monotona, avrei detto «come previsto», e non mi sarei
+accorto di aver sbagliato **il verso**. Una previsione vaga si conferma sempre;
+una precisa si puo' rompere, e questa si e' rotta su un dettaglio che cambia la
+spiegazione.
+
+## M5-T6 — Ho scambiato «non serve un albero» per «non serve»
+
+**Il sintomo:** la previsione registrata poche ore prima diceva che il guadagno
+delle variabili spaziali sarebbe venuto **dai difensori nel cono, non dal
+portiere**. Misurato:
+
+```
+base                14.2 %
++ solo portiere     16.5 %    +2,3 punti, con 2 variabili
++ solo difensori    16.3 %    +2,1 punti, con 3 variabili
++ tutto             18.1 %    +3,9 punti
+```
+
+Il portiere vale **di piu'**, con una variabile in meno.
+
+**La causa dell'errore, che e' la parte interessante.** A M5-T5 avevo previsto
+che il gradient boosting avrebbe vinto **grazie** alla U nella distanza del
+portiere. Ho controllato la forma sui dati di addestramento, la U non c'era — e
+da li' ho concluso che allora il portiere contasse poco.
+
+Non segue. **L'assenza di non linearita' non e' assenza di segnale.** La
+distanza del portiere e' la variabile spaziale piu' informativa del gruppo;
+semplicemente lo e' in modo che una retta rappresenta benissimo. Avevo confuso
+«non serve un albero per usarla» con «non serve».
+
+E' anche il motivo per cui la previsione a M5-T5 era sbagliata due volte nello
+stesso punto: prima ho attribuito al portiere una forma che non ha, poi gli ho
+tolto un'importanza che ha.
+
+**Cosa insegna:** quando si cerca la giustificazione per un modello piu'
+complesso si finisce per misurare **la forma** di una relazione invece della
+**forza**. Sono due domande diverse e la seconda viene prima: quanto informa, e
+solo dopo, in che forma. Avevo invertito l'ordine perche' stavo cercando un
+argomento per il gradient boosting, non una descrizione dei dati.
+
+## M5-T6 — La logistica e' identica fra le versioni, gli alberi no
+
+**Non e' un problema, e' un'osservazione** emersa confrontando la mia
+esecuzione di prova con quella nell'ambiente coi pin del progetto.
+
+```
+                      scikit-learn 1.9.0   scikit-learn 1.7.2
+logistica base                   0,07371              0,07371
+logistica spaziale               0,07037              0,07037
+alberi base                      0,07436              0,07434
+alberi spaziale                  0,07069              0,07047
+```
+
+Le due regressioni logistiche coincidono a **cinque decimali**. I due modelli
+ad alberi no, e con la versione piu' recente l'AUC del modello spaziale scende
+di 0,003 — abbastanza da farlo passare da «pareggia con la logistica» a «perde
+anche sulle variabili spaziali».
+
+**Perche':** una regressione logistica converge a un ottimo unico, definito dal
+problema e non dall'implementazione. Un gradient boosting a istogrammi dipende
+da come vengono scelti i confini dei bin, da come si gestiscono i pareggi nei
+tagli e da altri dettagli che cambiano legittimamente fra release.
+
+**Cosa insegna:** e' un argomento in piu' per mettere la logistica in
+produzione, e non era nella lista quando ho scritto il confronto. Un modello i
+cui numeri cambiano quando si aggiorna una libreria costringe a rieseguire e
+riscrivere la relazione a ogni `uv lock`. E' il motivo per cui questo file di
+risultati **registra le versioni** con cui e' stato prodotto: senza, una
+differenza fra due esecuzioni sarebbe un mistero invece di un'informazione.
+
 ---
 
 <!--
