@@ -391,3 +391,106 @@ def test_una_tabella_vuota_non_rompe_niente() -> None:
     )
     risultato: Any = features.variabili_base(vuota)
     assert len(risultato) == 0
+
+
+# ---------------------------------------------------------------------------
+# Le variabili del modello spaziale (M5-T6)
+# ---------------------------------------------------------------------------
+
+
+def tiri_e_fotogrammi() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Due tiri identici, ma solo il primo ha il portiere inquadrato.
+
+    Returns:
+        La tabella dei tiri e quella dei fotogrammi.
+    """
+    tiri = pd.DataFrame(
+        [
+            {"shot_id": "s1", "x": 110.0, "y": 40.0},
+            {"shot_id": "s2", "x": 110.0, "y": 40.0},
+        ]
+    )
+    for colonna, valore in (
+        ("parte_corpo", "Right Foot"),
+        ("tipo", "Open Play"),
+        ("schema", "Regular Play"),
+    ):
+        tiri[colonna] = pd.Categorical([valore, valore])
+    tiri["sotto_pressione"] = [False, True]
+    tiri["gol"] = [True, False]
+    tiri["match_id"] = [7, 7]
+
+    fotogrammi = pd.DataFrame(
+        [
+            {"shot_id": "s1", "x": 118.0, "y": 40.0, "compagno": False, "portiere": True},
+            {"shot_id": "s1", "x": 115.0, "y": 40.0, "compagno": False, "portiere": False},
+            # s2: un difensore, nessun portiere inquadrato
+            {"shot_id": "s2", "x": 115.0, "y": 40.0, "compagno": False, "portiere": False},
+        ]
+    )
+    return tiri, fotogrammi
+
+
+def test_le_variabili_complete_sono_base_piu_spaziali() -> None:
+    tiri, fotogrammi = tiri_e_fotogrammi()
+
+    tabella = features.variabili_complete(tiri, fotogrammi)
+
+    assert set(features.VARIABILI_COMPLETE) <= set(tabella.columns)
+    assert {"gol", "match_id"} <= set(tabella.columns)
+    assert set(features.VARIABILI_COMPLETE) == {
+        *features.VARIABILI_BASE,
+        *features.VARIABILI_SPAZIALI,
+    }
+
+
+def test_le_variabili_spaziali_sono_tutte_numeriche() -> None:
+    # Se un giorno se ne aggiunge una categorica, VARIABILI_NUMERICHE_COMPLETE
+    # smetterebbe di descrivere la realta' in silenzio e il preprocessore la
+    # standardizzerebbe come se fosse un numero.
+    tiri, fotogrammi = tiri_e_fotogrammi()
+
+    tabella = features.variabili_complete(tiri, fotogrammi)
+
+    for colonna in features.VARIABILI_SPAZIALI:
+        assert pd.api.types.is_numeric_dtype(tabella[colonna]), colonna
+    assert set(features.VARIABILI_NUMERICHE_COMPLETE) == {
+        *features.VARIABILI_NUMERICHE,
+        *features.VARIABILI_SPAZIALI,
+    }
+
+
+def test_il_tiro_senza_portiere_ha_valori_mancanti_non_zeri() -> None:
+    # E' la regola del progetto: un dato assente non diventa mai uno zero, che
+    # il modello leggerebbe come «portiere sulla linea, addosso a chi tira».
+    # Il controllo passa per numpy invece che per `pd.isna` su `.loc[riga, col]`:
+    # per pandas-stubs quell'espressione puo' essere uno scalare, una Series o
+    # un DataFrame, e la verifica diventa impossibile da tipizzare.
+    tiri, fotogrammi = tiri_e_fotogrammi()
+
+    tabella = features.variabili_complete(tiri, fotogrammi)
+
+    assert np.isnan(tabella["distanza_portiere"].to_numpy()[1])
+    assert np.isnan(tabella["portiere_avanzato"].to_numpy()[1])
+    assert not np.isnan(tabella["distanza_portiere"].to_numpy()[0])
+
+
+def test_il_tiro_senza_portiere_viene_scartato() -> None:
+    tiri, fotogrammi = tiri_e_fotogrammi()
+
+    completi = features.con_fotogramma_completo(features.variabili_complete(tiri, fotogrammi))
+
+    assert len(completi) == 1
+    assert not completi[list(features.VARIABILI_SPAZIALI)].isna().to_numpy().any()
+
+
+def test_scartare_non_tocca_le_righe_gia_complete() -> None:
+    # Confronto sull'intera tabella invece che riga per riga: verifica anche
+    # che i tipi delle colonne non cambino, cosa che uno scarto di righe non
+    # dovrebbe mai fare.
+    tiri, fotogrammi = tiri_e_fotogrammi()
+    tabella = features.variabili_complete(tiri, fotogrammi)
+
+    completi = features.con_fotogramma_completo(tabella)
+
+    pd.testing.assert_frame_equal(completi, tabella.iloc[[0]])
