@@ -9,8 +9,9 @@ li riduce a tabelle compatte, addestra un modello che stima la probabilita' di
 gol di ogni tiro, e li mette in una dashboard dove si possono esplorare
 squadre, partite e giocatori.
 
-> **Stato:** M1 — Fondamenta. Il repository esiste, il codice si installa, i
-> controlli girano. Le milestone successive sono elencate in
+> **Stato:** M5 — Modello xG. Le prime quattro milestone sono chiuse: 1.753
+> partite scaricate, 43.849 tiri in sei tabelle Parquet, e il primo modello
+> addestrato. Le relazioni sono in
 > [`docs/milestones/README.md`](docs/milestones/README.md).
 
 ---
@@ -78,25 +79,45 @@ separati: **Lint e tipi** e **Test**.
 ### Se Windows blocca i comandi
 
 Su un sistema con **Smart App Control** o una policy WDAC attiva, comandi come
-`uv run mypy` o `uv run jupyter` possono fallire con
-`Un criterio di controllo dell'applicazione ha bloccato il file`. Non e' un
-problema del progetto: uv genera in `.venv\Scripts\` un piccolo eseguibile per
-ogni comando, e quei binari non sono firmati.
+`uv run mypy` o `uv run pytest` falliscono con
+`Un criterio di controllo dell'applicazione ha bloccato il file`.
 
-La regola che li risolve tutti — invocare il **modulo** invece
-dell'eseguibile:
+Non e' un problema del progetto: uv genera in `.venv\Scripts\` un piccolo
+eseguibile per ogni comando dichiarato da un pacchetto, e quei binari non sono
+firmati. **Vengono rigenerati a ogni `uv sync`**, quindi il blocco puo'
+ripresentarsi anche dopo essere stato aggirato una volta.
+
+La regola che li risolve tutti — invocare il **modulo**, non l'eseguibile:
 
 ```powershell
-uv run python -m nbconvert ...     # invece di  uv run jupyter nbconvert ...
-uv run python -m jupyterlab        # invece di  uv run jupyter lab
+uv run python -m mypy
+uv run python -m pytest -m "not rete"
+uv run python -m nbconvert --to notebook --execute --inplace notebooks/esplorazione.ipynb
+uv run python -m jupyterlab
 ```
 
-Per `mypy`, che viene distribuito compilato, serve costruirlo da sorgente una
-volta sola:
+Funziona perche' gira `python.exe`, che e' una copia del Python ufficiale ed e'
+firmato. `ruff` invece va sempre: e' un unico binario Rust senza librerie da
+caricare.
+
+In piu' `mypy` viene distribuito compilato con mypyc, e quei binari sono
+bloccati anche quando li si importa. Serve costruirlo da sorgente, una volta
+sola:
 
 ```powershell
 [System.Environment]::SetEnvironmentVariable('UV_NO_BINARY_PACKAGE','mypy','User')
 uv sync --all-extras --reinstall-package mypy
+```
+
+Se scrivi del Python direttamente nel terminale, usa una **here-string**:
+PowerShell non interpreta `\"` come escape e manderebbe all'interprete una
+stringa mai chiusa.
+
+```powershell
+@'
+import pandas as pd
+print(pd.read_parquet("data/processed/shots.parquet").shape)
+'@ | uv run python -
 ```
 
 ---

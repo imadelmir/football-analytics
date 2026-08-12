@@ -612,6 +612,86 @@ e' una soglia che prima o poi verra' allentata a caso.
 
 ---
 
+## M5-T4 — Avevo silenziato mypy invece di ascoltarlo
+
+**Il sintomo:** sette errori tutti uguali, `Unused "type: ignore" comment`, in
+`tests/test_modello.py`.
+
+**La causa:** avevo dichiarato la fixture `addestrato` come
+`tuple[object, ...]`, perche' importare `Pipeline` in un file di test mi
+sembrava una complicazione. Ma un `object` non ha `.predict_proba`, quindi ogni
+uso della fixture diventava un errore di tipo, e avevo messo un
+`# type: ignore[arg-type]` su ognuno. Poi ho corretto un'altra cosa, mypy ha
+smesso di aver bisogno di quei commenti, e me li ha segnalati tutti e sette.
+
+**Risolto:** il tipo vero, `tuple[Pipeline, pd.DataFrame, pd.DataFrame]`, con
+l'import sotto `TYPE_CHECKING`. Zero `type: ignore` rimasti.
+
+**Cosa insegna:** avevo scritto sette silenziatori per evitare un import. Un
+`type: ignore` non e' mai una correzione — e' una nota che dice «so meglio io»,
+e va scritta solo quando e' vero. Le sette righe erano il segnale che il tipo
+dichiarato era sbagliato, non che mypy fosse pedante. Il fatto che sia stato
+mypy stesso a farmele notare, quando sono diventate inutili, e' il motivo per
+cui `warn_unused_ignores` va tenuto acceso.
+
+## M5-T4 — Il numero che dice se il modello e' calibrato
+
+**Non e' un problema, e' il primo risultato del progetto**, ma vale la pena
+annotarlo perche' conferma una scelta fatta al buio settimane fa.
+
+```
+xG medio previsto  0,0950
+gol reali          0,0951
+```
+
+Su 8.597 tiri mai visti. Uno scarto di **un decimillesimo**.
+
+Quel numero e' il pagamento diretto della decisione di **non** usare
+`class_weight="balanced"`. Con un gol ogni dieci tiri, bilanciare le classi e'
+la prima cosa che qualunque tutorial suggerisce: migliora l'AUC e fa sentire il
+modello «piu' bravo». Avrebbe anche spinto le probabilita' verso il 50 %,
+producendo un xG che dice 0,4 dove la realta' e' 0,1 — un modello che ordina
+bene i tiri e mente su quanto valgono. Per un classificatore sarebbe un
+dettaglio; per un xG e' il prodotto.
+
+C'era gia' un test che avrebbe fallito se avessi cambiato idea. Adesso c'e'
+anche la misura sui dati veri.
+
+**Cosa insegna:** il consiglio piu' diffuso su un problema sbilanciato e'
+sbagliato **per questo problema specifico**, e non perche' sia sbagliato in
+generale. Dipende da cosa deve produrre il modello: un'etichetta o un numero.
+La domanda «cosa mi serve in uscita» va fatta prima di scegliere gli
+iperparametri, non dopo aver guardato le metriche.
+
+## M5-T4 — Un Brier score da solo non vuol dire niente
+
+**Il sintomo:** il modello dava Brier 0,0739 e StatsBomb 0,0686. Stavo per
+scrivere «siamo vicini» senza sapere cosa volesse dire vicini.
+
+**La causa:** il Brier score non ha uno zero naturale. Su un problema dove si
+segna il 9,5 % delle volte, un modello che risponde **sempre 0,0951** ottiene
+gia' 0,0861 senza aver imparato nulla. Confrontare 0,0739 con 0,0686 senza
+sapere che si parte da 0,0861 e' come confrontare due tempi sui 100 metri senza
+sapere dov'e' la partenza.
+
+**Risolto:** riportare entrambi come miglioramento rispetto al riferimento.
+
+| | Brier | Miglioramento |
+| --- | ---: | ---: |
+| Sempre la media | 0,08606 | 0 % |
+| Modello base | 0,07387 | 14,2 % |
+| StatsBomb | 0,06858 | 20,3 % |
+
+Detto cosi' il divario si legge: il modello base cattura **il 70 % di quello
+che cattura StatsBomb**, con sei variabili e nessuna informazione spaziale.
+
+**Cosa insegna:** ogni metrica va accompagnata dal punteggio del modello piu'
+stupido possibile. E' l'unica cosa che trasforma un numero in
+un'informazione — e nel caso del Brier score il modello stupido e' bravissimo,
+perche' rispondere sempre «quasi mai» su un evento raro e' quasi sempre giusto.
+
+---
+
 <!--
 Le milestone successive aggiungono qui la loro sezione.
 Almeno un'annotazione per milestone: e' il criterio di M7-T6.

@@ -21,6 +21,22 @@ data/raw/*
 # >>> A M7-T1: cancellare le due righe qui sotto e committare i Parquet. <<<
 data/processed/*.parquet
 
+# --- Modelli addestrati: esclusi FINO A M7-T1 ------------------------------
+#
+# Stesso ragionamento dei Parquet — si rigenerano a ogni modifica delle
+# variabili e git non sa fare diff dei binari — con un motivo in piu' che vale
+# la pena scrivere.
+#
+# Un file `.pkl` e' Python serializzato: **caricarlo esegue codice**. Un
+# modello nel repository e' quindi una superficie di attacco, e un modello
+# committato per sbaglio da una macchina compromessa diventa codice che gira
+# sul computer di chi clona. A M7-T1 ce ne sara' uno solo, prodotto da
+# `scripts/train_model.py` e rigenerabile con un comando: quello e' il momento
+# di versionarlo, non prima.
+#
+# >>> A M7-T1: cancellare la riga qui sotto e committare i modelli. <<<
+models/*.pkl
+
 # --- Python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]
