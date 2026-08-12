@@ -530,5 +530,223 @@
       "guadagno_log_loss": 0.23758849910641244,
       "guadagno_brier": 0.21487204437026908
     }
-  }
+  },
+  "coefficienti": [
+    {
+      "variabile": "tipo_Open Play",
+      "tipo": "categoria",
+      "coefficiente": -1.5557822771817382,
+      "odds_ratio_per_deviazione_standard": 0.21102423860853164,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.21102423860853164,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "distanza",
+      "tipo": "numerica",
+      "coefficiente": -1.3913899645779526,
+      "odds_ratio_per_deviazione_standard": 0.24872933927648233,
+      "unita_per_deviazione_standard": 8.726579844778163,
+      "odds_ratio_per_unita": 0.8526187709956595,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "parte_corpo_Head",
+      "tipo": "categoria",
+      "coefficiente": -0.8004512799907344,
+      "odds_ratio_per_deviazione_standard": 0.4491262366933136,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.4491262366933136,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "portiere_avanzato",
+      "tipo": "numerica",
+      "coefficiente": 0.42998837499218384,
+      "odds_ratio_per_deviazione_standard": 1.5372396530214274,
+      "unita_per_deviazione_standard": 2.0729239346487627,
+      "odds_ratio_per_unita": 1.2305126246877436,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "angolo",
+      "tipo": "numerica",
+      "coefficiente": 0.41142924470637116,
+      "odds_ratio_per_deviazione_standard": 1.5089729362079713,
+      "unita_per_deviazione_standard": 0.2658852058669078,
+      "odds_ratio_per_unita": 4.699209356390108,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "tipo_Free Kick",
+      "tipo": "categoria",
+      "coefficiente": 0.4064565243372334,
+      "odds_ratio_per_deviazione_standard": 1.5014878617668856,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 1.5014878617668856,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "parte_corpo_Other",
+      "tipo": "categoria",
+      "coefficiente": -0.3855303453088749,
+      "odds_ratio_per_deviazione_standard": 0.6800898580787051,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.6800898580787051,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "distanza_portiere",
+      "tipo": "numerica",
+      "coefficiente": 0.3574433326131789,
+      "odds_ratio_per_deviazione_standard": 1.4296695485152153,
+      "unita_per_deviazione_standard": 8.81393443763212,
+      "odds_ratio_per_unita": 1.041387901754878,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "difensori_nel_cono",
+      "tipo": "numerica",
+      "coefficiente": -0.3285083312711372,
+      "odds_ratio_per_deviazione_standard": 0.7199969297111934,
+      "unita_per_deviazione_standard": 0.9713932962476232,
+      "odds_ratio_per_unita": 0.7130650551155245,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "avversari_vicini",
+      "tipo": "numerica",
+      "coefficiente": -0.24991882473035842,
+      "odds_ratio_per_deviazione_standard": 0.7788640050009616,
+      "unita_per_deviazione_standard": 0.8904404075132488,
+      "odds_ratio_per_unita": 0.7552784557820016,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_From Corner",
+      "tipo": "categoria",
+      "coefficiente": -0.2230069798792814,
+      "odds_ratio_per_deviazione_standard": 0.8001092646089851,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.8001092646089851,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_From Throw In",
+      "tipo": "categoria",
+      "coefficiente": -0.18890268043400452,
+      "odds_ratio_per_deviazione_standard": 0.8278670704384528,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.8278670704384528,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_From Goal Kick",
+      "tipo": "categoria",
+      "coefficiente": -0.14860759646355157,
+      "odds_ratio_per_deviazione_standard": 0.8619072640076534,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.8619072640076534,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_Regular Play",
+      "tipo": "categoria",
+      "coefficiente": -0.1401970322827943,
+      "odds_ratio_per_deviazione_standard": 0.8691869606350021,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.8691869606350021,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_From Free Kick",
+      "tipo": "categoria",
+      "coefficiente": -0.13118812910946523,
+      "odds_ratio_per_deviazione_standard": 0.8770527597148591,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.8770527597148591,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_From Kick Off",
+      "tipo": "categoria",
+      "coefficiente": -0.12840066436861036,
+      "odds_ratio_per_deviazione_standard": 0.8795009238588715,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.8795009238588715,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "tipo_Corner",
+      "tipo": "categoria",
+      "coefficiente": 0.1104153863502289,
+      "odds_ratio_per_deviazione_standard": 1.116741853450293,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 1.116741853450293,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "parte_corpo_Right Foot",
+      "tipo": "categoria",
+      "coefficiente": 0.09090625878741028,
+      "odds_ratio_per_deviazione_standard": 1.0951663382259418,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 1.0951663382259418,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "sotto_pressione",
+      "tipo": "booleana",
+      "coefficiente": -0.060916174140980626,
+      "odds_ratio_per_deviazione_standard": 0.9409021083978382,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.9409021083978382,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "parte_corpo_Left Foot",
+      "tipo": "categoria",
+      "coefficiente": 0.056165000017929005,
+      "odds_ratio_per_deviazione_standard": 1.057772201770733,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 1.057772201770733,
+      "direzione": "aumenta"
+    },
+    {
+      "variabile": "schema_From Keeper",
+      "tipo": "categoria",
+      "coefficiente": -0.0525632201019004,
+      "odds_ratio_per_deviazione_standard": 0.9487943362850771,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.9487943362850771,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "compagni_in_area",
+      "tipo": "numerica",
+      "coefficiente": -0.05014594570457695,
+      "odds_ratio_per_deviazione_standard": 0.9510906067823122,
+      "unita_per_deviazione_standard": 1.6873790924295342,
+      "odds_ratio_per_unita": 0.9707189997071166,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_Other",
+      "tipo": "categoria",
+      "coefficiente": -0.013022347385456056,
+      "odds_ratio_per_deviazione_standard": 0.9870620765171206,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.9870620765171206,
+      "direzione": "riduce"
+    },
+    {
+      "variabile": "schema_From Counter",
+      "tipo": "categoria",
+      "coefficiente": -0.013021716469209285,
+      "odds_ratio_per_deviazione_standard": 0.9870626992708177,
+      "unita_per_deviazione_standard": 1.0,
+      "odds_ratio_per_unita": 0.9870626992708177,
+      "direzione": "riduce"
+    }
+  ]
 }

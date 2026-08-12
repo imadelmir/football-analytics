@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Final, cast
 
 import joblib
 import numpy as np
+import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
@@ -43,7 +44,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     import numpy.typing as npt
-    import pandas as pd
 
 #: Quota di partite che finisce nell'insieme di verifica.
 QUOTA_TEST: Final[float] = 0.2
@@ -383,6 +383,89 @@ def carica_modello(nome: str) -> Pipeline:
         La pipeline addestrata.
     """
     return cast("Pipeline", joblib.load(percorso_modello(nome)))
+
+
+def coefficienti(modello: Pipeline) -> pd.DataFrame:
+    """Legge i coefficienti di una regressione logistica, in due scale.
+
+    **Una regressione logistica e' gia' la sua spiegazione.** Non serve una
+    libreria di attribuzione per sapere cosa ha imparato: i coefficienti *sono*
+    quello che ha imparato. E' il motivo per cui il piano di completamento
+    chiede di provare questa strada prima di SHAP, e per cui qui SHAP non
+    compare.
+
+    Le due scale rispondono a due domande diverse:
+
+    - ``odds_ratio_per_deviazione_standard`` risponde a «**quale variabile pesa
+      di piu'**». Confronta variabili con unita' incompatibili — metri contro
+      conteggi di giocatori — mettendole tutte sulla stessa scala.
+    - ``odds_ratio_per_unita`` risponde a «**quanto cambia se aggiungo un
+      difensore**». Si ottiene dividendo il coefficiente per la deviazione
+      standard usata dallo standardizzatore, ed e' il numero che si puo'
+      scrivere in una frase.
+
+    **Tre avvertenze, tutte necessarie per non leggere male la tabella.**
+
+    1. Le categorie sono codificate senza scartarne una, quindi i loro
+       coefficienti sono identificati solo **a meno di una costante**: ha senso
+       confrontare due categorie della stessa variabile fra loro, non leggere
+       il valore assoluto di una sola.
+    2. Un coefficiente vale «a parita' di tutto il resto». Distanza del tiro e
+       distanza del portiere sono correlate, e tenerne una ferma muovendo
+       l'altra descrive una situazione che sul campo non si presenta quasi mai.
+    3. Il segno e' una direzione, non una causa. Il modello vede associazioni.
+
+    Args:
+        modello: Una pipeline addestrata con :func:`pipeline_logistica`.
+
+    Returns:
+        Una riga per variabile prodotta dal preprocessore, ordinata per peso
+        decrescente.
+
+    Raises:
+        TypeError: Se il modello finale non ha coefficienti, come un gradient
+            boosting. Per quello servirebbe un'altra tecnica, e il progetto non
+            ne ha bisogno perche' in produzione va la logistica.
+    """
+    preparazione = modello.named_steps["preparazione"]
+    finale = modello.named_steps["modello"]
+    if not hasattr(finale, "coef_"):
+        msg = (
+            f"{type(finale).__name__} non espone coefficienti: questa lettura vale solo "
+            "per i modelli lineari."
+        )
+        raise TypeError(msg)
+
+    nomi_grezzi = [str(nome) for nome in preparazione.get_feature_names_out()]
+    pesi = np.asarray(finale.coef_).ravel()
+    numeriche = list(preparazione.transformers_[0][2])
+    scale = dict(
+        zip(
+            numeriche, np.asarray(preparazione.named_transformers_["numeriche"].scale_), strict=True
+        )
+    )
+
+    righe = []
+    for nome_grezzo, peso in zip(nomi_grezzi, pesi, strict=True):
+        gruppo, _, nome = nome_grezzo.partition("__")
+        sigma = float(scale.get(nome, 1.0))
+        righe.append(
+            {
+                "variabile": nome,
+                "tipo": {"numeriche": "numerica", "categoriche": "categoria"}.get(
+                    gruppo, "booleana"
+                ),
+                "coefficiente": float(peso),
+                "odds_ratio_per_deviazione_standard": float(np.exp(peso)),
+                "unita_per_deviazione_standard": sigma,
+                "odds_ratio_per_unita": float(np.exp(peso / sigma)),
+                "direzione": "aumenta" if peso > 0 else "riduce",
+            }
+        )
+
+    tabella = pd.DataFrame(righe)
+    tabella["peso"] = tabella["coefficiente"].abs()
+    return tabella.sort_values("peso", ascending=False).drop(columns="peso").reset_index(drop=True)
 
 
 def impronta(percorso: Path, cifre: int = 12) -> str:

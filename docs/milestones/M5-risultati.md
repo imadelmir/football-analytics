@@ -45,6 +45,27 @@ Ambiente: scikit-learn 1.9.0, pandas 3.0.5.
 | logistica spaziale | 0,24136 | 0,06771 | 0,8174 | 18,2 % | 0,0830 |
 | StatsBomb | 0,23254 | 0,06499 | 0,8362 | 21,5 % | 0,0851 |
 
+### Come legge i tiri il modello spaziale (M5-T10)
+
+Ordinate per peso. Il coefficiente e' sulla scala standardizzata, quindi
+confrontabile fra variabili; il rapporto di probabilita' e' per **unita'**
+naturale, quindi leggibile in una frase.
+
+| Variabile | Tipo | Coefficiente | Odds ratio per unita | Effetto |
+| --- | --- | ---: | ---: | --- |
+| `tipo_Open Play` | categoria | -1,556 | 0,211 | riduce |
+| `distanza` | numerica | -1,391 | 0,853 | riduce |
+| `parte_corpo_Head` | categoria | -0,800 | 0,449 | riduce |
+| `portiere_avanzato` | numerica | 0,430 | 1,231 | aumenta |
+| `angolo` | numerica | 0,411 | 4,699 | aumenta |
+| `tipo_Free Kick` | categoria | 0,406 | 1,501 | aumenta |
+| `parte_corpo_Other` | categoria | -0,386 | 0,680 | riduce |
+| `distanza_portiere` | numerica | 0,357 | 1,041 | aumenta |
+| `difensori_nel_cono` | numerica | -0,329 | 0,713 | riduce |
+| `avversari_vicini` | numerica | -0,250 | 0,755 | riduce |
+| `schema_From Corner` | categoria | -0,223 | 0,800 | riduce |
+| `schema_From Throw In` | categoria | -0,189 | 0,828 | riduce |
+
 ### Accordo con l'xG di StatsBomb
 
 Non e' una misura di *quale* modello sia migliore — quella e' la tabella

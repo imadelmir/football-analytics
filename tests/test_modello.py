@@ -403,6 +403,91 @@ def test_la_validazione_incrociata_da_sempre_lo_stesso_numero() -> None:
     assert uno == pytest.approx(due)
 
 
+# ---------------------------------------------------------------------------
+# Spiegabilita' (M5-T10)
+# ---------------------------------------------------------------------------
+
+
+def valore(tabella: pd.DataFrame, variabile: str, colonna: str) -> float:
+    """Estrae un valore dalla tabella dei coefficienti come numero.
+
+    Passa per numpy invece che per ``.loc[riga, colonna]``: per pandas-stubs
+    quell'espressione ha un tipo unione che comprende date e stringhe, e ogni
+    confronto numerico andrebbe silenziato.
+
+    Args:
+        tabella: Il risultato di :func:`model.coefficienti`.
+        variabile: Il nome della variabile da cercare.
+        colonna: La colonna da leggere.
+
+    Returns:
+        Il valore, come float.
+    """
+    riga = tabella[tabella["variabile"] == variabile]
+    return float(riga[colonna].to_numpy()[0])
+
+
+def test_i_coefficienti_hanno_i_segni_giusti() -> None:
+    # Nei dati finti la probabilita' scende con la distanza: se il segno del
+    # coefficiente non lo riflettesse, la lettura del modello direbbe il
+    # contrario di quello che il modello ha imparato.
+    train, _ = model.dividi_per_partita(tiri_finti())
+    addestrato = model.addestra(
+        model.pipeline_logistica(NUMERICHE, CATEGORICHE, BOOLEANE), train, VARIABILI
+    )
+
+    tabella = model.coefficienti(addestrato)
+    direzione = tabella[tabella["variabile"] == "distanza"]["direzione"].to_numpy()[0]
+
+    assert valore(tabella, "distanza", "coefficiente") < 0
+    assert valore(tabella, "distanza", "odds_ratio_per_unita") < 1.0
+    assert direzione == "riduce"
+
+
+def test_le_due_scale_coincidono_solo_dove_non_c_e_standardizzazione() -> None:
+    # Per una categoria o un booleano la deviazione standard e' 1, quindi le
+    # due letture sono lo stesso numero. Per una numerica no, ed e' il punto:
+    # confrontare l'importanza richiede la scala standardizzata, raccontarla
+    # richiede quella naturale.
+    train, _ = model.dividi_per_partita(tiri_finti())
+    addestrato = model.addestra(
+        model.pipeline_logistica(NUMERICHE, CATEGORICHE, BOOLEANE), train, VARIABILI
+    )
+
+    tabella = model.coefficienti(addestrato)
+    numeriche = tabella[tabella["tipo"] == "numerica"]
+    altre = tabella[tabella["tipo"] != "numerica"]
+
+    assert (numeriche["unita_per_deviazione_standard"] != 1.0).all()
+    assert altre["odds_ratio_per_unita"].to_numpy() == pytest.approx(
+        altre["odds_ratio_per_deviazione_standard"].to_numpy()
+    )
+
+
+def test_la_tabella_e_ordinata_per_peso() -> None:
+    train, _ = model.dividi_per_partita(tiri_finti())
+    addestrato = model.addestra(
+        model.pipeline_logistica(NUMERICHE, CATEGORICHE, BOOLEANE), train, VARIABILI
+    )
+
+    pesi = model.coefficienti(addestrato)["coefficiente"].abs().to_numpy()
+
+    assert list(pesi) == sorted(pesi, reverse=True)
+
+
+def test_un_modello_ad_alberi_non_ha_coefficienti_da_leggere() -> None:
+    # Meglio un errore esplicito che una tabella vuota: il gradient boosting
+    # richiederebbe un'altra tecnica, e il progetto non ne ha bisogno perche'
+    # in produzione va la logistica.
+    train, _ = model.dividi_per_partita(tiri_finti(partite=40))
+    alberi = model.addestra(
+        model.pipeline_alberi(NUMERICHE, CATEGORICHE, BOOLEANE, LEGGERI), train, VARIABILI
+    )
+
+    with pytest.raises(TypeError, match="non espone coefficienti"):
+        model.coefficienti(alberi)
+
+
 def test_i_metadati_descrivono_il_modello_salvato(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

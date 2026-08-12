@@ -252,6 +252,50 @@ cosa e ne faceva un'altra. La separazione ora avviene in
 `features.separa_applicazione`, prima della divisione e quindi prima che
 qualunque numero venga misurato.
 
+### Come legge i tiri il modello (M5-T10)
+
+**Una regressione logistica è già la sua spiegazione**: i coefficienti *sono*
+ciò che ha imparato. Niente SHAP — non perché sia una cattiva tecnica, ma
+perché qui non aggiungerebbe nulla a quello che il modello dice già di sé, e
+aggiungerebbe una dipendenza.
+
+| Variabile | Coefficiente | Odds ratio per unità | Effetto |
+| --- | ---: | ---: | --- |
+| `distanza` | −1,391 | 0,853 | ogni metro in più moltiplica per 0,85 |
+| `parte_corpo_Head` | −0,800 | 0,449 | di testa si segna meno della metà |
+| `portiere_avanzato` | +0,430 | 1,231 | ogni metro fuori dai pali |
+| `angolo` | +0,411 | 4,699 | per radiante di porta visibile |
+| `distanza_portiere` | +0,357 | 1,041 | portiere lontano da chi tira |
+| `difensori_nel_cono` | −0,329 | 0,713 | ogni difensore sulla traiettoria |
+| `avversari_vicini` | −0,250 | 0,755 | ogni avversario addosso |
+
+La tabella completa è in [`M5-risultati.md`](M5-risultati.md).
+
+#### Il risultato che vale la pena guardare due volte
+
+Il coefficiente di `distanza_portiere` è **positivo**: più il portiere è
+lontano da chi tira, più si segna. Ma il dato grezzo di M5-T6 diceva
+l'opposto — la conversione crolla dal 33 % al 3,5 % al crescere di quella
+distanza.
+
+**Non è una contraddizione, è un confondimento.** Nel dato grezzo la distanza
+del portiere fa da procura per la distanza di tiro: se il portiere è lontano è
+perché stai tirando da lontano. A parità di distanza di tiro il segno si
+inverte, e ha senso — un portiere fuori posizione è una porta più aperta.
+
+È la ragione per cui la lettura dei coefficienti va accompagnata da tre
+avvertenze, scritte nel docstring di `model.coefficienti`:
+
+1. **Le categorie non sono identificate da sole.** Sono codificate senza
+   scartarne una, quindi ha senso confrontare due categorie della stessa
+   variabile fra loro, non leggere il valore assoluto di una. È il motivo per
+   cui `tipo_Open Play` a −1,556 non va letto come «la variabile più
+   importante».
+2. **Ogni coefficiente vale «a parità di tutto il resto»**, e per variabili
+   correlate quella parità descrive una situazione che sul campo non si
+   presenta.
+3. **Il segno è una direzione, non una causa.**
+
 ### L'accordo con StatsBomb (M5-T8)
 
 Domanda diversa dalle precedenti: non *quale* modello sia migliore, ma **quanto

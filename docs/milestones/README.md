@@ -19,7 +19,7 @@ più.
 | M2 | Ingestione | 7 | 🟢 conclusa | [M2-ingestione.md](M2-ingestione.md) |
 | M3 | Trasformazione | 8 | 🟢 conclusa | [M3-trasformazione.md](M3-trasformazione.md) |
 | M4 | Esplorazione | 3 | 🟢 conclusa | [M4-esplorazione.md](M4-esplorazione.md) |
-| M5 | Modello xG | 12 | 🟡 in corso — T1-T9 e T11 chiusi | [M5-modello-xg.md](M5-modello-xg.md) |
+| M5 | Modello xG | 12 | 🟡 in corso — T1-T11 chiusi | [M5-modello-xg.md](M5-modello-xg.md) |
 | M6 | Dashboard | 14 | ⚪ da fare | — |
 | M7 | Pubblicazione | 7 | ⚪ da fare | — |
 | M8 | Portfolio | 6 | ⚪ da fare | — |

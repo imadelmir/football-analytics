@@ -1111,6 +1111,38 @@ La cosa che mi ha salvato non e' stata la prudenza, e' stato **aver dovuto
 rigenerare i numeri per un altro motivo**. Se M5-T9 non avesse toccato la
 divisione, quella frase sarebbe finita nel case study.
 
+## M5-T10 — Il segno si inverte quando si condiziona
+
+**Non e' un difetto, e' il risultato piu' istruttivo della milestone.**
+
+A M5-T6 avevo misurato che la conversione **crolla** al crescere della distanza
+fra chi tira e il portiere: dal 33 % con il portiere a 2-4 unita' al 3,5 % oltre
+le 14. A M5-T10 il coefficiente della stessa variabile e' **positivo**: +0,357,
+cioe' portiere lontano, piu' gol.
+
+**Non e' una contraddizione.** Nel dato grezzo la distanza del portiere fa da
+**procura per la distanza di tiro**: se il portiere e' lontano da te e' quasi
+sempre perche' stai tirando da lontano. La relazione marginale misura la
+distanza di tiro travestita da portiere. Il coefficiente invece vale a parita'
+di distanza e angolo, e li' dice la cosa sensata: un portiere fuori posizione
+lascia piu' porta scoperta.
+
+**Cosa insegna:** e' la spiegazione retrospettiva di tutta la confusione sul
+portiere di M5-T5 e M5-T6. Avevo guardato la forma marginale, non avevo trovato
+la U che avevo previsto, e avevo concluso che la variabile contasse poco. Il
+problema non era la forma: era che **stavo guardando la variabile sbagliata**,
+perche' quella marginale conteneva soprattutto informazione sulla distanza.
+
+Il controllo che avevo fatto — tenere la distanza di tiro «quasi costante» in
+una banda di sei unita' — non bastava. Una banda non e' un condizionamento, e
+sei unita' di distanza sono tante quando la distanza e' la variabile dominante
+del problema.
+
+La regola operativa che ne esce: **quando una variabile e' correlata con quella
+dominante, la sua relazione marginale non dice quasi nulla**, e stratificare a
+mano in due o tre fasce non e' un sostituto del modello. Il modello condiziona
+su tutto insieme, ed e' per questo che esiste.
+
 ---
 
 <!--
