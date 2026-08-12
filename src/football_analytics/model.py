@@ -18,7 +18,10 @@ colloquio qualcuno chiede «come hai diviso i dati?».
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Final, cast
 
 import joblib
@@ -31,11 +34,12 @@ from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from football_analytics import __version__
 from football_analytics.config import MODELS_DIR, SEED
 from football_analytics.metriche import ETICHETTE
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Mapping, Sequence
     from pathlib import Path
 
     import numpy.typing as npt
@@ -379,6 +383,86 @@ def carica_modello(nome: str) -> Pipeline:
         La pipeline addestrata.
     """
     return cast("Pipeline", joblib.load(percorso_modello(nome)))
+
+
+def impronta(percorso: Path, cifre: int = 12) -> str:
+    """Identifica la versione di un file di dati con le prime cifre del suo sha256.
+
+    Serve a rispondere alla domanda «questo modello e' stato addestrato su
+    questi dati?» senza conservare una copia del dataset. Se il magazzino viene
+    rigenerato dopo un cambio in ``transform.py``, l'impronta cambia e i
+    metadati di un modello vecchio smettono di corrispondere.
+
+    Args:
+        percorso: Il file da identificare.
+        cifre: Quante cifre esadecimali tenere. Dodici bastano ampiamente per
+            distinguere un pugno di versioni.
+
+    Returns:
+        Le prime ``cifre`` dello sha256, in esadecimale.
+    """
+    digest = hashlib.sha256()
+    with percorso.open("rb") as file:
+        for blocco in iter(lambda: file.read(1 << 20), b""):
+            digest.update(blocco)
+    return digest.hexdigest()[:cifre]
+
+
+def metadati(
+    nome: str,
+    modello: Pipeline,
+    variabili: Sequence[str],
+    punteggi: Mapping[str, float],
+    contesto: Mapping[str, object],
+) -> dict[str, object]:
+    """Descrive un modello salvato, perche' un ``.pkl`` da solo non si racconta.
+
+    Un file pickle e' opaco: non dice su quali variabili e' stato addestrato,
+    con quale seed, su quali dati, ne' che punteggi aveva il giorno in cui e'
+    stato scritto. Senza queste informazioni un modello salvato sei mesi fa non
+    e' riproducibile, e' solo riutilizzabile — che e' un'altra cosa.
+
+    Args:
+        nome: Il nome logico del modello.
+        modello: La pipeline addestrata, da cui si legge la classe finale.
+        variabili: Le colonne usate come predittori, **in ordine**.
+        punteggi: Le metriche misurate al momento del salvataggio.
+        contesto: Conteggi della divisione, impronta dei dati e versioni delle
+            librerie.
+
+    Returns:
+        Il dizionario da scrivere accanto al ``.pkl``.
+    """
+    return {
+        "nome": nome,
+        "versione_pacchetto": __version__,
+        "classe": type(modello.named_steps["modello"]).__name__,
+        "variabili": list(variabili),
+        "seed": SEED,
+        "quota_test": QUOTA_TEST,
+        "colonna_gruppo": COLONNA_GRUPPO,
+        "addestrato_il": datetime.now(UTC).isoformat(timespec="seconds"),
+        "metriche": dict(punteggi),
+        **dict(contesto),
+    }
+
+
+def salva_metadati(nome: str, contenuto: Mapping[str, object]) -> Path:
+    """Scrive i metadati accanto al modello, con lo stesso nome ed estensione json.
+
+    Args:
+        nome: Il nome logico del modello.
+        contenuto: Il dizionario prodotto da :func:`metadati`.
+
+    Returns:
+        Il percorso del file scritto.
+    """
+    percorso = percorso_modello(nome).with_suffix(".json")
+    percorso.parent.mkdir(parents=True, exist_ok=True)
+    percorso.write_text(
+        json.dumps(dict(contenuto), indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    return percorso
 
 
 def riepilogo_divisione(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, float]:

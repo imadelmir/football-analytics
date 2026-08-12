@@ -14,6 +14,7 @@ gonfia le probabilita' verso il 50 %, e un xG che dice 0,5 dove la realta' e'
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -400,6 +401,44 @@ def test_la_validazione_incrociata_da_sempre_lo_stesso_numero() -> None:
     due = model.logloss_incrociato(costruisci, dati, VARIABILI, pieghe=3)
 
     assert uno == pytest.approx(due)
+
+
+def test_i_metadati_descrivono_il_modello_salvato(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Un .pkl e' opaco: non dice su quali variabili e' stato addestrato ne' con
+    # che seed. Senza i metadati un modello di sei mesi fa e' riutilizzabile ma
+    # non riproducibile, che e' un'altra cosa.
+    monkeypatch.setattr(model, "MODELS_DIR", tmp_path)
+    train, _ = model.dividi_per_partita(tiri_finti(partite=40))
+    addestrato = model.addestra(
+        model.pipeline_logistica(NUMERICHE, CATEGORICHE, BOOLEANE), train, VARIABILI
+    )
+
+    contenuto = model.metadati(
+        "prova", addestrato, VARIABILI, {"brier": 0.07}, {"impronta_shots": "abc123"}
+    )
+    percorso = model.salva_metadati("prova", contenuto)
+    riletto = json.loads(percorso.read_text(encoding="utf-8"))
+
+    assert percorso.suffix == ".json"
+    assert riletto["variabili"] == VARIABILI
+    assert riletto["seed"] == SEED
+    assert riletto["classe"] == "LogisticRegression"
+    assert riletto["impronta_shots"] == "abc123"
+
+
+def test_l_impronta_cambia_se_i_dati_cambiano(tmp_path: Path) -> None:
+    uno = tmp_path / "uno.bin"
+    due = tmp_path / "due.bin"
+    tre = tmp_path / "tre.bin"
+    uno.write_bytes(b"stessi dati")
+    due.write_bytes(b"stessi dati")
+    tre.write_bytes(b"dati diversi")
+
+    assert model.impronta(uno) == model.impronta(due)
+    assert model.impronta(uno) != model.impronta(tre)
+    assert len(model.impronta(uno)) == 12
 
 
 def test_gli_alberi_salvati_e_riletti_prevedono_identico(

@@ -65,14 +65,20 @@ GRUPPI: Final[dict[str, tuple[str, ...]]] = {
 }
 
 
-def carica() -> tuple[pd.DataFrame, pd.DataFrame, int]:
+def carica() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, int]:
     """Legge il magazzino e costruisce le variabili dei modelli.
 
+    **Le finali di Champions escono qui**, prima della divisione train/test e
+    quindi prima che qualunque numero venga misurato. Sono la prova su calcio
+    di un'altra epoca e non devono entrare nell'addestramento nemmeno di
+    striscio.
+
     Returns:
-        I tiri grezzi modellabili, la tabella delle variabili ridotta ai soli
-        tiri con il fotogramma completo, e quanti ne sono stati scartati. I
-        primi due condividono l'indice, cosi' l'xG di StatsBomb si riallinea
-        senza chiavi di unione.
+        I tiri grezzi modellabili, le variabili dei tiri su cui il modello si
+        addestra e si verifica, le variabili dei tiri di applicazione, e quanti
+        tiri sono stati scartati per fotogramma incompleto. Tiri e variabili
+        condividono l'indice, cosi' l'xG di StatsBomb si riallinea senza chiavi
+        di unione.
 
     Raises:
         FileNotFoundError: Se il magazzino non e' stato ancora costruito.
@@ -85,9 +91,17 @@ def carica() -> tuple[pd.DataFrame, pd.DataFrame, int]:
             raise FileNotFoundError(msg)
 
     tiri = features.tiri_modellabili(pd.read_parquet(tiri_path))
-    tutte = features.variabili_complete(tiri, pd.read_parquet(fotogrammi_path))
-    completi = features.con_fotogramma_completo(tutte)
-    return tiri, completi, len(tutte) - len(completi)
+    fotogrammi = pd.read_parquet(fotogrammi_path)
+    per_modello, per_applicazione = features.separa_applicazione(tiri)
+
+    completi = features.con_fotogramma_completo(
+        features.variabili_complete(per_modello, fotogrammi)
+    )
+    applicazione = features.con_fotogramma_completo(
+        features.variabili_complete(per_applicazione, fotogrammi)
+    )
+    scartati = (len(per_modello) - len(completi)) + (len(per_applicazione) - len(applicazione))
+    return tiri, completi, applicazione, scartati
 
 
 def costruisci(nome_classe: str, numeriche: Sequence[str]) -> Pipeline:
@@ -281,11 +295,13 @@ def markdown_accordo(per_tiro: Mapping[str, float], per_partita: Mapping[str, fl
 
 
 def scrivi(
-    incrociato: Mapping[str, Mapping[str, float]],
-    gruppi: Mapping[str, Mapping[str, float]],
     contesto: Mapping[str, float],
     calibrazione: Mapping[str, pd.DataFrame],
     accordi: tuple[Mapping[str, float], Mapping[str, float]],
+    *,
+    incrociato: Mapping[str, Mapping[str, float]],
+    gruppi: Mapping[str, Mapping[str, float]],
+    fuori_campione: Mapping[str, Mapping[str, float]],
 ) -> tuple[Path, Path]:
     """Scrive i risultati in markdown e in JSON.
 
@@ -298,6 +314,7 @@ def scrivi(
         contesto: Conteggi della divisione e versioni delle librerie.
         calibrazione: Una curva di calibrazione per modello.
         accordi: L'accordo con StatsBomb, per tiro e per partita.
+        fuori_campione: I punteggi sulle finali di Champions, mai viste.
 
     Returns:
         I percorsi dei due file scritti.
@@ -323,8 +340,13 @@ def scrivi(
         f"{migliaia(contesto['partite_train'])} partite. "
         f"Verifica: {migliaia(contesto['tiri_test'])} tiri su "
         f"{migliaia(contesto['partite_test'])} partite, mai viste.\n\n"
+        f"Applicazione: {migliaia(contesto['tiri_applicazione'])} tiri su "
+        f"{migliaia(contesto['finali_applicazione'])} finali di Champions, escluse "
+        f"dall'addestramento **e** dalla verifica.\n\n"
         f"Scartati {migliaia(contesto['scartati'])} tiri senza il portiere avversario "
         f"nel fotogramma, da tutti i modelli.\n\n"
+        f"Riproducibilita': due addestramenti con lo stesso seed danno previsioni "
+        f"che differiscono al massimo di {contesto['scarto_fra_due_addestramenti']:.1e}.\n\n"
         f"Ambiente: scikit-learn {ambiente['scikit_learn']}, pandas {ambiente['pandas']}.\n"
     )
 
@@ -333,6 +355,7 @@ def scrivi(
         markdown("Confronto fra classi di modello e insiemi di variabili", incrociato),
         markdown("Da dove viene il guadagno (regressione logistica)", gruppi),
     ]
+    sezioni.append(markdown("Applicazione alle finali di Champions, mai viste", fuori_campione))
     sezioni.append(markdown_accordo(*accordi))
     sezioni.extend(markdown_calibrazione(curva, nome) for nome, curva in calibrazione.items())
 
@@ -348,6 +371,7 @@ def scrivi(
                     nome: curva.to_dict(orient="records") for nome, curva in calibrazione.items()
                 },
                 "accordo": {"per_tiro": dict(accordi[0]), "per_partita": dict(accordi[1])},
+                "fuori_campione": {k: dict(v) for k, v in fuori_campione.items()},
             },
             indent=2,
             ensure_ascii=False,
@@ -373,13 +397,15 @@ def main() -> int:
     argomenti = analizzatore.parse_args()
 
     inizio = time.perf_counter()
-    tiri, dati, scartati = carica()
+    tiri, dati, applicazione, scartati = carica()
 
     train, test = model.dividi_per_partita(dati)
     divisione = model.riepilogo_divisione(train, test)
     print(
         f"addestramento {len(train):,} tiri / {train['match_id'].nunique()} partite\n"
         f"verifica      {len(test):,} tiri / {test['match_id'].nunique()} partite\n"
+        f"applicazione  {len(applicazione):,} tiri / "
+        f"{applicazione['match_id'].nunique()} finali, mai viste\n"
         f"scartati      {scartati} tiri senza portiere inquadrato\n"
     )
 
@@ -417,18 +443,74 @@ def main() -> int:
         )
     print()
 
+    # M5-T9: il modello incontra 18 finali dal 1971 al 2019, di cui non ha visto
+    # nemmeno un tiro. E' l'unica misura del progetto su calcio di un'altra
+    # epoca, ed e' anche l'unica che puo' andare peggio senza che sia un errore.
+    fuori_campione = metriche.confronta(
+        applicazione["gol"],
+        {
+            "logistica base": model.previsioni(
+                addestrati["logistica base"], applicazione, features.VARIABILI_BASE
+            ),
+            "logistica spaziale": model.previsioni(
+                addestrati["logistica spaziale"], applicazione, features.VARIABILI_COMPLETE
+            ),
+            "StatsBomb": tiri.loc[applicazione.index, "xg_statsbomb"].to_numpy(),
+        },
+    )
+    print("applicazione alle finali di Champions, mai viste in addestramento")
+    print(metriche.tabella(fuori_campione), "\n")
+
+    # M5-T11: la riproducibilita' e' un criterio del backlog, quindi si verifica
+    # invece di affermarla. Due addestramenti con lo stesso seed sugli stessi
+    # dati devono dare le stesse previsioni.
+    ripetuto = model.addestra(
+        costruisci("logistica", list(features.VARIABILI_NUMERICHE_COMPLETE)),
+        train,
+        features.VARIABILI_COMPLETE,
+    )
+    scarto_ripetizione = float(
+        np.abs(
+            model.previsioni(ripetuto, test, features.VARIABILI_COMPLETE)
+            - stime_per_curva["logistica spaziale"]
+        ).max()
+    )
+    print(f"riproducibilita': scarto massimo fra due addestramenti {scarto_ripetizione:.2e}\n")
+
     if not argomenti.senza_salvare:
         # La regressione logistica va in produzione per entrambi gli insiemi:
-        # vince sulle variabili base, pareggia su quelle spaziali, pesa novanta
+        # vince sulle variabili base, vince su quelle spaziali, pesa novanta
         # volte meno del gradient boosting e ha la calibrazione garantita dalla
         # forma del modello invece che verificata a posteriori. Su Streamlit
         # Cloud, con meno di 1 GB di RAM, la dimensione non e' un dettaglio.
-        for nome_logico, chiave in (
-            (model.NOME_BASE, "logistica base"),
-            (model.NOME_SPAZIALE, "logistica spaziale"),
+        contesto_modello: dict[str, object] = {
+            "impronta_shots": model.impronta(DATA_PROCESSED / "shots.parquet"),
+            "impronta_fotogrammi": model.impronta(DATA_PROCESSED / "freeze_frames.parquet"),
+            "gruppo_escluso_dall_addestramento": "finali",
+            "tiri_addestramento": len(train),
+            "tiri_verifica": len(test),
+            "tiri_applicazione": len(applicazione),
+            "scarto_fra_due_addestramenti": scarto_ripetizione,
+            "ambiente": {"scikit_learn": sklearn.__version__, "pandas": pd.__version__},
+        }
+        for nome_logico, chiave, variabili_usate in (
+            (model.NOME_BASE, "logistica base", features.VARIABILI_BASE),
+            (model.NOME_SPAZIALE, "logistica spaziale", features.VARIABILI_COMPLETE),
         ):
             percorso = model.salva_modello(addestrati[chiave], nome_logico)
-            print(f"salvato {percorso.name} ({percorso.stat().st_size / 1024:.0f} KB)")
+            meta = model.salva_metadati(
+                nome_logico,
+                model.metadati(
+                    nome_logico,
+                    addestrati[chiave],
+                    variabili_usate,
+                    incrociato[chiave],
+                    contesto_modello,
+                ),
+            )
+            print(
+                f"salvato {percorso.name} ({percorso.stat().st_size / 1024:.0f} KB) con {meta.name}"
+            )
 
     nostro = stime_per_curva["logistica spaziale"]
     loro = xg_statsbomb.to_numpy()
@@ -442,8 +524,21 @@ def main() -> int:
         f"scarto relativo mediano {accordi[0]['scarto_relativo_mediano']:.1%}\n"
     )
 
-    contesto = {**divisione, "scartati": float(scartati)}
-    percorso_md, percorso_json = scrivi(incrociato, gruppi, contesto, calibrazione, accordi)
+    contesto = {
+        **divisione,
+        "scartati": float(scartati),
+        "tiri_applicazione": float(len(applicazione)),
+        "finali_applicazione": float(applicazione["match_id"].nunique()),
+        "scarto_fra_due_addestramenti": scarto_ripetizione,
+    }
+    percorso_md, percorso_json = scrivi(
+        contesto,
+        calibrazione,
+        accordi,
+        incrociato=incrociato,
+        gruppi=gruppi,
+        fuori_campione=fuori_campione,
+    )
     print(f"\nrisultati in {percorso_md.name} e {percorso_json.name}")
     print(f"durata {time.perf_counter() - inizio:.1f}s")
     return 0

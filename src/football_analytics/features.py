@@ -24,6 +24,8 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+from football_analytics.config import Gruppo
+
 #: Il centro della porta nel sistema di coordinate di StatsBomb.
 PORTA_X: Final[float] = 120.0
 PORTA_Y: Final[float] = 40.0
@@ -290,6 +292,36 @@ def variabili_base(tiri: pd.DataFrame) -> pd.DataFrame:
     fuori["gol"] = tiri["gol"]
     fuori["match_id"] = tiri["match_id"]
     return fuori
+
+
+def separa_applicazione(tiri: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Tiene fuori dal modello le competizioni riservate all'**applicazione**.
+
+    Le finali di Champions League vanno dal 1971 al 2019 e servono a una cosa
+    sola: vedere come si comporta il modello su calcio di un'altra epoca, che
+    non ha mai visto. Il docstring di :class:`~football_analytics.config.Gruppo`
+    e il README lo dichiaravano da M2, ma
+    :func:`~football_analytics.model.dividi_per_partita` mescola le partite a
+    caso e non sa nulla dei gruppi: **437 tiri delle finali su 561 erano finiti
+    nell'addestramento**.
+
+    Non era leakage in senso stretto — nessun tiro stava da entrambe le parti —
+    ma il progetto dichiarava una cosa e ne faceva un'altra, e la prova fuori
+    campione non era una prova.
+
+    La separazione avviene **prima** della divisione train/test, e quindi anche
+    prima che qualunque numero venga misurato.
+
+    Args:
+        tiri: I tiri con la colonna ``gruppo``, gia' filtrati da
+            :func:`tiri_modellabili`.
+
+    Returns:
+        I tiri su cui il modello si addestra e si verifica, e quelli riservati
+        all'applicazione, nell'ordine.
+    """
+    e_applicazione = tiri["gruppo"] == Gruppo.FINALI
+    return tiri[~e_applicazione].copy(), tiri[e_applicazione].copy()
 
 
 def variabili_complete(tiri: pd.DataFrame, fotogrammi: pd.DataFrame) -> pd.DataFrame:

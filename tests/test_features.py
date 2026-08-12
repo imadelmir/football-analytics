@@ -431,6 +431,45 @@ def tiri_e_fotogrammi() -> tuple[pd.DataFrame, pd.DataFrame]:
     return tiri, fotogrammi
 
 
+def test_le_finali_escono_dal_campione_di_modellazione() -> None:
+    tiri = pd.DataFrame(
+        {
+            "gruppo": pd.Categorical(["campionato", "torneo", "finali", "campionato"]),
+            "shot_id": ["a", "b", "c", "d"],
+        }
+    )
+
+    per_modello, per_applicazione = features.separa_applicazione(tiri)
+
+    assert list(per_modello["shot_id"]) == ["a", "b", "d"]
+    assert list(per_applicazione["shot_id"]) == ["c"]
+
+
+def test_la_separazione_non_perde_ne_duplica_tiri() -> None:
+    # Ogni tiro deve stare da una parte e da una sola: se la condizione
+    # cambiasse in qualcosa di non esaustivo, righe sparirebbero in silenzio.
+    tiri = pd.DataFrame(
+        {
+            "gruppo": pd.Categorical(["campionato", "torneo", "finali"] * 5),
+            "shot_id": [str(i) for i in range(15)],
+        }
+    )
+
+    per_modello, per_applicazione = features.separa_applicazione(tiri)
+
+    assert len(per_modello) + len(per_applicazione) == len(tiri)
+    assert not set(per_modello["shot_id"]) & set(per_applicazione["shot_id"])
+
+
+def test_senza_finali_la_separazione_restituisce_un_insieme_vuoto() -> None:
+    tiri = pd.DataFrame({"gruppo": pd.Categorical(["campionato", "torneo"]), "shot_id": ["a", "b"]})
+
+    per_modello, per_applicazione = features.separa_applicazione(tiri)
+
+    assert len(per_modello) == 2
+    assert len(per_applicazione) == 0
+
+
 def test_le_variabili_complete_sono_base_piu_spaziali() -> None:
     tiri, fotogrammi = tiri_e_fotogrammi()
 
