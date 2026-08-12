@@ -255,6 +255,44 @@ def markdown_calibrazione(curva: pd.DataFrame, nome: str) -> str:
     return "\n".join(righe)
 
 
+def markdown_coefficienti(tabella: pd.DataFrame, quante: int = 12) -> str:
+    """Formatta la lettura del modello come tabella markdown.
+
+    Args:
+        tabella: Il risultato di :func:`model.coefficienti`.
+        quante: Quante righe mostrare, dalla piu' pesante.
+
+    Returns:
+        Il frammento markdown.
+    """
+
+    def virgola(valore: float, decimali: int) -> str:
+        return f"{valore:.{decimali}f}".replace(".", ",")
+
+    colonne = {
+        nome: tabella[nome].to_numpy()
+        for nome in ("variabile", "tipo", "coefficiente", "odds_ratio_per_unita", "direzione")
+    }
+    righe = [
+        "### Come legge i tiri il modello spaziale (M5-T10)",
+        "",
+        "Ordinate per peso. Il coefficiente e' sulla scala standardizzata, quindi",
+        "confrontabile fra variabili; il rapporto di probabilita' e' per **unita'**",
+        "naturale, quindi leggibile in una frase.",
+        "",
+        "| Variabile | Tipo | Coefficiente | Odds ratio per unita | Effetto |",
+        "| --- | --- | ---: | ---: | --- |",
+    ]
+    righe.extend(
+        f"| `{colonne['variabile'][i]}` | {colonne['tipo'][i]} "
+        f"| {virgola(colonne['coefficiente'][i], 3)} "
+        f"| {virgola(colonne['odds_ratio_per_unita'][i], 3)} "
+        f"| {colonne['direzione'][i]} |"
+        for i in range(min(quante, len(tabella)))
+    )
+    return "\n".join(righe)
+
+
 def markdown_accordo(per_tiro: Mapping[str, float], per_partita: Mapping[str, float]) -> str:
     """Formatta l'accordo con l'xG di StatsBomb come tabella markdown.
 
@@ -302,6 +340,7 @@ def scrivi(
     incrociato: Mapping[str, Mapping[str, float]],
     gruppi: Mapping[str, Mapping[str, float]],
     fuori_campione: Mapping[str, Mapping[str, float]],
+    lettura: pd.DataFrame,
 ) -> tuple[Path, Path]:
     """Scrive i risultati in markdown e in JSON.
 
@@ -315,6 +354,7 @@ def scrivi(
         calibrazione: Una curva di calibrazione per modello.
         accordi: L'accordo con StatsBomb, per tiro e per partita.
         fuori_campione: I punteggi sulle finali di Champions, mai viste.
+        lettura: I coefficienti del modello spaziale.
 
     Returns:
         I percorsi dei due file scritti.
@@ -356,6 +396,7 @@ def scrivi(
         markdown("Da dove viene il guadagno (regressione logistica)", gruppi),
     ]
     sezioni.append(markdown("Applicazione alle finali di Champions, mai viste", fuori_campione))
+    sezioni.append(markdown_coefficienti(lettura))
     sezioni.append(markdown_accordo(*accordi))
     sezioni.extend(markdown_calibrazione(curva, nome) for nome, curva in calibrazione.items())
 
@@ -372,6 +413,7 @@ def scrivi(
                 },
                 "accordo": {"per_tiro": dict(accordi[0]), "per_partita": dict(accordi[1])},
                 "fuori_campione": {k: dict(v) for k, v in fuori_campione.items()},
+                "coefficienti": lettura.to_dict(orient="records"),
             },
             indent=2,
             ensure_ascii=False,
@@ -477,6 +519,19 @@ def main() -> int:
     )
     print(f"riproducibilita': scarto massimo fra due addestramenti {scarto_ripetizione:.2e}\n")
 
+    # M5-T10: una regressione logistica e' gia' la sua spiegazione. Niente SHAP,
+    # come chiede il piano di completamento: i coefficienti *sono* cio' che il
+    # modello ha imparato.
+    lettura = model.coefficienti(addestrati["logistica spaziale"])
+    print("le cinque variabili di peso maggiore")
+    for i in range(5):
+        riga = lettura.iloc[i]
+        print(
+            f"  {riga['variabile']!s:<22} {float(riga['coefficiente']):+7.3f}   "
+            f"per unita' x{float(riga['odds_ratio_per_unita']):.3f}   {riga['direzione']}"
+        )
+    print()
+
     if not argomenti.senza_salvare:
         # La regressione logistica va in produzione per entrambi gli insiemi:
         # vince sulle variabili base, vince su quelle spaziali, pesa novanta
@@ -538,6 +593,7 @@ def main() -> int:
         incrociato=incrociato,
         gruppi=gruppi,
         fuori_campione=fuori_campione,
+        lettura=lettura,
     )
     print(f"\nrisultati in {percorso_md.name} e {percorso_json.name}")
     print(f"durata {time.perf_counter() - inizio:.1f}s")
