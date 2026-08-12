@@ -19,7 +19,7 @@ più.
 | M2 | Ingestione | 7 | 🟢 conclusa | [M2-ingestione.md](M2-ingestione.md) |
 | M3 | Trasformazione | 8 | 🟢 conclusa | [M3-trasformazione.md](M3-trasformazione.md) |
 | M4 | Esplorazione | 3 | 🟢 conclusa | [M4-esplorazione.md](M4-esplorazione.md) |
-| M5 | Modello xG | 12 | 🟡 in corso — T1-T4 chiusi | [M5-modello-xg.md](M5-modello-xg.md) |
+| M5 | Modello xG | 12 | 🟡 in corso — T1-T5 chiusi | [M5-modello-xg.md](M5-modello-xg.md) |
 | M6 | Dashboard | 14 | ⚪ da fare | — |
 | M7 | Pubblicazione | 7 | ⚪ da fare | — |
 | M8 | Portfolio | 6 | ⚪ da fare | — |
@@ -49,8 +49,10 @@ ricalcolano a mano.
 | Conversione, 2 avversari inquadrati | 38,9 % | M4 |
 | Conversione, 8+ avversari inquadrati | 7,2 % | M4 |
 | Brier score, modello base | 0,07387 | M5 |
+| Brier score, gradient boosting | 0,07456 — peggiore | M5 |
 | Brier score, xG di StatsBomb | 0,06858 | M5 |
 | AUC, modello base | 0,7893 | M5 |
 | Calibrazione, xG medio contro gol reali | 0,0950 / 0,0951 | M5 |
+| Quota del guadagno di StatsBomb catturata | 69,8 % | M5 |
 | Brier score, modello 360 | — | M5 |
 | Scarto medio dall'xG StatsBomb | — | M5 |
