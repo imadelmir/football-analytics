@@ -70,6 +70,11 @@ src = ["src", "tests", "scripts", "app"]
 extend-exclude = ["notebooks", "data", "models"]
 
 [tool.ruff.lint]
+# La dashboard e' in italiano e usa la punteggiatura tipografica giusta: il
+# segno meno vero (U+2212) in «Gol − xG», non il trattino. Ruff li segnala come
+# confondibili, ed e' ragionevole in generale — ma qui e' una scelta
+# consapevole, dichiarata una volta invece che silenziata riga per riga.
+allowed-confusables = ["−", "×", "’", "′", "–"]
 select = [
   "F",    # pyflakes
   "E",    # pycodestyle, errori
@@ -118,6 +123,10 @@ docstring-code-format = true
 [tool.mypy]
 python_version = "3.12"
 files = ["src", "tests", "scripts", "app"]
+# `app/` non e' un pacchetto: le pagine Streamlit importano `dati` e `theme`
+# come moduli fratelli, perche' Streamlit aggiunge da solo la cartella dello
+# script a sys.path. Senza questa riga mypy non li troverebbe.
+mypy_path = "app"
 strict = true
 warn_unreachable = true
 warn_unused_ignores = true

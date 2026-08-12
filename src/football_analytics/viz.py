@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Final
 
+import numpy as np
 import plotly.graph_objects as go
 
 from football_analytics.features import (
@@ -37,9 +38,14 @@ from football_analytics.features import (
     PORTA_X,
     PORTA_Y,
 )
-from football_analytics.tema import TRASPARENTE
+from football_analytics.tema import TRASPARENTE, scala_calore, scala_di
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
+    import numpy.typing as npt
+    import pandas as pd
+
     from football_analytics.tema import Tema
 
 #: Le dimensioni del campo nel sistema di StatsBomb.
@@ -89,7 +95,9 @@ def _rettangolo(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict
     }
 
 
-def _linea(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict[str, Any]:
+def _linea(
+    x0: float, y0: float, x1: float, y1: float, colore: str, *, livello: str = "below"
+) -> dict[str, Any]:
     """Costruisce un segmento delle linee del campo.
 
     Args:
@@ -98,6 +106,7 @@ def _linea(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict[str,
         x1: Ascissa finale.
         y1: Ordinata finale.
         colore: Il colore della linea.
+        livello: ``"below"`` o ``"above"``, rispetto alle tracce.
 
     Returns:
         La forma nel formato che Plotly si aspetta.
@@ -109,11 +118,13 @@ def _linea(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict[str,
         "x1": x1,
         "y1": y1,
         "line": {"color": colore, "width": SPESSORE},
-        "layer": "below",
+        "layer": livello,
     }
 
 
-def _riquadro(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict[str, Any]:
+def _riquadro(
+    x0: float, y0: float, x1: float, y1: float, colore: str, *, livello: str = "below"
+) -> dict[str, Any]:
     """Costruisce un rettangolo vuoto, cioe' quattro linee.
 
     Args:
@@ -122,6 +133,7 @@ def _riquadro(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict[s
         x1: Ascissa finale.
         y1: Ordinata finale.
         colore: Il colore del contorno.
+        livello: ``"below"`` o ``"above"``, rispetto alle tracce.
 
     Returns:
         La forma nel formato che Plotly si aspetta.
@@ -134,11 +146,13 @@ def _riquadro(x0: float, y0: float, x1: float, y1: float, colore: str) -> dict[s
         "y1": y1,
         "line": {"color": colore, "width": SPESSORE},
         "fillcolor": TRASPARENTE,
-        "layer": "below",
+        "layer": livello,
     }
 
 
-def _cerchio(cx: float, cy: float, raggio: float, colore: str) -> dict[str, Any]:
+def _cerchio(
+    cx: float, cy: float, raggio: float, colore: str, *, livello: str = "below"
+) -> dict[str, Any]:
     """Costruisce una circonferenza vuota.
 
     Args:
@@ -146,6 +160,7 @@ def _cerchio(cx: float, cy: float, raggio: float, colore: str) -> dict[str, Any]
         cy: Ordinata del centro.
         raggio: Il raggio.
         colore: Il colore del contorno.
+        livello: ``"below"`` o ``"above"``, rispetto alle tracce.
 
     Returns:
         La forma nel formato che Plotly si aspetta.
@@ -158,7 +173,7 @@ def _cerchio(cx: float, cy: float, raggio: float, colore: str) -> dict[str, Any]
         "y1": cy + raggio,
         "line": {"color": colore, "width": SPESSORE},
         "fillcolor": TRASPARENTE,
-        "layer": "below",
+        "layer": livello,
     }
 
 
@@ -184,7 +199,7 @@ def erba(tema: Tema) -> list[dict[str, Any]]:
     ]
 
 
-def segnature(tema: Tema) -> list[dict[str, Any]]:
+def segnature(tema: Tema, *, sopra: bool = False) -> list[dict[str, Any]]:
     """Disegna le linee regolamentari del campo.
 
     Solo la meta' offensiva ha le aree: le viste di questo progetto guardano i
@@ -193,19 +208,25 @@ def segnature(tema: Tema) -> list[dict[str, Any]]:
 
     Args:
         tema: La palette attiva.
+        sopra: Se vero le linee stanno **sopra** le tracce invece che sotto.
+            Serve alle mappe di calore, che coprono il campo: linee sotto una
+            superficie opaca sono linee che non ci sono.
 
     Returns:
         Le forme delle linee.
     """
     colore = tema.linee
+    livello = "above" if sopra else "below"
     return [
-        _riquadro(0.0, 0.0, LUNGHEZZA, LARGHEZZA, colore),
-        _linea(LUNGHEZZA / 2, 0.0, LUNGHEZZA / 2, LARGHEZZA, colore),
-        _cerchio(LUNGHEZZA / 2, PORTA_Y, RAGGIO, colore),
-        _riquadro(AREA_X, AREA_Y_MIN, PORTA_X, AREA_Y_MAX, colore),
-        _riquadro(AREA_PICCOLA_X, AREA_PICCOLA_Y_MIN, PORTA_X, AREA_PICCOLA_Y_MAX, colore),
-        _cerchio(DISCHETTO_X, PORTA_Y, 0.4, colore),
-        _cerchio(LUNGHEZZA / 2, PORTA_Y, 0.4, colore),
+        _riquadro(0.0, 0.0, LUNGHEZZA, LARGHEZZA, colore, livello=livello),
+        _linea(LUNGHEZZA / 2, 0.0, LUNGHEZZA / 2, LARGHEZZA, colore, livello=livello),
+        _cerchio(LUNGHEZZA / 2, PORTA_Y, RAGGIO, colore, livello=livello),
+        _riquadro(AREA_X, AREA_Y_MIN, PORTA_X, AREA_Y_MAX, colore, livello=livello),
+        _riquadro(
+            AREA_PICCOLA_X, AREA_PICCOLA_Y_MIN, PORTA_X, AREA_PICCOLA_Y_MAX, colore, livello=livello
+        ),
+        _cerchio(DISCHETTO_X, PORTA_Y, 0.4, colore, livello=livello),
+        _cerchio(LUNGHEZZA / 2, PORTA_Y, 0.4, colore, livello=livello),
         # La porta, disegnata piu' spessa: e' il riferimento visivo di ogni
         # vista sui tiri, e a questa scala una linea sottile sparisce.
         {
@@ -215,12 +236,268 @@ def segnature(tema: Tema) -> list[dict[str, Any]]:
             "x1": PORTA_X,
             "y1": PALO_DESTRO_Y,
             "line": {"color": colore, "width": SPESSORE * 3},
-            "layer": "below",
+            "layer": livello,
         },
     ]
 
 
-def campo(tema: Tema, *, meta_campo: bool = True, altezza: int = 520) -> go.Figure:
+#: Raggio minimo e massimo di un tiro sulla mappa, in pixel.
+PALLINO_MINIMO: Final[float] = 3.5
+PALLINO_MASSIMO: Final[float] = 22.0
+
+
+def _dimensioni(xg: npt.ArrayLike) -> list[float]:
+    """Traduce l'xG in raggi visibili.
+
+    **La dimensione e' proporzionale alla radice dell'xG, non all'xG.** L'occhio
+    confronta le **aree**, e un'area proporzionale al valore e' la traduzione
+    onesta: usando il raggio, un tiro da 0,4 sembrerebbe quattro volte uno da
+    0,1 invece di quattro volte in area, cioe' il doppio in larghezza. E' lo
+    stesso errore delle mappe con i cerchi proporzionali al raggio, ed e' il
+    modo piu' comune di esagerare un grafico senza volerlo.
+
+    Args:
+        xg: I valori di xG dei tiri.
+
+    Returns:
+        I raggi, uno per tiro.
+
+    """
+    valori = np.asarray(xg, dtype=float)
+    if valori.size == 0:
+        return []
+    massimo = float(valori.max())
+    quota = np.sqrt(valori / massimo) if massimo > 0 else np.zeros_like(valori)
+    return list(PALLINO_MINIMO + quota * (PALLINO_MASSIMO - PALLINO_MINIMO))
+
+
+def _sfondo(figura: go.Figure, tema: Tema, altezza: int) -> go.Figure:
+    """Applica a una figura lo sfondo e i caratteri del tema.
+
+    **Il carattere e' quello del testo pieno, non quello tenue.** Il colore
+    generale della figura vale anche per la legenda, e una legenda e' il nome
+    delle serie: senza, un grafico a due linee non si legge. Sul tema scuro la
+    differenza era netta — «xG» e «Gol» sparivano nel fondo. Le tacche degli
+    assi restano tenui perche' hanno il proprio ``tickfont``: la' lo
+    sbiadimento e' voluto, e' contesto.
+
+    Args:
+        figura: La figura da vestire.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La stessa figura.
+    """
+    figura.update_layout(
+        height=altezza,
+        margin={"l": 10, "r": 10, "t": 10, "b": 10},
+        paper_bgcolor=TRASPARENTE,
+        plot_bgcolor=TRASPARENTE,
+        font={"color": tema.testo, "size": 12},
+        hoverlabel={"bgcolor": tema.superficie, "font": {"color": tema.testo}},
+    )
+    figura.update_xaxes(tickfont={"color": tema.testo_tenue, "size": 11})
+    figura.update_yaxes(tickfont={"color": tema.testo_tenue, "size": 11})
+    return figura
+
+
+def ciambella(
+    quota: float, etichetta: str, sotto: str, tema: Tema, altezza: int = 200
+) -> go.Figure:
+    """Un anello con la percentuale al centro.
+
+    **Un anello e non una torta.** Una torta con due fette si legge peggio di
+    un numero scritto, e il buco al centro serve proprio a ospitare quel
+    numero: la forma diventa un contorno del dato invece che il dato stesso.
+
+    Args:
+        quota: Il valore da rappresentare, fra 0 e oltre 1.
+        etichetta: Il numero grande al centro.
+        sotto: La riga piccola sotto il numero.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    pieno = min(max(quota, 0.0), 1.0)
+    figura = go.Figure(
+        go.Pie(
+            values=[pieno, 1 - pieno],
+            hole=0.74,
+            sort=False,
+            direction="clockwise",
+            rotation=0,
+            marker={"colors": [tema.primario, tema.bordo], "line": {"width": 0}},
+            textinfo="none",
+            hoverinfo="skip",
+        )
+    )
+    figura.add_annotation(
+        text=(
+            f"<span style='font-size:26px;color:{tema.testo}'><b>{etichetta}</b></span>"
+            f"<br><span style='font-size:11px;color:{tema.testo_tenue}'>{sotto}</span>"
+        ),
+        showarrow=False,
+        x=0.5,
+        y=0.5,
+    )
+    figura.update_layout(showlegend=False)
+    return _sfondo(figura, tema, altezza)
+
+
+def istogramma_xg(tiri: pd.DataFrame, tema: Tema, altezza: int = 240) -> go.Figure:
+    """La distribuzione dell'xG per tiro.
+
+    E' il grafico che spiega il progetto meglio di qualunque frase: la maggior
+    parte dei tiri vale pochissimo, e la coda a destra e' fatta di pochi tiri
+    che valgono quasi mezza rete. Chi guarda capisce da solo perche' contare i
+    tiri non basta.
+
+    Args:
+        tiri: I tiri della selezione, con ``xg_statsbomb``.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    figura = go.Figure()
+    if not tiri.empty:
+        figura.add_trace(
+            go.Histogram(
+                x=tiri["xg_statsbomb"],
+                nbinsx=40,
+                marker={"color": tema.primario, "line": {"width": 0}},
+                hovertemplate="xG %{x:.2f}<br>%{y} tiri<extra></extra>",
+            )
+        )
+    figura.update_layout(bargap=0.05, showlegend=False)
+    figura.update_xaxes(title_text="xG per tiro", gridcolor=tema.bordo, zeroline=False)
+    figura.update_yaxes(gridcolor=tema.bordo, zeroline=False)
+    return _sfondo(figura, tema, altezza)
+
+
+def linee(
+    x: Sequence[object],
+    serie: Mapping[str, Sequence[float]],
+    tema: Tema,
+    altezza: int = 240,
+) -> go.Figure:
+    """Un grafico a linee con i colori del tema.
+
+    Args:
+        x: I valori dell'asse orizzontale, condivisi da tutte le serie.
+        serie: Nome della serie e i suoi valori.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    colori = (tema.primario, tema.testo, tema.atteso)
+    figura = go.Figure()
+    for (nome, valori), colore in zip(serie.items(), colori, strict=False):
+        figura.add_trace(
+            go.Scatter(
+                x=list(x),
+                y=list(valori),
+                mode="lines",
+                name=nome,
+                line={"color": colore, "width": 2.2},
+            )
+        )
+    figura.update_layout(
+        legend={"orientation": "h", "y": 1.15, "x": 1, "xanchor": "right"},
+        hovermode="x unified",
+    )
+    figura.update_xaxes(gridcolor=tema.bordo, showgrid=False)
+    figura.update_yaxes(gridcolor=tema.bordo, zeroline=False)
+    return _sfondo(figura, tema, altezza)
+
+
+def shot_map(
+    tiri: pd.DataFrame,
+    tema: Tema,
+    *,
+    altezza: int = 520,
+    meta_campo: bool = True,
+) -> go.Figure:
+    """Disegna i tiri sul campo, per fascia di xG e con i gol in evidenza.
+
+    **Cinque fasce di colore invece di una scala continua.** Su migliaia di
+    pallini piccoli e sovrapposti un gradiente non si legge: nessuno distingue
+    0,18 da 0,24 guardando una sfumatura. Cinque classi si leggono dalla
+    legenda, si contano, e i confini — 0,05 · 0,10 · 0,30 · 0,50 — separano il
+    tiro da fuori dal tiro in area e l'occasione dalla quasi-rete.
+
+    **I gol hanno un anello, non un colore diverso.** Cambiare colore per
+    l'esito toglierebbe la lettura dell'xG proprio ai tiri piu' interessanti.
+    Il contorno li distingue senza rubare il posto all'informazione.
+
+    Args:
+        tiri: I tiri da mostrare, con ``x``, ``y``, ``gol`` e ``xg_statsbomb``.
+        tema: La palette attiva.
+        altezza: Altezza della figura in pixel.
+        meta_campo: Se falso mostra il campo intero, che e' orizzontale. Mezzo
+            campo e' piu' grande ma **verticale**, perche' sessanta unita' di
+            lunghezza contro ottanta di larghezza danno un riquadro piu' alto
+            che largo.
+
+    Returns:
+        Il campo con i tiri sopra.
+    """
+    figura = campo(tema, altezza=altezza, meta_campo=meta_campo)
+    if tiri.empty:
+        return figura
+
+    valori = tiri["xg_statsbomb"].to_numpy()
+    inferiore = 0.0
+    for etichetta, superiore, colore, trasparenza in scala_di(tema):
+        dentro = (valori >= inferiore) & (valori < superiore)
+        inferiore = superiore
+        if not dentro.any():
+            continue
+        parte = tiri[dentro]
+        figura.add_trace(
+            go.Scatter(
+                x=parte["x"],
+                y=parte["y"],
+                mode="markers",
+                name=etichetta,
+                legendgroup=etichetta,
+                marker={
+                    "size": _dimensioni(parte["xg_statsbomb"].to_numpy()),
+                    "color": colore,
+                    "opacity": trasparenza,
+                    "line": {
+                        "width": [1.6 if g else 0.0 for g in parte["gol"]],
+                        "color": tema.testo,
+                    },
+                },
+                hoverinfo="skip",
+            )
+        )
+
+    figura.update_layout(
+        showlegend=True,
+        legend={
+            "title": {"text": "xG", "font": {"size": 11}},
+            "orientation": "v",
+            "x": 1.01,
+            "y": 1,
+            "bgcolor": TRASPARENTE,
+            "font": {"size": 11},
+            "itemsizing": "constant",
+        },
+    )
+    return figura
+
+
+def campo(
+    tema: Tema, *, meta_campo: bool = True, altezza: int = 520, linee_sopra: bool = False
+) -> go.Figure:
     """Costruisce la figura del campo, pronta per ricevere i dati.
 
     E' la base di **tutte** le viste spaziali. Chi la usa aggiunge le proprie
@@ -240,14 +517,15 @@ def campo(tema: Tema, *, meta_campo: bool = True, altezza: int = 520) -> go.Figu
         meta_campo: Se vero mostra solo la meta' offensiva, dove avvengono
             praticamente tutti i tiri.
         altezza: Altezza della figura in pixel.
+        linee_sopra: Se vero le linee del campo stanno sopra le tracce.
 
     Returns:
         La figura, con erba, linee, assi configurati e nessun dato.
     """
     figura = go.Figure()
     figura.update_layout(
-        shapes=erba(tema) + segnature(tema),
-        paper_bgcolor=tema.superficie,
+        shapes=erba(tema) + segnature(tema, sopra=linee_sopra),
+        paper_bgcolor=TRASPARENTE,
         plot_bgcolor=tema.erba_scura,
         font={"color": tema.testo},
         height=altezza,
@@ -266,5 +544,93 @@ def campo(tema: Tema, *, meta_campo: bool = True, altezza: int = 520) -> go.Figu
         scaleanchor="x",
         scaleratio=1,
         constrain="domain",
+    )
+    return figura
+
+
+#: Lato della cella della mappa di calore, in iarde.
+#:
+#: Quattro e non due: a due iarde meta' delle celle piene contiene un tiro solo
+#: e la mappa diventa una spruzzata di puntini, cioe' la nuvola di punti che si
+#: voleva sostituire. A otto l'area di rigore starebbe in due celle e mezza.
+PASSO_CALORE: Final[float] = 4.0
+
+#: Quanti gradini nella barra dei colori.
+GRADINI: Final[int] = 5
+
+
+def mappa_di_calore(
+    tiri: pd.DataFrame,
+    tema: Tema,
+    *,
+    altezza: int = 520,
+    meta_campo: bool = True,
+    passo: float = PASSO_CALORE,
+) -> go.Figure:
+    """Disegna da dove si tira, come densita' invece che come singoli tiri.
+
+    **Il colore cresce con la radice del conteggio, non con il conteggio.**
+    La distribuzione e' molto sbilanciata: nel magazzino la cella piu' battuta
+    ne ha 1.863 e la mediana delle celle piene ne ha 5. Con una scala lineare
+    fra il 26 % e il 74 % delle celle piene resta sotto il 10 % di intensita',
+    cioe' invisibile, e la mappa mostra un solo punto caldo su un campo vuoto.
+    Con la radice quella quota scende fra lo 0 % e il 62 %, e sulla selezione
+    di una singola squadra nessuna cella sparisce.
+
+    **La barra dei colori riporta i conteggi veri**, non le radici: la
+    trasformazione serve all'occhio, e nasconderla nell'etichetta la
+    trasformerebbe in un numero sbagliato.
+
+    **Le linee del campo passano sopra.** Una superficie colorata che copre
+    l'area di rigore rende impossibile capire dove sia l'area di rigore, che e'
+    l'unico riferimento per leggere la mappa.
+
+    Args:
+        tiri: I tiri da contare, con le colonne ``x`` e ``y``.
+        tema: La palette attiva.
+        altezza: Altezza della figura in pixel.
+        meta_campo: Se falso mostra il campo intero.
+        passo: Il lato della cella, in iarde.
+
+    Returns:
+        Il campo con sopra la densita' dei tiri.
+    """
+    figura = campo(tema, altezza=altezza, meta_campo=meta_campo, linee_sopra=True)
+    if tiri.empty:
+        return figura
+
+    bordi_x = np.arange(0.0, LUNGHEZZA + passo, passo)
+    bordi_y = np.arange(0.0, LARGHEZZA + passo, passo)
+    conteggi, _, _ = np.histogram2d(
+        tiri["x"].to_numpy(), tiri["y"].to_numpy(), bins=[bordi_x, bordi_y]
+    )
+    massimo = float(conteggi.max())
+    if massimo <= 0:
+        return figura
+
+    centri_x = (bordi_x[:-1] + bordi_x[1:]) / 2
+    centri_y = (bordi_y[:-1] + bordi_y[1:]) / 2
+    tacche = np.linspace(0.0, massimo, GRADINI)
+
+    figura.add_trace(
+        go.Heatmap(
+            x=centri_x,
+            y=centri_y,
+            z=np.sqrt(conteggi).T,
+            colorscale=[list(gradino) for gradino in scala_calore(tema)],
+            zmin=0.0,
+            zmax=float(np.sqrt(massimo)),
+            zsmooth="best",
+            hoverinfo="skip",
+            colorbar={
+                "title": {"text": "tiri", "font": {"size": 11}},
+                "thickness": 10,
+                "len": 0.75,
+                "outlinewidth": 0,
+                "tickfont": {"size": 11, "color": tema.testo_tenue},
+                "tickvals": np.sqrt(tacche),
+                "ticktext": [f"{valore:.0f}" for valore in tacche],
+            },
+        )
     )
     return figura
