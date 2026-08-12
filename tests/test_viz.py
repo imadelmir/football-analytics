@@ -160,12 +160,20 @@ def test_il_campo_usa_i_colori_del_tema(scelto: tema.Tema) -> None:
 
 
 def test_le_finali_disegnano_un_campo_blu() -> None:
-    # E' il criterio di M6-T1: le finali rendono l'app blu, campo compreso.
+    """Il criterio di M6-T1: le finali rendono l'app blu, campo compreso.
+
+    La prima stesura confrontava ``paper_bgcolor``, cioe' il fondo della
+    scheda. Con il tema chiaro quello e' bianco in **entrambi** i temi — ed e'
+    giusto che lo sia — quindi il test falliva pur essendo tutto a posto.
+    Cio' che distingue davvero i due campi e' l'erba.
+    """
     verde = viz.campo(tema.per_gruppo("campionato"))
     blu = viz.campo(tema.per_gruppo("finali"))
 
-    assert verde.layout.paper_bgcolor != blu.layout.paper_bgcolor
-    assert blu.layout.paper_bgcolor == tema.BLU.superficie
+    assert verde.layout.plot_bgcolor != blu.layout.plot_bgcolor
+    assert blu.layout.plot_bgcolor == tema.BLU.erba_scura
+    assert tema.BLU.erba_chiara in {f.fillcolor for f in forme(blu) if f.fillcolor}
+    assert tema.VERDE.erba_chiara not in {f.fillcolor for f in forme(blu) if f.fillcolor}
 
 
 def test_la_figura_nasce_senza_dati(figura: Any) -> None:

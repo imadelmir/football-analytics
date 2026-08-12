@@ -149,10 +149,12 @@ def test_il_tema_statico_di_streamlit_non_diverge_da_quello_dinamico() -> None:
     notano.
     """
     percorso = PACCHETTO.parents[1] / ".streamlit" / "config.toml"
-    configurazione = percorso.read_text(encoding="utf-8")
+    # Il confronto ignora le maiuscole: in un file TOML `#0F6E56` e `#0f6e56`
+    # sono lo stesso colore, e far fallire un test su quello sarebbe rumore.
+    configurazione = percorso.read_text(encoding="utf-8").lower()
 
-    for campo in ("primario", "sfondo", "superficie", "testo"):
-        colore = getattr(tema.VERDE, campo)
+    for campo in ("primario", "sfondo", "superficie", "bordo", "testo", "barra", "barra_testo"):
+        colore = str(getattr(tema.VERDE, campo)).lower()
         assert colore in configurazione, f"config.toml non contiene {campo} = {colore}"
 
 

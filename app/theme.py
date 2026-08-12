@@ -71,9 +71,20 @@ def foglio_di_stile(tema: Tema) -> str:
   color: var({PREFISSO}testo);
 }}
 
+/* La barra laterale resta scura anche a tema chiaro: separa la navigazione dal
+   contenuto senza bisogno di una linea, e rende immediato quale sia lo spazio
+   dei comandi e quale quello dei dati. */
 [data-testid="stSidebar"] {{
-  background-color: var({PREFISSO}superficie);
-  border-right: 1px solid var({PREFISSO}bordo);
+  background-color: var({PREFISSO}barra);
+}}
+
+[data-testid="stSidebar"] * {{
+  color: var({PREFISSO}barra_testo);
+}}
+
+[data-testid="stSidebar"] a:hover,
+[data-testid="stSidebar"] [aria-selected="true"] {{
+  color: var({PREFISSO}barra_accento);
 }}
 
 [data-testid="stMetric"] {{

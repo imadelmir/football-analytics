@@ -49,6 +49,10 @@ class Tema:
         gol: Serie che rappresentano gol realizzati.
         atteso: Serie che rappresentano valori attesi, cioe' l'xG.
         pericolo: Scarti negativi e avvisi.
+        barra: Il fondo della barra laterale, scuro anche a tema chiaro: separa
+            la navigazione dal contenuto senza bisogno di una linea.
+        barra_testo: Il testo sulla barra laterale.
+        barra_accento: La voce selezionata nella barra laterale.
     """
 
     nome: str
@@ -65,42 +69,56 @@ class Tema:
     gol: str
     atteso: str
     pericolo: str
+    barra: str
+    barra_testo: str
+    barra_accento: str
 
 
 #: Il tema di campionati e tornei.
+#:
+#: I colori strutturali sono **gli stessi** di ``.streamlit/config.toml``, e un
+#: test verifica che non divergano. Tutti i contrasti sono misurati: il testo
+#: sta a 15,2 a 1 sullo sfondo, la barra laterale a 9,7, dove lo standard WCAG
+#: AA ne chiede 4,5.
 VERDE: Final[Tema] = Tema(
     nome="verde",
-    sfondo="#0d1411",
-    superficie="#16211c",
-    bordo="#26362e",
-    testo="#e8f0ea",
-    testo_tenue="#9bb0a4",
-    primario="#3fbf7f",
-    primario_tenue="#1d5b3f",
-    erba_chiara="#1a3d2b",
-    erba_scura="#153224",
-    linee="#c9d8ce",
-    gol="#f5c451",
-    atteso="#3fbf7f",
-    pericolo="#e8735a",
+    sfondo="#f4f7f4",
+    superficie="#ffffff",
+    bordo="#e3e8e3",
+    testo="#10231b",
+    testo_tenue="#4a6157",
+    primario="#0f6e56",
+    primario_tenue="#d9ece4",
+    erba_chiara="#eaf2ec",
+    erba_scura="#e2ece5",
+    linee="#83a08d",
+    gol="#a1580a",
+    atteso="#0f6e56",
+    pericolo="#b3261e",
+    barra="#0b3a2c",
+    barra_testo="#c9e8dc",
+    barra_accento="#1d9e75",
 )
 
 #: Il tema delle finali di Champions League.
 BLU: Final[Tema] = Tema(
     nome="blu",
-    sfondo="#0b1119",
-    superficie="#141d29",
-    bordo="#25334a",
-    testo="#e7eef8",
-    testo_tenue="#9aabc2",
-    primario="#4d9fe8",
-    primario_tenue="#1e4570",
-    erba_chiara="#17304d",
-    erba_scura="#122741",
-    linee="#ccd9e8",
-    gol="#f5c451",
-    atteso="#4d9fe8",
-    pericolo="#e8735a",
+    sfondo="#f4f6fa",
+    superficie="#ffffff",
+    bordo="#e2e7ef",
+    testo="#101a2b",
+    testo_tenue="#4d5f78",
+    primario="#14538f",
+    primario_tenue="#d7e3f2",
+    erba_chiara="#eaeff7",
+    erba_scura="#e2e9f4",
+    linee="#8b9cb5",
+    gol="#a1580a",
+    atteso="#14538f",
+    pericolo="#b3261e",
+    barra="#0d2e52",
+    barra_testo="#cddff2",
+    barra_accento="#3d86d4",
 )
 
 #: Tutti i temi, per nome.
