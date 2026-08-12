@@ -205,12 +205,86 @@ Vince sulle variabili base, vince su quelle spaziali, e in più:
   scende di 0,003. Per un progetto che deve restare in piedi anche fra un anno
   non è un dettaglio.
 
+### L'accordo con StatsBomb (M5-T8)
+
+Domanda diversa dalle precedenti: non *quale* modello sia migliore, ma **quanto
+i due si somiglino**.
+
+| | Per tiro | Per partita |
+| --- | ---: | ---: |
+| Correlazione di Pearson | 0,9076 | **0,9529** |
+| Correlazione di Spearman | 0,8863 | |
+| Scarto medio, con segno | +0,0034 | +0,082 xG |
+| Scarto assoluto mediano | 0,0142 | 0,176 xG |
+| **Scarto relativo mediano** | **29,5 %** | |
+
+**Su un singolo tiro i due modelli discordano tipicamente del 30 %**, e sui
+totali di partita concordano a 0,95. È il numero da dichiarare nella pagina di
+metodologia: l'xG di un tiro va letto come una stima grezza, quello di una
+partita regge.
+
+Lo scarto assoluto medio **non va letto da solo**: uno scarto grande è possibile
+solo dove l'xG è grande, e l'xG è grande sotto porta. Guardandolo senza
+normalizzare si conclude che i modelli discordano di più sui tiri ravvicinati,
+quando discordano esattamente uguale. C'è un test che lo dimostra.
+
+**Perché l'aggregazione aiuta, e quando non aiuterebbe.** Sommando tiri con
+errori indipendenti crescono di pari passo segnale e rumore, e la correlazione
+non si muove: verificato su dati sintetici, 0,9472 → 0,9464. Migliora solo se
+esiste una componente **condivisa dentro la partita**: 0,9551 → 0,9916. I dati
+veri si comportano come il secondo caso, quindi **le partite differiscono
+davvero fra loro** nel tipo di occasioni che producono, e i due modelli lo
+vedono allo stesso modo anche dove discordano tiro per tiro.
+
+### La curva di calibrazione (M5-T7)
+
+Le metriche riassuntive dicono **quanto** un modello sbaglia; la curva dice
+**dove**. I gruppi sono quantili, non intervalli di ampiezza uguale: su un xG la
+mediana sta a 0,05 e dieci intervalli larghi 0,1 metterebbero il 61 % dei tiri
+nel primo, lasciando vuoti gli ultimi cinque. Le tabelle complete sono in
+[`M5-risultati.md`](M5-risultati.md).
+
+| Modello | Errore di calibrazione | Gruppi oltre 2 SE |
+| --- | ---: | ---: |
+| Logistica base | 0,01284 | 4 su 10 |
+| Logistica spaziale | 0,01185 | 3 su 10 |
+| xG di StatsBomb | 0,01142 | 3 su 10 |
+
+**Il modello spaziale ha uno scarto medio con segno di +0,0013 — quasi
+perfetto — e una curva che sbaglia sistematicamente.** Gli scarti si
+compensano: sovrastima la fascia centrale, sottostima quella alta.
+
+| Gruppo | Logistica base | Logistica spaziale | StatsBomb |
+| ---: | ---: | ---: | ---: |
+| 4 | +3,2 | +0,1 | +2,6 |
+| 5 | +2,6 | **+4,6** | +1,4 |
+| 6 | +2,2 | +2,3 | +1,4 |
+| 9 | −2,3 | −0,8 | −1,2 |
+| 10 | −0,6 | −1,3 | −1,5 |
+
+*(scarto fra xG previsto e gol osservati, in errori standard)*
+
+**Il difetto è condiviso con l'xG di StatsBomb**, che non è stato addestrato
+sulla nostra divisione. Dieci celle su trenta superano le 2 deviazioni standard,
+dove per caso ne aspetteremmo una e mezza. Non è quindi un difetto del nostro
+modello: è una proprietà dei dati o della fascia. **Resta aperto** e va
+verificato a M5-T9, che applica il modello a competizioni diverse ed è il posto
+naturale per capire se dipende dal campionato.
+
+È anche il motivo per cui `errore_di_calibrazione` esiste accanto allo scarto
+medio: il secondo vale zero anche per un modello sbagliato ovunque, purché lo
+sia in modo simmetrico.
+
 ## 5. Problemi incontrati
 
 Il racconto a caldo è in [`NOTES.md`](../../NOTES.md).
 
 ## 6. Cosa resta aperto
 
+- **La curva di calibrazione mostra un difetto sistematico condiviso con
+  StatsBomb**: tutti i modelli sovrastimano la fascia centrale e sottostimano
+  quella alta. Da verificare a M5-T9, dove il modello viene applicato a
+  competizioni diverse.
 - **Il modello base usa le variabili grezze**, senza trasformazioni come il
   logaritmo della distanza. È deliberato: un riferimento deve restare un
   riferimento, e aggiungere non linearità a mano confonderebbe il confronto con
