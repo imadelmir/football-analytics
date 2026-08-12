@@ -33,6 +33,7 @@ import math
 from typing import TYPE_CHECKING, Final
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 
 if TYPE_CHECKING:
@@ -117,6 +118,7 @@ def metriche(reali: npt.ArrayLike, previste: npt.ArrayLike) -> dict[str, float]:
         "xg_medio": float(stime.mean()),
         "gol_reali": float(esiti.mean()),
         "scarto_calibrazione": float(stime.mean() - esiti.mean()),
+        "errore_calibrazione": errore_di_calibrazione(esiti, stime),
         "log_loss_riferimento": base["log_loss"],
         "brier_riferimento": base["brier"],
         "guadagno_log_loss": 1.0 - perdita / base["log_loss"],
@@ -169,11 +171,195 @@ def riga_riferimento(reali: npt.ArrayLike) -> dict[str, float]:
         "xg_medio": media,
         "gol_reali": media,
         "scarto_calibrazione": 0.0,
+        "errore_calibrazione": 0.0,
         "log_loss_riferimento": base["log_loss"],
         "brier_riferimento": base["brier"],
         "guadagno_log_loss": 0.0,
         "guadagno_brier": 0.0,
     }
+
+
+#: Quanti gruppi per la curva di calibrazione. Dieci e' la scelta abituale e
+#: su 8.600 tiri lascia circa 860 righe per gruppo, abbastanza perche'
+#: l'incertezza di ciascuno sia piccola rispetto agli scarti che interessano.
+GRUPPI_CALIBRAZIONE: Final[int] = 10
+
+
+def curva_di_calibrazione(
+    reali: npt.ArrayLike, previste: npt.ArrayLike, gruppi: int = GRUPPI_CALIBRAZIONE
+) -> pd.DataFrame:
+    """Confronta xG previsto e gol osservati, gruppo per gruppo.
+
+    Le metriche riassuntive dicono **quanto** un modello sbaglia; la curva di
+    calibrazione dice **dove**. Due modelli con lo stesso Brier score possono
+    sbagliare in modi opposti — uno gonfia le occasioni facili, l'altro schiaccia
+    quelle difficili — e la media non lo mostra.
+
+    **I gruppi sono quantili, non intervalli di ampiezza uguale.** Su un xG
+    dove la mediana e' 0,05 e la coda arriva a 0,9, dieci intervalli larghi
+    0,1 metterebbero oltre il 90 % dei tiri nel primo e lascerebbero gli altri
+    con una manciata di righe ciascuno: la curva risulterebbe piatta dove ci
+    sono i dati e rumorosa dove non ce ne sono. Con i quantili ogni gruppo ha
+    lo stesso numero di tiri, quindi la stessa incertezza. C'e' un test che
+    misura quanto sarebbe degenere l'alternativa.
+
+    La colonna ``scarto_in_se`` esprime la distanza fra previsto e osservato in
+    **errori standard**, non in punti: uno scarto di due punti percentuali su un
+    gruppo da 100 tiri e' rumore, su un gruppo da 5.000 e' un difetto. Senza
+    quella normalizzazione una curva si legge a occhio e si conclude quello che
+    si vuole.
+
+    Args:
+        reali: Gli esiti veri, uno per tiro.
+        previste: Le probabilita' previste, una per tiro.
+        gruppi: In quanti quantili dividere le previsioni.
+
+    Returns:
+        Una riga per gruppo, con conteggio, xG medio previsto, frequenza dei gol
+        osservata, errore standard di quest'ultima e scarto in errori standard.
+    """
+    tabella = pd.DataFrame(
+        {
+            "gol": np.asarray(reali, dtype=bool),
+            "xg": np.asarray(previste, dtype=np.float64),
+        }
+    )
+    etichette = pd.qcut(tabella["xg"], gruppi, labels=False, duplicates="drop")
+    if etichette.isna().all():
+        # Tutte le previsioni sono identiche, quindi non ci sono quantili da
+        # tagliare: `qcut` restituisce solo NaN e il raggruppamento resterebbe
+        # vuoto. Il caso non e' patologico — e' il modello di riferimento, che
+        # risponde sempre la frequenza media — e la risposta giusta e' un gruppo
+        # solo con dentro tutto.
+        etichette = pd.Series(0, index=tabella.index)
+    tabella["gruppo"] = etichette.astype("int64")
+
+    curva = (
+        tabella.groupby("gruppo", observed=True)
+        .agg(tiri=("gol", "size"), xg_previsto=("xg", "mean"), gol_osservati=("gol", "mean"))
+        .reset_index()
+    )
+    osservati = curva["gol_osservati"].to_numpy()
+    curva["errore_standard"] = np.sqrt(osservati * (1.0 - osservati) / curva["tiri"].to_numpy())
+    scarto = curva["xg_previsto"].to_numpy() - osservati
+    curva["scarto"] = scarto
+    with np.errstate(divide="ignore", invalid="ignore"):
+        curva["scarto_in_se"] = np.where(
+            curva["errore_standard"].to_numpy() > 0.0,
+            scarto / curva["errore_standard"].to_numpy(),
+            np.nan,
+        )
+    return curva
+
+
+def errore_di_calibrazione(
+    reali: npt.ArrayLike, previste: npt.ArrayLike, gruppi: int = GRUPPI_CALIBRAZIONE
+) -> float:
+    """Riassume la curva di calibrazione in un numero solo.
+
+    E' la media degli scarti **assoluti** fra previsto e osservato, pesata per
+    quanti tiri cadono in ciascun gruppo. Serve accanto allo
+    ``scarto_calibrazione`` di :func:`metriche`, che e' una media **con segno** e
+    vale zero anche per un modello che sovrastima le occasioni facili
+    esattamente quanto sottostima quelle difficili.
+
+    Args:
+        reali: Gli esiti veri, uno per tiro.
+        previste: Le probabilita' previste, una per tiro.
+        gruppi: In quanti quantili dividere le previsioni.
+
+    Returns:
+        L'errore di calibrazione atteso. Zero e' perfetto.
+    """
+    curva = curva_di_calibrazione(reali, previste, gruppi)
+    pesi = curva["tiri"].to_numpy()
+    return float(np.average(np.abs(curva["scarto"].to_numpy()), weights=pesi))
+
+
+def accordo(nostro: npt.ArrayLike, altrui: npt.ArrayLike) -> dict[str, float]:
+    """Misura **quanto due modelli xG si somigliano**, non quale sia migliore.
+
+    E' una domanda diversa da quella di :func:`metriche`. Un modello puo' essere
+    peggiore e somigliante, o migliore e diverso: sapere quale dei due casi si
+    ha in mano cambia cosa si puo' dire nella pagina di metodologia.
+
+    La correlazione di Spearman e' calcolata come Pearson sui **ranghi**, che e'
+    la sua definizione. Farlo a mano evita di aggiungere SciPy alle dipendenze
+    per due righe, su un progetto che deve stare sotto il gigabyte di RAM.
+
+    **``scarto_assoluto_medio`` va letto con cautela.** Uno scarto grande e'
+    possibile solo dove l'xG e' grande, e l'xG e' grande sotto porta: la
+    quantita' cresce con il livello anche quando l'accordo relativo e' identico.
+    Per questo c'e' anche ``scarto_relativo_mediano``, che divide per la media
+    dei due valori.
+
+    Args:
+        nostro: Le probabilita' previste dal modello del progetto.
+        altrui: Le probabilita' del modello di confronto, sugli stessi tiri.
+
+    Returns:
+        Correlazioni e scarti. ``scarto_medio`` ha segno: positivo vuol dire che
+        il nostro modello assegna piu' xG.
+
+    Raises:
+        ValueError: Se le due sequenze hanno lunghezza diversa.
+    """
+    a = np.asarray(nostro, dtype=np.float64)
+    b = np.asarray(altrui, dtype=np.float64)
+    if a.shape != b.shape:
+        msg = f"Le due serie hanno forme diverse: {a.shape} contro {b.shape}."
+        raise ValueError(msg)
+
+    differenza = a - b
+    media_coppia = (a + b) / 2.0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        relativo = np.where(media_coppia > 0.0, np.abs(differenza) / media_coppia, np.nan)
+
+    return {
+        "pearson": float(np.corrcoef(a, b)[0, 1]),
+        "spearman": float(
+            np.corrcoef(pd.Series(a).rank().to_numpy(), pd.Series(b).rank().to_numpy())[0, 1]
+        ),
+        "scarto_medio": float(differenza.mean()),
+        "scarto_assoluto_medio": float(np.abs(differenza).mean()),
+        "scarto_assoluto_mediano": float(np.median(np.abs(differenza))),
+        "scarto_relativo_mediano": float(np.nanmedian(relativo)),
+        "xg_totale_nostro": float(a.sum()),
+        "xg_totale_altrui": float(b.sum()),
+    }
+
+
+def accordo_aggregato(
+    nostro: npt.ArrayLike, altrui: npt.ArrayLike, gruppi: npt.ArrayLike
+) -> dict[str, float]:
+    """L'accordo dopo aver sommato l'xG dentro ogni gruppo, di solito la partita.
+
+    E' la misura che conta per la dashboard: nessuno guarda l'xG di un singolo
+    tiro, si guarda quello di una partita o di un giocatore. Due modelli
+    possono discordare parecchio tiro per tiro e concordare bene sui totali,
+    perche' gli scarti con segno opposto si compensano.
+
+    Args:
+        nostro: Le probabilita' del modello del progetto.
+        altrui: Le probabilita' del modello di confronto.
+        gruppi: L'identificativo del gruppo di ciascun tiro, per esempio
+            ``match_id``.
+
+    Returns:
+        Le stesse chiavi di :func:`accordo`, calcolate sui totali di gruppo,
+        piu' ``gruppi`` con quanti ne sono stati formati.
+    """
+    tabella = pd.DataFrame(
+        {
+            "gruppo": np.asarray(gruppi),
+            "nostro": np.asarray(nostro, dtype=np.float64),
+            "altrui": np.asarray(altrui, dtype=np.float64),
+        }
+    )
+    somme = tabella.groupby("gruppo", observed=True)[["nostro", "altrui"]].sum()
+    risultato = accordo(somme["nostro"].to_numpy(), somme["altrui"].to_numpy())
+    risultato["gruppi"] = float(len(somme))
+    return risultato
 
 
 def confronta(
