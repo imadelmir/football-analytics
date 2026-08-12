@@ -1,33 +1,104 @@
 # M5 — Il modello xG
 
-> Due modelli addestrati sulle stesse partite, valutati sullo stesso insieme di
-> verifica, con la differenza dichiarata.
+> Quattro modelli addestrati sulle stesse partite, valutati sullo stesso
+> insieme di verifica, con la differenza dichiarata — e una prova su 48 anni di
+> calcio che nessuno di loro ha mai visto.
 
-**Periodo:** dal 2026-08-07 · **Issue chiuse:** \_\_ / 12 · **Commit:** \_\_
+**Periodo:** 2026-08-07 → 2026-08-12 · **Issue chiuse:** 12 / 12 ·
+**Test:** 223 · **Copertura di `model.py` e `metriche.py`:** 100 %
 
-> Questo file viene compilato **mentre** la milestone procede. Le sezioni con
-> `__` sono ancora aperte.
+> **Ogni numero di questo documento viene da
+> [`M5-risultati.md`](M5-risultati.md)**, generato da
+> `scripts/train_model.py`. Nessuno è ricopiato a mano — è una regola nata
+> dopo che a M5-T4 un log loss stimato a mente è finito in un messaggio di
+> commit.
+
+## La risposta
+
+> **Quanto vale, davvero, sapere dove sono i difensori?**
+>
+> **+2,9 punti di guadagno sul Brier score**, da 16,3 % a 19,2 % rispetto a un
+> modello che risponde sempre la frequenza media. In termini relativi, +18 % di
+> capacità esplicativa. Il divario che ci separava dall'xG di StatsBomb si
+> riduce del 62 %.
+>
+> Il modello regge fuori campione: applicato a 18 finali di Champions dal 1971
+> al 2019, mai viste in addestramento, tiene il 18,2 % contro il 19,2 % della
+> verifica.
 
 ---
 
 ## 1. Cosa è stato costruito
 
-<!-- Da completare a fine milestone. -->
+Un modello che stima la probabilità di gol di ogni tiro, e — più importante —
+**l'apparato che permette di dire se vale qualcosa**.
 
-Finora: le variabili base e spaziali, la divisione train/test per partita, e il
-primo modello — una regressione logistica addestrata su 34.582 tiri.
+Il modello in sé è una regressione logistica su undici variabili, addestrata su
+**34.160 tiri di 1.388 partite** e verificata su **8.425 tiri di 347 partite
+mai viste**. Sei variabili descrivono il tiro (distanza, angolo, parte del
+corpo, tipo, schema, sotto pressione), cinque descrivono lo spazio ricavato dal
+fotogramma (difensori nel cono, distanza e avanzamento del portiere, avversari
+vicini, compagni in area).
+
+Intorno c'è tutto il resto, che è la parte che rende il numero credibile:
+
+- **una divisione per partita**, non per tiro, con un test che dimostra il
+  difetto evitato;
+- **un modello di riferimento calcolato**, non scritto a mano, contro cui ogni
+  punteggio viene letto;
+- **quattro modelli confrontati** in un disegno a due fattori — due classi per
+  due insiemi di variabili — che permette di attribuire ogni punto di guadagno
+  all'informazione o all'algoritmo, mai a entrambi;
+- **una curva di calibrazione** che dice *dove* il modello sbaglia, non solo
+  quanto;
+- **un benchmark esterno**, l'xG di StatsBomb, dichiarato come metro e non come
+  gara;
+- **una prova fuori campione** su 18 finali di Champions dal 1971 al 2019,
+  escluse da addestramento e verifica;
+- **una lettura dei coefficienti** che spiega il modello senza aprire il codice;
+- **uno script solo** che rigenera ogni numero di questo documento.
+
+La risposta alla domanda che regge il progetto — *quanto vale sapere dove sono
+i difensori* — è **+2,9 punti di guadagno sul Brier score**, da 16,3 % a
+19,2 %.
 
 ## 2. File creati e modificati
 
 | File | Cosa fa |
 | --- | --- |
-| `src/football_analytics/features.py` | Distanza, angolo, cono di tiro, posizione del portiere |
-| `src/football_analytics/model.py` | Divisione per partita, pipeline, addestramento, salvataggio |
-| `src/football_analytics/metriche.py` | Log loss, Brier, AUC e il riferimento — mai l'accuratezza |
-| `tests/test_features.py` | 42 test, molti su casi geometrici calcolabili a mano |
-| `tests/test_divisione.py` | 19 test, compreso uno che dimostra il difetto evitato |
-| `tests/test_modello.py` | Proprietà che nessun messaggio d'errore segnalerebbe |
-| `tests/test_metriche.py` | Due test dimostrano le trappole invece di dichiararle |
+| `src/football_analytics/features.py` | Distanza, angolo, cono di tiro, variabili del fotogramma, separazione del gruppo di applicazione |
+| `src/football_analytics/model.py` | Divisione per partita, pipeline, validazione incrociata, salvataggio, metadati, lettura dei coefficienti |
+| `src/football_analytics/metriche.py` | Log loss, Brier, AUC, riferimento, curva di calibrazione, accordo — mai l'accuratezza |
+| `scripts/train_model.py` | Rigenera **tutti** i numeri della milestone con un comando |
+| `tests/test_features.py` | 45 test, molti su casi geometrici calcolabili a mano |
+| `tests/test_divisione.py` | 13 test, compreso uno che dimostra il difetto evitato |
+| `tests/test_modello.py` | 21 test sulle proprietà che nessun errore segnalerebbe |
+| `tests/test_metriche.py` | 24 test, di cui quattro dimostrano una trappola invece di dichiararla |
+
+**223 test in tutto il progetto**, `model.py` e `metriche.py` al 100 % di
+copertura.
+
+### Dove nasce ogni numero
+
+Il piano di completamento chiede di collegare ogni risultato al codice che lo
+produce. Tutta la tabella sotto si rigenera con:
+
+```bash
+uv run python scripts/train_model.py
+```
+
+| Risultato | Funzione che lo calcola | Dove finisce |
+| --- | --- | --- |
+| Divisione train/test | `model.dividi_per_partita` | `M5-risultati.md`, intestazione |
+| Esclusione delle finali | `features.separa_applicazione` | idem |
+| Confronto 2×2 | `train_model.confronto_incrociato` | sezione «Confronto fra classi» |
+| Ablazione | `train_model.ablazione` | sezione «Da dove viene il guadagno» |
+| Applicazione fuori campione | `train_model.main` | sezione «Applicazione alle finali» |
+| Curva di calibrazione | `metriche.curva_di_calibrazione` | una sezione per modello |
+| Errore di calibrazione | `metriche.errore_di_calibrazione` | colonna delle metriche |
+| Accordo con StatsBomb | `metriche.accordo`, `accordo_aggregato` | sezione «Accordo» |
+| Lettura del modello | `model.coefficienti` | sezione «Come legge i tiri» |
+| Riproducibilità | `train_model.main` | intestazione, e `models/*.json` |
 
 ## 3. Decisioni tecniche
 
@@ -335,75 +406,127 @@ mediana sta a 0,05 e dieci intervalli larghi 0,1 metterebbero il 61 % dei tiri
 nel primo, lasciando vuoti gli ultimi cinque. Le tabelle complete sono in
 [`M5-risultati.md`](M5-risultati.md).
 
-| Modello | Errore di calibrazione | Gruppi oltre 2 SE |
+| Modello | Errore di calibrazione | Gruppo peggiore |
 | --- | ---: | ---: |
-| Logistica base | 0,01284 | 4 su 10 |
-| Logistica spaziale | 0,01185 | 3 su 10 |
-| xG di StatsBomb | 0,01142 | 3 su 10 |
+| Logistica base | 0,01045 | 5° a +2,4 SE |
+| **Logistica spaziale** | **0,00964** | 5° a +3,1 SE |
+| xG di StatsBomb | 0,01594 | 1° a −3,2 SE |
 
-**Il modello spaziale ha uno scarto medio con segno di +0,0013 — quasi
-perfetto — e una curva che sbaglia sistematicamente.** Gli scarti si
-compensano: sovrastima la fascia centrale, sottostima quella alta.
+**Il modello spaziale è il più calibrato dei tre, anche più di StatsBomb.** È
+l'unica metrica su cui li battiamo, e ha una spiegazione: una regressione
+logistica con intercetta impone per costruzione che la media prevista uguagli
+la frequenza osservata sull'addestramento, mentre il loro modello — più
+accurato nell'ordinare — non ha quel vincolo.
 
-| Gruppo | Logistica base | Logistica spaziale | StatsBomb |
-| ---: | ---: | ---: | ---: |
-| 4 | +3,2 | +0,1 | +2,6 |
-| 5 | +2,6 | **+4,6** | +1,4 |
-| 6 | +2,2 | +2,3 | +1,4 |
-| 9 | −2,3 | −0,8 | −1,2 |
-| 10 | −0,6 | −1,3 | −1,5 |
+> **Correzione.** Le prime due stesure di questa tabella davano StatsBomb come
+> il più calibrato (0,01142 contro 0,01185). Erano i numeri di prima di M5-T9:
+> escludendo le finali dall'insieme di verifica l'ordine si è invertito. È la
+> seconda conclusione di questa milestone che non è sopravvissuta a un cambio
+> di campione, e come la prima è annotata in [`NOTES.md`](../../NOTES.md).
 
-*(scarto fra xG previsto e gol osservati, in errori standard)*
+**Lo scarto medio con segno del modello spaziale è +0,0023 — quasi perfetto — e
+la curva sbaglia comunque in modo sistematico.** Gli scarti si compensano:
+sovrastima la fascia centrale, sottostima quella alta. È esattamente il motivo
+per cui `errore_di_calibrazione` esiste accanto allo scarto medio: il secondo
+vale zero anche per un modello sbagliato ovunque, purché lo sia in modo
+simmetrico.
 
 **Il difetto è condiviso con l'xG di StatsBomb**, che non è stato addestrato
-sulla nostra divisione. Dieci celle su trenta superano le 2 deviazioni standard,
-dove per caso ne aspetteremmo una e mezza. Non è quindi un difetto del nostro
-modello: è una proprietà dei dati o della fascia. **Resta aperto** e va
-verificato a M5-T9, che applica il modello a competizioni diverse ed è il posto
-naturale per capire se dipende dal campionato.
+sulla nostra divisione. Non è quindi un difetto del nostro modello: è una
+proprietà dei dati. Le tabelle complete, gruppo per gruppo, sono in
+[`M5-risultati.md`](M5-risultati.md).
 
-È anche il motivo per cui `errore_di_calibrazione` esiste accanto allo scarto
-medio: il secondo vale zero anche per un modello sbagliato ovunque, purché lo
-sia in modo simmetrico.
+## 5. Problemi incontrati, e i risultati negativi
 
-## 5. Problemi incontrati
+Il racconto a caldo, con quindici annotazioni per questa milestone, è in
+[`NOTES.md`](../../NOTES.md). Qui i quattro che cambiano ciò che il progetto
+può affermare.
 
-Il racconto a caldo è in [`NOTES.md`](../../NOTES.md).
+**Il gradient boosting perde.** Su entrambi gli insiemi di variabili, e in
+validazione incrociata prima ancora che sul test. Non è stato corretto per
+ottenere metriche più alte: è il risultato, e spiega perché in produzione va
+un modello lineare.
+
+**Due conclusioni scritte non sono sopravvissute a un cambio di campione.**
+L'ordine fra portiere e difensori nell'ablazione si è invertito togliendo
+l'1,3 % dei dati; StatsBomb da modello più calibrato è diventato il meno
+calibrato dei tre. Entrambe erano differenze piccole che avevo raccontato come
+scoperte senza chiedermi se fossero distinguibili dal rumore.
+
+**Il progetto dichiarava una cosa e ne faceva un'altra.** README e
+`config.Gruppo` promettevano dal M2 che le finali fossero fuori campione: 437
+tiri su 561 erano in addestramento. Una regola scritta in tre documenti e in
+nessuna funzione non è una regola.
+
+**Un numero è stato inventato.** Il log loss del riferimento a M5-T4 era stato
+stimato a mente e scritto con cinque decimali. Da M5-T5 quel valore esce da
+`metriche.riferimento()` e non è più scrivibile a mano.
 
 ## 6. Cosa resta aperto
 
 - **La curva di calibrazione mostra un difetto sistematico condiviso con
-  StatsBomb**: tutti i modelli sovrastimano la fascia centrale e sottostimano
-  quella alta. Da verificare a M5-T9, dove il modello viene applicato a
-  competizioni diverse.
+  l'xG di StatsBomb**: entrambi sovrastimano la fascia centrale e sottostimano
+  quella alta. Non è quindi un difetto del nostro modello. Da indagare a
+  M6-T9, dove la vista «Modello xG» renderà la curva visibile e confrontabile
+  per competizione.
 - **Il modello base usa le variabili grezze**, senza trasformazioni come il
   logaritmo della distanza. È deliberato: un riferimento deve restare un
-  riferimento, e aggiungere non linearità a mano confonderebbe il confronto con
-  il gradient boosting di M5-T5.
+  riferimento.
 - **`joblib` emette un avviso di deprecazione con NumPy 2.5** al caricamento dei
-  modelli. È interno alla libreria e verrà risolto a monte; silenziarlo
-  nasconderebbe una futura rottura.
-- **Il confronto fra le due classi di modello è avvenuto sull'insieme di
-  verifica**, che è il secondo sguardo dopo M5-T4. Il posto giusto per
-  scegliere fra modelli è la validazione incrociata; il test si guarda alla
-  fine. Gli iperparametri sono stati scelti correttamente in CV, ma il
-  punteggio in CV della regressione logistica non è stato registrato, quindi il
-  confronto fra classi è dichiarato come misurato: sul test. Da colmare prima
-  di M5-T12.
-- **`models/xg_base.pkl` contiene oggi il gradient boosting**, non il modello
-  che ha vinto. La scelta di quale classe finisce in produzione è rinviata a
-  M5-T6, dove le variabili spaziali potrebbero ribaltare il confronto: gli
-  alberi trattano i valori mancanti da soli, cosa che alla regressione logistica
-  non riesce senza imputazione.
+  modelli. È interno alla libreria; silenziarlo nasconderebbe una futura
+  rottura.
+- **Un `.pkl` è legato alla versione di scikit-learn che l'ha scritto.**
+  Verificato rompendosi: un modello salvato con 1.9.0 non si carica con 1.7.2.
+  Per M7 significa che `uv sync --locked` in fase di deploy smette di essere una
+  buona pratica e diventa un **requisito di funzionamento** — senza, la
+  dashboard fallirebbe all'avvio.
 - **I modelli non sono versionati fino a M7-T1**, come i Parquet. Oltre al
   motivo comune — si rigenerano spesso e git conserva ogni versione dei binari
   — ce n'è uno specifico: un file `.pkl` è Python serializzato, e **caricarlo
-  esegue codice**. Un modello nel repository è una superficie di attacco, e va
-  committato quando è il prodotto finito e rigenerabile con un comando.
+  esegue codice**.
+
+### Debiti chiusi a M5-T12
+
+- ~~Il confronto fra classi di modello è avvenuto sul test invece che in
+  validazione incrociata.~~ **Colmato:** `train_model.validazione_incrociata`
+  misura tutte e quattro le combinazioni sulle stesse pieghe raggruppate per
+  partita, senza toccare l'insieme di verifica. La logistica vince su entrambi
+  gli insiemi anche lì, quindi la conclusione era giusta ed è ora dimostrata
+  nel posto giusto.
+- ~~`models/xg_base.pkl` contiene il gradient boosting.~~ **Non più:** da M5-T6
+  entrambi i modelli salvati sono regressioni logistiche, ciascuno con il suo
+  file di metadati.
 
 ## 7. Come verificarlo
 
+Da un clone pulito, con i Parquet già costruiti:
+
 ```bash
+uv sync --all-extras
+uv run ruff check .
+uv run python -m mypy
 uv run python -m pytest -m "not rete"
 uv run python scripts/train_model.py
 ```
+
+L'ultimo comando **riscrive** `M5-risultati.md` e `M5-risultati.json`. Se dopo
+averlo eseguito `git status` mostra quei file modificati, i numeri di questa
+relazione non corrispondono più a ciò che il codice produce, e la relazione ha
+torto — non il codice.
+
+Lo script stampa anche `riproducibilità: scarto massimo fra due addestramenti`.
+Deve essere **0,0**: due addestramenti con lo stesso seed sugli stessi dati
+danno le stesse identiche previsioni.
+
+### Cosa aspettarsi che cambi
+
+I due modelli **ad alberi** danno numeri leggermente diversi fra versioni di
+scikit-learn — fra la 1.7.2 e la 1.9.0 il Brier del modello spaziale si sposta
+di 0,0003 e l'AUC di 0,002. Le due **regressioni logistiche** no: cinque
+decimali identici. È uno degli argomenti per cui in produzione va la logistica,
+ed è il motivo per cui `M5-risultati.md` registra le versioni con cui è stato
+prodotto.
+
+I file `models/*.json` contengono l'impronta sha256 dei Parquet usati: se il
+magazzino viene rigenerato, l'impronta cambia e i metadati di un modello
+vecchio smettono di corrispondere.
