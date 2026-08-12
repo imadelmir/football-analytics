@@ -172,9 +172,9 @@ identiche righe e sullo stesso identico insieme di verifica:
 | --- | ---: | ---: | ---: | ---: |
 | Riferimento | 0,31759 | 0,08728 | 0,5000 | 0,0 % |
 | Logistica base | 0,25872 | 0,07305 | 0,7985 | 16,3 % |
-| Alberi base | 0,25953 | 0,07351 | 0,7976 | 15,8 % |
+| Alberi base | 0,26078 | 0,07374 | 0,7955 | 15,5 % |
 | **Logistica spaziale** | **0,24933** | **0,07050** | **0,8186** | **19,2 %** |
-| Alberi spaziale | 0,24950 | 0,07079 | 0,8168 | 18,9 % |
+| Alberi spaziale | 0,24866 | 0,07075 | 0,8192 | 18,9 % |
 | xG di StatsBomb | 0,24575 | 0,06894 | 0,8231 | 21,0 % |
 
 **La risposta: +2,9 punti di guadagno**, da 16,3 % a 19,2 %. In termini
@@ -209,7 +209,12 @@ I due gruppi contribuiscono in modo **confrontabile**, e presi da soli sommano
 
 #### Perché in produzione va la regressione logistica
 
-Vince sulle variabili base, vince su quelle spaziali, e in più:
+Sulle variabili base vince nettamente: il gradient boosting perde su tutte e
+tre le metriche. **Sulle variabili spaziali i due sono in sostanza pari** — la
+logistica vince sul Brier (0,07050 contro 0,07075), gli alberi su log loss
+(0,24866 contro 0,24933) e AUC (0,8192 contro 0,8186), tutti per margini
+minimi. Quando due modelli pareggiano sull'accuratezza, la scelta si fa su
+tutto il resto, e lì non c'è partita:
 
 - pesa **4 KB contro 368 KB**, cosa che conta su Streamlit Cloud con meno di
   1 GB di RAM;
@@ -218,9 +223,11 @@ Vince sulle variabili base, vince su quelle spaziali, e in più:
   frequenza osservata — invece che verificata a posteriori;
 - **è riproducibile fra versioni delle librerie.** Le due regressioni
   logistiche danno gli stessi identici cinque decimali con scikit-learn 1.7.2 e
-  1.9.0; i due modelli ad alberi no, e con 1.9.0 l'AUC del modello spaziale
-  scende di 0,003. Per un progetto che deve restare in piedi anche fra un anno
-  non è un dettaglio.
+  1.9.0. I due modelli ad alberi no: fra le due versioni il Brier del modello
+  spaziale si sposta di 0,0003 e l'AUC di 0,002 — abbastanza da far cambiare
+  **quale dei due modelli risulta migliore** su due metriche su tre. Un
+  risultato che dipende dalla versione di una libreria non è un risultato;
+  e per un progetto che deve restare in piedi fra un anno, non è un dettaglio.
 
 ### L'applicazione alle finali (M5-T9) — la prova su un'altra epoca
 
