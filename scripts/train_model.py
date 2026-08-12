@@ -181,6 +181,42 @@ def ablazione(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, dict[str, fl
     return metriche.confronta(test["gol"], previste)
 
 
+def validazione_incrociata(train: pd.DataFrame) -> dict[str, float]:
+    """Confronta le quattro combinazioni **dove si sceglie**, non sul test.
+
+    A M5-T5 il confronto fra le due classi di modello era stato fatto
+    sull'insieme di verifica, e dichiarato come debito: gli iperparametri erano
+    stati scelti correttamente in validazione incrociata, ma il punteggio in CV
+    della regressione logistica non era mai stato registrato, quindi la
+    conclusione era giusta e dimostrata nel posto sbagliato.
+
+    Qui si chiude. Le pieghe sono raggruppate per partita, come ovunque nel
+    progetto.
+
+    Args:
+        train: Le sole righe di addestramento. L'insieme di verifica non entra
+            mai in questa funzione, ed e' il punto.
+
+    Returns:
+        Il log loss medio di ciascuna combinazione. Piu' basso e' meglio.
+    """
+    insiemi: tuple[tuple[str, Sequence[str], Sequence[str]], ...] = (
+        ("base", features.VARIABILI_BASE, features.VARIABILI_NUMERICHE),
+        ("spaziale", features.VARIABILI_COMPLETE, features.VARIABILI_NUMERICHE_COMPLETE),
+    )
+    punteggi: dict[str, float] = {}
+    for nome_classe in ("logistica", "alberi"):
+        for nome_insieme, variabili, numeriche in insiemi:
+
+            def costruisci_piega(c: str = nome_classe, n: Sequence[str] = numeriche) -> Pipeline:
+                return costruisci(c, list(n))
+
+            punteggi[f"{nome_classe} {nome_insieme}"] = model.logloss_incrociato(
+                costruisci_piega, train, variabili
+            )
+    return punteggi
+
+
 def markdown(titolo: str, punteggi: Mapping[str, Mapping[str, float]]) -> str:
     """Formatta i punteggi come tabella markdown, con la virgola decimale.
 
@@ -341,6 +377,7 @@ def scrivi(
     gruppi: Mapping[str, Mapping[str, float]],
     fuori_campione: Mapping[str, Mapping[str, float]],
     lettura: pd.DataFrame,
+    cv: Mapping[str, float],
 ) -> tuple[Path, Path]:
     """Scrive i risultati in markdown e in JSON.
 
@@ -355,6 +392,7 @@ def scrivi(
         accordi: L'accordo con StatsBomb, per tiro e per partita.
         fuori_campione: I punteggi sulle finali di Champions, mai viste.
         lettura: I coefficienti del modello spaziale.
+        cv: Il log loss in validazione incrociata delle quattro combinazioni.
 
     Returns:
         I percorsi dei due file scritti.
@@ -396,6 +434,17 @@ def scrivi(
         markdown("Da dove viene il guadagno (regressione logistica)", gruppi),
     ]
     sezioni.append(markdown("Applicazione alle finali di Champions, mai viste", fuori_campione))
+    sezioni.append(
+        "### Scelta fra le classi, in validazione incrociata\n\n"
+        "Le pieghe sono raggruppate per partita e **l'insieme di verifica non "
+        "entra**.\nE' il posto dove si sceglie fra modelli; il test si guarda "
+        "una volta alla fine.\n\n"
+        "| Modello | Log loss in CV |\n| --- | ---: |\n"
+        + "\n".join(
+            f"| {nome} | {punteggio:.5f} |".replace(".", ",")
+            for nome, punteggio in sorted(cv.items(), key=lambda voce: voce[1])
+        )
+    )
     sezioni.append(markdown_coefficienti(lettura))
     sezioni.append(markdown_accordo(*accordi))
     sezioni.extend(markdown_calibrazione(curva, nome) for nome, curva in calibrazione.items())
@@ -414,6 +463,7 @@ def scrivi(
                 "accordo": {"per_tiro": dict(accordi[0]), "per_partita": dict(accordi[1])},
                 "fuori_campione": {k: dict(v) for k, v in fuori_campione.items()},
                 "coefficienti": lettura.to_dict(orient="records"),
+                "validazione_incrociata": dict(cv),
             },
             indent=2,
             ensure_ascii=False,
@@ -457,6 +507,12 @@ def main() -> int:
 
     gruppi = ablazione(train, test)
     print(metriche.tabella(gruppi), "\n")
+
+    cv = validazione_incrociata(train)
+    print("validazione incrociata, 5 pieghe raggruppate per partita")
+    for nome, punteggio in sorted(cv.items(), key=lambda voce: voce[1]):
+        print(f"  {nome:<20} log loss {punteggio:.5f}")
+    print()
 
     # La curva si guarda per i due modelli che vanno in produzione e per
     # StatsBomb, che fa da riferimento esterno: sapere *dove* sbagliamo rispetto
@@ -581,6 +637,7 @@ def main() -> int:
 
     contesto = {
         **divisione,
+        **{f"cv_{nome.replace(' ', '_')}": punteggio for nome, punteggio in cv.items()},
         "scartati": float(scartati),
         "tiri_applicazione": float(len(applicazione)),
         "finali_applicazione": float(applicazione["match_id"].nunique()),
@@ -594,6 +651,7 @@ def main() -> int:
         gruppi=gruppi,
         fuori_campione=fuori_campione,
         lettura=lettura,
+        cv=cv,
     )
     print(f"\nrisultati in {percorso_md.name} e {percorso_json.name}")
     print(f"durata {time.perf_counter() - inizio:.1f}s")

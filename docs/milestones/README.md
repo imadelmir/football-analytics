@@ -19,7 +19,7 @@ più.
 | M2 | Ingestione | 7 | 🟢 conclusa | [M2-ingestione.md](M2-ingestione.md) |
 | M3 | Trasformazione | 8 | 🟢 conclusa | [M3-trasformazione.md](M3-trasformazione.md) |
 | M4 | Esplorazione | 3 | 🟢 conclusa | [M4-esplorazione.md](M4-esplorazione.md) |
-| M5 | Modello xG | 12 | 🟡 in corso — T1-T11 chiusi | [M5-modello-xg.md](M5-modello-xg.md) |
+| M5 | Modello xG | 12 | 🟢 conclusa | [M5-modello-xg.md](M5-modello-xg.md) |
 | M6 | Dashboard | 14 | ⚪ da fare | — |
 | M7 | Pubblicazione | 7 | ⚪ da fare | — |
 | M8 | Portfolio | 6 | ⚪ da fare | — |
@@ -57,6 +57,8 @@ ricalcolano a mano.
 | Guadagno sulle finali, mai viste | 18,2 % contro 19,2 % | M5 |
 | Accordo con StatsBomb, per partita | Pearson 0,952 | M5 |
 | Riproducibilità, due addestramenti | scarto 0,0 | M5 |
+| Errore di calibrazione, modello spaziale | 0,00964 — il migliore dei tre | M5 |
+| Test automatici | 223 | M5 |
 
 > I valori vengono da [`M5-risultati.md`](M5-risultati.md), generato da
 > `scripts/train_model.py`. Sono stati rigenerati a M5-T9, quando le finali

@@ -18,7 +18,7 @@
   "seed": 42,
   "quota_test": 0.2,
   "colonna_gruppo": "match_id",
-  "addestrato_il": "2026-08-12T18:01:14+00:00",
+  "addestrato_il": "2026-08-12T18:25:58+00:00",
   "metriche": {
     "log_loss": 0.24932738426760923,
     "brier": 0.07050380468287118,

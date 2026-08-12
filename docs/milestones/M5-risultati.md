@@ -45,6 +45,18 @@ Ambiente: scikit-learn 1.9.0, pandas 3.0.5.
 | logistica spaziale | 0,24136 | 0,06771 | 0,8174 | 18,2 % | 0,0830 |
 | StatsBomb | 0,23254 | 0,06499 | 0,8362 | 21,5 % | 0,0851 |
 
+### Scelta fra le classi, in validazione incrociata
+
+Le pieghe sono raggruppate per partita e **l'insieme di verifica non entra**.
+E' il posto dove si sceglie fra modelli; il test si guarda una volta alla fine.
+
+| Modello | Log loss in CV |
+| --- | ---: |
+| logistica spaziale | 0,25409 |
+| alberi spaziale | 0,25507 |
+| logistica base | 0,26532 |
+| alberi base | 0,26673 |
+
 ### Come legge i tiri il modello spaziale (M5-T10)
 
 Ordinate per peso. Il coefficiente e' sulla scala standardizzata, quindi

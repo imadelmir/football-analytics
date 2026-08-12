@@ -7,6 +7,10 @@
     "quota_test": 0.19783961488787133,
     "gol_train": 0.09405737704918032,
     "gol_test": 0.09661721068249259,
+    "cv_logistica_base": 0.26532107101111146,
+    "cv_logistica_spaziale": 0.25408698630109494,
+    "cv_alberi_base": 0.26673262900923544,
+    "cv_alberi_spaziale": 0.25506869132966914,
     "scartati": 34.0,
     "tiri_applicazione": 560.0,
     "finali_applicazione": 18.0,
@@ -748,5 +752,11 @@
       "odds_ratio_per_unita": 0.9870626992708177,
       "direzione": "riduce"
     }
-  ]
+  ],
+  "validazione_incrociata": {
+    "logistica base": 0.26532107101111146,
+    "logistica spaziale": 0.25408698630109494,
+    "alberi base": 0.26673262900923544,
+    "alberi spaziale": 0.25506869132966914
+  }
 }
