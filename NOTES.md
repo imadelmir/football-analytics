@@ -791,6 +791,53 @@ C'e' anche una conseguenza pratica per M5-T6: il confronto fra modello base e
 modello 360 deve avvenire **sullo stesso identico insieme di verifica**, o la
 differenza misurata sara' in parte quella fra due divisioni.
 
+## M5-T5 — La previsione registrata era giusta, ma per difetto
+
+**Non e' un problema: e' il risultato del task**, e vale la pena scriverlo
+perche' e' negativo.
+
+In `NOTES.md`, prima di misurare, avevo scritto che il gradient boosting
+avrebbe vinto **grazie alla variabile del portiere**, dove la relazione ha una
+U che una regressione logistica non puo' rappresentare. Quella variabile e'
+spaziale e a M5-T5 non c'era. Previsione implicita: sulle sole variabili base
+il guadagno sarebbe stato piccolo.
+
+Misurato:
+
+```
+                Brier    guadagno     AUC
+logistica     0.07387      14.2 %   0.7893
+alberi        0.07456      13.4 %   0.7845
+```
+
+**Non piccolo: negativo.** Gli alberi perdono su tutte e tre le metriche.
+
+**Perche':** l'`angolo` e' gia' una trasformazione non lineare delle
+coordinate, calcolata con il teorema del coseno. La non linearita' l'ha messa
+la costruzione delle variabili, non serve che la ritrovi il modello. Agli
+alberi resta la varianza da pagare senza distorsione da correggere.
+
+La validazione incrociata lo diceva gia' da sola, e me ne sono accorto solo
+dopo: fra le tre configurazioni ha vinto **la piu' piccola** (200 iterazioni,
+15 foglie) e ha perso quella da 600 iterazioni. **Un modello che migliora
+rimpicciolendosi sta dicendo che non c'e' struttura da trovare.** Quel segnale
+era leggibile prima di guardare il test, e vale la pena imparare a leggerlo:
+l'andamento del punteggio al variare della capacita' e' un'informazione, non
+solo un mezzo per scegliere un numero.
+
+**Cosa insegna:** un risultato negativo con una causa chiara vale piu' di un
+guadagno marginale raccontato bene. E soprattutto **rende leggibile il task
+successivo**: adesso sappiamo che su queste variabili la classe di modello vale
+meno di zero, quindi se M5-T6 mostra un salto, il salto e' dell'informazione.
+Se avessi trovato un guadagno del 2 % qui, a M5-T6 non avrei saputo dire quale
+parte venisse dagli alberi e quale dai difensori.
+
+**Debito aperto, dichiarato:** il confronto fra le due classi l'ho fatto sul
+test, che e' il secondo sguardo dopo M5-T4. Gli iperparametri li ho scelti
+correttamente in validazione incrociata, ma il punteggio in CV della logistica
+non l'ho registrato — quindi la conclusione e' giusta ma dimostrata nel posto
+sbagliato. Va colmato prima della relazione finale di M5.
+
 ---
 
 <!--

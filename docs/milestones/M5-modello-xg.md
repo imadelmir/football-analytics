@@ -76,35 +76,75 @@ Nessuna partita compare da entrambe le parti. Lo scarto fra le due frequenze è
 Regressione logistica su distanza, angolo, parte del corpo, tipo di tiro,
 schema di gioco e sotto pressione.
 
-| | Log loss | Brier | AUC |
-| --- | ---: | ---: | ---: |
-| Sempre la frequenza media | 0,31418 | 0,08606 | 0,500 |
-| **Modello base** | **0,26214** | **0,07387** | **0,7893** |
-| xG di StatsBomb | 0,24515 | 0,06858 | 0,8199 |
+Tutti i punteggi sono calcolati da `metriche.py` sullo stesso insieme di
+verifica, e riportati qui **copiando l'uscita del programma**.
 
-> **Correzione.** La prima stesura di questa tabella riportava 0,31703 come log
-> loss del riferimento. Il valore vero è **0,31418**: l'avevo stimato a mente
-> invece di calcolarlo, e scritto con cinque decimali come se l'avessi
-> misurato. Il numero sbagliato resta nel messaggio del commit `fbb48bb`, che
-> non si riscrive. Da M5-T5 il riferimento è calcolato da
-> `metriche.riferimento()` e non è più scrivibile a mano.
+| | Log loss | Brier | AUC | Guadagno | xG medio |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sempre la frequenza media | 0,31429 | 0,08610 | 0,500 | 0,0 % | 0,0951 |
+| **Modello base** | **0,26214** | **0,07387** | **0,7893** | **14,2 %** | 0,0950 |
+| xG di StatsBomb | 0,24515 | 0,06858 | 0,8199 | 20,3 % | 0,0929 |
+
+> **Correzione.** La prima stesura riportava 0,31703 come log loss del
+> riferimento. L'avevo stimato a mente invece di calcolarlo, e scritto con
+> cinque decimali come se l'avessi misurato. Il valore calcolato è **0,31429**.
+> Il numero sbagliato resta nel messaggio del commit `fbb48bb`, che non si
+> riscrive. Da M5-T5 il riferimento esce da `metriche.riferimento()` e non è
+> più scrivibile a mano.
 
 **Il Brier score va letto rispetto a un riferimento.** Un modello che risponde
-sempre «0,0951» ottiene 0,08606: è il punto di partenza. Su quella scala:
-
-| | Miglioramento sul riferimento |
-| --- | ---: |
-| Modello base | **14,2 %** |
-| xG di StatsBomb | 20,3 % |
-
-Il modello base cattura circa il **70 %** del miglioramento che StatsBomb
-ottiene, usando sei variabili e nessuna informazione spaziale.
+sempre «0,0951» ottiene 0,08610 senza aver imparato niente: è lo zero della
+scala. Su quella scala il modello base cattura il **69,8 %** di quello che
+cattura StatsBomb, usando sei variabili e nessuna informazione spaziale.
 
 | Cosa | Valore |
 | --- | --- |
 | Calibrazione, xG medio contro gol reali | 0,0950 contro 0,0951 |
 | Tiri modellabili | 43.179 su 43.849 |
 | Copertura del fotogramma sui tiri modellabili | 100 % |
+
+### Il modello ad alberi (M5-T5) — **risultato negativo**
+
+Gradient boosting a istogrammi sulle **stesse identiche variabili**, stessa
+divisione, stesso preprocessore. Il confronto cambia una cosa sola: la classe
+di modello.
+
+Iperparametri scelti in validazione incrociata a 5 pieghe **raggruppate per
+partita**, senza mai guardare l'insieme di verifica:
+
+| Configurazione | Iterazioni | Tasso | Foglie | Log loss in CV |
+| --- | ---: | ---: | ---: | ---: |
+| **compatto** | 200 | 0,10 | 15 | **0,26574** |
+| prudente | 300 | 0,05 | 31 | 0,26779 |
+| lento | 600 | 0,03 | 31 | 0,26905 |
+
+Poi il vincitore, misurato una volta sulla verifica:
+
+| | Log loss | Brier | AUC | Guadagno | xG medio |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Modello base, logistica | **0,26214** | **0,07387** | **0,7893** | **14,2 %** | 0,0950 |
+| Gradient boosting | 0,26374 | 0,07456 | 0,7845 | 13,4 % | 0,0943 |
+
+**Il gradient boosting perde su tutte e tre le metriche:** +0,93 % di Brier,
++0,61 % di log loss, −0,0048 di AUC. Non è una questione di calibrazione —
+*ordina* peggio.
+
+**Perché.** Le variabili base sono due continue e quattro categoriche, e
+l'`angolo` **è già una trasformazione non lineare**, calcolata con il teorema
+del coseno a partire dalle coordinate. Il lavoro non lineare l'ha fatto la
+costruzione delle variabili; al modello non resta distorsione da correggere,
+solo varianza da pagare. La validazione incrociata lo dice per conto suo: fra
+le tre configurazioni vince **la più piccola** e perde quella con 600
+iterazioni. Un modello che migliora rimpicciolendosi sta dicendo che non c'è
+struttura da trovare.
+
+**Perché era il risultato utile.** La previsione registrata in `NOTES.md`
+diceva che il gradient boosting avrebbe vinto grazie alla variabile del
+portiere, che è spaziale e qui non c'è. Il risultato va oltre: senza quella
+variabile gli alberi non pareggiano, peggiorano. Questo rende M5-T6
+interpretabile — la classe di modello su queste variabili vale meno di zero,
+quindi un eventuale salto aggiungendo le variabili spaziali sarà attribuibile
+all'**informazione**, non all'algoritmo.
 
 ## 5. Problemi incontrati
 
@@ -119,6 +159,18 @@ Il racconto a caldo è in [`NOTES.md`](../../NOTES.md).
 - **`joblib` emette un avviso di deprecazione con NumPy 2.5** al caricamento dei
   modelli. È interno alla libreria e verrà risolto a monte; silenziarlo
   nasconderebbe una futura rottura.
+- **Il confronto fra le due classi di modello è avvenuto sull'insieme di
+  verifica**, che è il secondo sguardo dopo M5-T4. Il posto giusto per
+  scegliere fra modelli è la validazione incrociata; il test si guarda alla
+  fine. Gli iperparametri sono stati scelti correttamente in CV, ma il
+  punteggio in CV della regressione logistica non è stato registrato, quindi il
+  confronto fra classi è dichiarato come misurato: sul test. Da colmare prima
+  di M5-T12.
+- **`models/xg_base.pkl` contiene oggi il gradient boosting**, non il modello
+  che ha vinto. La scelta di quale classe finisce in produzione è rinviata a
+  M5-T6, dove le variabili spaziali potrebbero ribaltare il confronto: gli
+  alberi trattano i valori mancanti da soli, cosa che alla regressione logistica
+  non riesce senza imputazione.
 - **I modelli non sono versionati fino a M7-T1**, come i Parquet. Oltre al
   motivo comune — si rigenerano spesso e git conserva ogni versione dei binari
   — ce n'è uno specifico: un file `.pkl` è Python serializzato, e **caricarlo

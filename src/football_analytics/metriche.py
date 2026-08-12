@@ -138,12 +138,14 @@ def tabella(punteggi: Mapping[str, Mapping[str, float]]) -> str:
         La tabella pronta da stampare.
     """
     larghezza = max((len(nome) for nome in punteggi), default=0)
-    righe = [f"{'':<{larghezza}}   log loss     Brier      AUC   guadagno   xG medio"]
+    righe = [
+        f"{'modello':<{larghezza}}{'log loss':>11}{'Brier':>10}{'AUC':>9}"
+        f"{'guadagno':>11}{'xG medio':>11}"
+    ]
     for nome, m in punteggi.items():
         righe.append(
-            f"{nome:<{larghezza}}    {m['log_loss']:.5f}   {m['brier']:.5f}   "
-            f"{m['auc']:.4f}   {m['guadagno_brier'] * 100:6.1f} %     "
-            f"{m['xg_medio']:.4f}"
+            f"{nome:<{larghezza}}{m['log_loss']:>11.5f}{m['brier']:>10.5f}"
+            f"{m['auc']:>9.4f}{m['guadagno_brier'] * 100:>10.1f}%{m['xg_medio']:>11.4f}"
         )
     return "\n".join(righe)
 
