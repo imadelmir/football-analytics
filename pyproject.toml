@@ -34,6 +34,7 @@ dependencies = [
   "pyarrow==24.0.0",
   "numpy==2.5.1",
   "scikit-learn==1.9.0",
+  "joblib==1.5.3",
   "plotly==6.9.0",
   "streamlit==1.61.1",
 ]
@@ -125,10 +126,10 @@ no_implicit_reexport = true
 show_error_codes = true
 pretty = true
 
-# statsbombpy non distribuisce annotazioni: senza questa deroga `mypy src`
+# Queste librerie non distribuiscono annotazioni: senza la deroga `mypy`
 # fallirebbe all'import, e non per un difetto del nostro codice.
 [[tool.mypy.overrides]]
-module = ["statsbombpy.*"]
+module = ["statsbombpy.*", "sklearn.*", "joblib.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
