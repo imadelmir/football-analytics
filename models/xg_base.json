@@ -1,0 +1,41 @@
+{
+  "nome": "xg_base",
+  "versione_pacchetto": "0.1.0",
+  "classe": "LogisticRegression",
+  "variabili": [
+    "distanza",
+    "angolo",
+    "parte_corpo",
+    "tipo",
+    "schema",
+    "sotto_pressione"
+  ],
+  "seed": 42,
+  "quota_test": 0.2,
+  "colonna_gruppo": "match_id",
+  "addestrato_il": "2026-08-12T17:50:07+00:00",
+  "metriche": {
+    "log_loss": 0.25871825497147327,
+    "brier": 0.07305218241446167,
+    "auc": 0.7985182929014225,
+    "xg_medio": 0.09681077289308859,
+    "gol_reali": 0.09661721068249259,
+    "scarto_calibrazione": 0.0001935622105960072,
+    "errore_calibrazione": 0.010449945321323513,
+    "log_loss_riferimento": 0.31758600351858207,
+    "brier_riferimento": 0.08728232528242742,
+    "guadagno_log_loss": 0.18536002183630373,
+    "guadagno_brier": 0.1630357901433077
+  },
+  "impronta_shots": "3241daefc264",
+  "impronta_fotogrammi": "b3fd52a90972",
+  "gruppo_escluso_dall_addestramento": "finali",
+  "tiri_addestramento": 34160,
+  "tiri_verifica": 8425,
+  "tiri_applicazione": 560,
+  "scarto_fra_due_addestramenti": 0.0,
+  "ambiente": {
+    "scikit_learn": "1.9.0",
+    "pandas": "3.0.5"
+  }
+}

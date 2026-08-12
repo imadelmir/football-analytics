@@ -168,8 +168,15 @@ contesto su quasi tutte le partite.
 | Campionato Europeo 2020 | 55, 43 | 51 | 51 |
 
 **Finali di Champions League** — 18 finali dal 1971 al 2019, `competition_id`
-16, senza freeze frame. Il modello base vi viene **applicato**, non addestrato:
-un modello si valuta su dati che non ha mai visto.
+16. Il modello vi viene **applicato**, non addestrato: escono da addestramento
+e verifica in `features.separa_applicazione`, prima della divisione e quindi
+prima che qualunque numero venga misurato.
+
+> Fino a M5-T9 questa sezione diceva «senza freeze frame», e non era vero: il
+> 99,8 % di quei tiri ce l'ha. Diceva anche che il modello vi veniva applicato
+> e non addestrato, mentre la divisione casuale per partita ne aveva messi 437
+> su 561 dentro l'addestramento. Entrambe le cose sono state corrette misurando,
+> non rileggendo.
 
 ## Le tre domande
 
@@ -189,14 +196,17 @@ Due modelli addestrati sulle stesse partite, uno con le variabili ricavate dal
 fotogramma e uno senza, misurano quanto di quel segnale un modello riesce
 davvero a catturare.
 
-**La risposta: +3,9 punti di guadagno sul Brier score**, da 14,2 % a 18,1 %
-rispetto a un modello che risponde sempre la media — cioe' **+27 % di capacita'
-esplicativa**. Il divario dall'xG di StatsBomb si riduce del 63 %.
+**La risposta: +2,9 punti di guadagno sul Brier score**, da 16,3 % a 19,2 %
+rispetto a un modello che risponde sempre la media — cioe' **+18 % di capacita'
+esplicativa**. Il divario dall'xG di StatsBomb si riduce del 62 %.
 
-Il contributo piu' grande non viene dai difensori ma **dal portiere**, che con
-due sole variabili vale 2,3 punti contro i 2,1 delle tre variabili sui
-difensori. Era il contrario di quanto previsto prima di misurare, e il perche'
-e' in [`NOTES.md`](NOTES.md).
+Il modello regge anche fuori campione: applicato alle **18 finali di Champions
+dal 1971 al 2019**, mai viste in addestramento, tiene il 18,2 % contro il
+19,2 % della verifica.
+
+I numeri escono da `scripts/train_model.py` e stanno in
+[`docs/milestones/M5-risultati.md`](docs/milestones/M5-risultati.md). Non sono
+ricopiati a mano da nessuna parte.
 
 ### 2. Chi segna piu' di quanto dovrebbe, e per quanto tempo?
 

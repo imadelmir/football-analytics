@@ -1049,6 +1049,68 @@ logistica in produzione: quattro chilobyte di coefficienti si potrebbero
 riscrivere in un formato neutro il giorno in cui servisse. I 368 KB di alberi
 del gradient boosting no.
 
+## M5-T9 — Il progetto dichiarava una cosa e ne faceva un'altra
+
+**Il sintomo:** il README e il docstring di `config.Gruppo` dicevano da M2 che
+le finali di Champions servono come **prova fuori campione**, «dati che il
+modello non ha mai visto». Contati: **437 tiri delle finali su 561 erano
+nell'addestramento**.
+
+**La causa:** `dividi_per_partita` mescola le partite a caso e non sa nulla dei
+gruppi. Nessuno le aveva mai detto che quelle 18 partite dovevano restare
+fuori. Non era leakage in senso stretto — nessun tiro stava da entrambe le
+parti — ma la prova fuori campione non era una prova.
+
+Nella stessa verifica e' emerso che il README diceva anche «senza freeze
+frame»: falso, il **99,8 %** di quei tiri ce l'ha. Due affermazioni sbagliate
+nella stessa riga, sopravvissute a tre milestone perche' nessuno le aveva mai
+contate.
+
+**Risolto:** `features.separa_applicazione` toglie il gruppo `finali` **prima**
+della divisione, e quindi prima che qualunque numero venga misurato.
+
+**Il risultato:** il modello tiene. 18,2 % di guadagno sulle finali contro
+19,2 % sulla verifica, AUC 0,8174 contro 0,8186. Addestrato su calcio dal 2015
+al 2024, funziona su finali che partono dal 1971.
+
+**Cosa insegna:** una regola scritta nella documentazione non e' una regola
+finche' non c'e' una funzione che la applica. Era scritta in tre punti — README,
+docstring del gruppo, piano di progetto — e in nessuno di quei tre posti
+qualcosa la faceva rispettare. **La documentazione descrive le intenzioni, il
+codice descrive i fatti**, e quando divergono ha ragione il codice.
+
+## M5-T9 — Una conclusione che si e' ribaltata togliendo l'1,3 % dei dati
+
+**Il sintomo:** rigenerando i numeri senza le finali, l'ablazione di M5-T6 si
+inverte.
+
+```
+                  con le finali    senza
++ solo portiere        +2,3         +1,3
++ solo difensori       +2,1         +1,9
+```
+
+A M5-T6 avevo scritto, in relazione e nel README, che **il portiere vale piu'
+dei difensori**. Bastano 437 tiri su 34.000 per invertire l'ordine.
+
+**La causa:** la differenza era 0,2 punti. Non avevo mai chiesto se 0,2 punti
+fossero distinguibili dal rumore — avevo solo notato che uno dei due numeri era
+piu' grande, e ci avevo costruito sopra una spiegazione con tanto di «con una
+variabile in meno».
+
+**Risolto:** la relazione adesso dice che i due gruppi contribuiscono in modo
+confrontabile e che **quale pesi di piu' questi dati non lo dicono**.
+
+**Cosa insegna:** e' lo stesso errore delle soglie scritte senza derivarle, in
+un'altra forma. Li' inventavo il numero a cui confrontare; qui confrontavo due
+numeri veri senza chiedermi se la loro differenza significasse qualcosa. La
+domanda «e' piu' grande?» e' quasi sempre la domanda sbagliata: quella giusta e'
+«e' piu' grande di quanto ci si aspetterebbe per caso?».
+
+La cosa che mi ha salvato non e' stata la prudenza, e' stato **aver dovuto
+rigenerare i numeri per un altro motivo**. Se M5-T9 non avesse toccato la
+divisione, quella frase sarebbe finita nel case study.
+
 ---
 
 <!--

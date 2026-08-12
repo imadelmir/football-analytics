@@ -1,0 +1,46 @@
+{
+  "nome": "xg_360",
+  "versione_pacchetto": "0.1.0",
+  "classe": "LogisticRegression",
+  "variabili": [
+    "distanza",
+    "angolo",
+    "parte_corpo",
+    "tipo",
+    "schema",
+    "sotto_pressione",
+    "difensori_nel_cono",
+    "distanza_portiere",
+    "portiere_avanzato",
+    "avversari_vicini",
+    "compagni_in_area"
+  ],
+  "seed": 42,
+  "quota_test": 0.2,
+  "colonna_gruppo": "match_id",
+  "addestrato_il": "2026-08-12T17:50:07+00:00",
+  "metriche": {
+    "log_loss": 0.24932738426760923,
+    "brier": 0.07050380468287118,
+    "auc": 0.818590672946211,
+    "xg_medio": 0.09725435482276382,
+    "gol_reali": 0.09661721068249259,
+    "scarto_calibrazione": 0.0006371441402712313,
+    "errore_calibrazione": 0.009642501400938992,
+    "log_loss_riferimento": 0.31758600351858207,
+    "brier_riferimento": 0.08728232528242742,
+    "guadagno_log_loss": 0.21492955764651323,
+    "guadagno_brier": 0.19223274065241092
+  },
+  "impronta_shots": "3241daefc264",
+  "impronta_fotogrammi": "b3fd52a90972",
+  "gruppo_escluso_dall_addestramento": "finali",
+  "tiri_addestramento": 34160,
+  "tiri_verifica": 8425,
+  "tiri_applicazione": 560,
+  "scarto_fra_due_addestramenti": 0.0,
+  "ambiente": {
+    "scikit_learn": "1.9.0",
+    "pandas": "3.0.5"
+  }
+}

@@ -61,6 +61,18 @@ Il risultato misurato conferma la scelta: xG medio previsto **0,0950** contro **
 
 ## 4. Numeri misurati
 
+> **Tutti i numeri di questa sezione sono stati rigenerati a M5-T9**, quando le
+> 18 finali di Champions sono uscite da addestramento e verifica. La fonte
+> autorevole è [`M5-risultati.md`](M5-risultati.md), prodotto da
+> `scripts/train_model.py`: qui si citano, non si ricopiano.
+>
+> I punteggi si sono alzati di circa due punti rispetto alle prime stesure — il
+> modello base da 14,2 % a 16,3 %, quello spaziale da 18,1 % a 19,2 % — **non
+> perché il modello sia migliorato**, ma perché è cambiato l'insieme su cui si
+> misura: senza le finali la frequenza dei gol passa da 0,0950 a 0,0966 e con
+> essa il riferimento. È il motivo per cui un guadagno va sempre letto insieme
+> al riferimento da cui parte.
+
 ### La divisione
 
 | | Tiri | Partite | Frequenza dei gol |
@@ -158,37 +170,42 @@ identiche righe e sullo stesso identico insieme di verifica:
 
 | | Log loss | Brier | AUC | Guadagno |
 | --- | ---: | ---: | ---: | ---: |
-| Riferimento | 0,31389 | 0,08595 | 0,5000 | 0,0 % |
-| Logistica base | 0,26151 | 0,07371 | 0,7903 | 14,2 % |
-| Alberi base | 0,26280 | 0,07436 | 0,7862 | 13,5 % |
-| **Logistica spaziale** | **0,24882** | **0,07037** | **0,8158** | **18,1 %** |
-| Alberi spaziale | 0,24924 | 0,07069 | 0,8134 | 17,8 % |
-| xG di StatsBomb | 0,24476 | 0,06846 | 0,8203 | 20,4 % |
+| Riferimento | 0,31759 | 0,08728 | 0,5000 | 0,0 % |
+| Logistica base | 0,25872 | 0,07305 | 0,7985 | 16,3 % |
+| Alberi base | 0,25953 | 0,07351 | 0,7976 | 15,8 % |
+| **Logistica spaziale** | **0,24933** | **0,07050** | **0,8186** | **19,2 %** |
+| Alberi spaziale | 0,24950 | 0,07079 | 0,8168 | 18,9 % |
+| xG di StatsBomb | 0,24575 | 0,06894 | 0,8231 | 21,0 % |
 
-**La risposta: +3,9 punti di guadagno**, da 14,2 % a 18,1 %. In termini
-relativi è **+27 % di capacità esplicativa**, con l'AUC che sale di 0,026.
+**La risposta: +2,9 punti di guadagno**, da 16,3 % a 19,2 %. In termini
+relativi è **+18 % di capacità esplicativa**, con l'AUC che sale di 0,020.
 
 Detto nel modo più utile: il divario che ci separava dall'xG di StatsBomb era
-di 6,2 punti. **Il fotogramma ne chiude 3,9, cioè il 63 %.** Si passa dal
-catturare il 69,8 % del loro segnale all'88,7 %.
+di 4,7 punti. **Il fotogramma ne chiude 2,9, cioè il 62 %.** Si passa dal
+catturare il 77,6 % del loro segnale al 91,4 %.
 
 #### Da dove viene il guadagno
 
 | Aggiunta al modello base | Variabili | Guadagno | Δ |
 | --- | ---: | ---: | ---: |
-| — | 0 | 14,2 % | |
-| Solo il portiere | 2 | 16,5 % | **+2,3** |
-| Solo i difensori | 3 | 16,3 % | +2,1 |
-| Solo i difensori nel cono | 1 | 15,3 % | +1,1 |
-| Tutto | 5 | 18,1 % | +3,9 |
+| — | 0 | 16,3 % | |
+| Solo il portiere | 2 | 17,6 % | +1,3 |
+| Solo i difensori | 3 | 18,2 % | +1,9 |
+| Solo i difensori nel cono | 1 | 17,2 % | +0,9 |
+| Tutto | 5 | 19,2 % | +2,9 |
 
-**Il portiere vale almeno quanto i difensori, con una variabile in meno.** E i
-due gruppi sono quasi indipendenti: presi da soli sommano 4,4 punti contro i
-3,9 che danno insieme, quindi si sovrappongono poco.
+I due gruppi contribuiscono in modo **confrontabile**, e presi da soli sommano
+3,2 punti contro i 2,9 che danno insieme: si sovrappongono poco.
 
-Il risultato **contraddice la previsione registrata** prima di misurare, che
-attribuiva il guadagno soprattutto ai difensori nel cono. Il racconto
-dell'errore è in [`NOTES.md`](../../NOTES.md).
+> **Correzione.** La prima stesura affermava che «il portiere vale almeno
+> quanto i difensori, con una variabile in meno», sulla base di +2,3 contro
+> +2,1. Rigenerando i numeri senza le finali l'ordine si **inverte**: +1,3
+> contro +1,9. Togliendo 437 tiri su 34.000 una conclusione cambiava verso —
+> quindi non era una conclusione, era rumore raccontato come scoperta.
+>
+> Quello che regge è che entrambi i gruppi contribuiscono, e che il totale è
+> minore della somma delle parti. **Quale dei due pesi di più, questi dati non
+> lo dicono.**
 
 #### Perché in produzione va la regressione logistica
 
@@ -204,6 +221,36 @@ Vince sulle variabili base, vince su quelle spaziali, e in più:
   1.9.0; i due modelli ad alberi no, e con 1.9.0 l'AUC del modello spaziale
   scende di 0,003. Per un progetto che deve restare in piedi anche fra un anno
   non è un dettaglio.
+
+### L'applicazione alle finali (M5-T9) — la prova su un'altra epoca
+
+Le 18 finali di Champions vanno dal 1971 al 2019 e sono state **escluse da
+addestramento e verifica**, non solo dall'addestramento. Il modello le incontra
+per la prima volta qui.
+
+| | Log loss | Brier | AUC | Guadagno |
+| --- | ---: | ---: | ---: | ---: |
+| Riferimento | 0,30501 | 0,08278 | 0,5000 | 0,0 % |
+| Logistica base | 0,25680 | 0,07202 | 0,7832 | 13,0 % |
+| **Logistica spaziale** | **0,24136** | **0,06771** | **0,8174** | **18,2 %** |
+| xG di StatsBomb | 0,23254 | 0,06499 | 0,8362 | 21,5 % |
+
+**Il modello non crolla:** 18,2 % sulle finali contro 19,2 % sulla verifica,
+AUC 0,8174 contro 0,8186. Un modello addestrato su partite dal 2015 al 2024
+funziona su finali che partono dal 1971.
+
+Prevede 0,0830 di xG medio contro 0,0911 di gol reali — sembra una
+sottostima, ma su 560 tiri l'errore standard della frequenza è 0,0121: lo
+scarto vale **0,67 deviazioni standard** ed è compatibile con il caso. Anche
+l'xG di StatsBomb sottostima allo stesso modo (0,0851).
+
+**Il difetto trovato prima.** La divisione casuale per partita aveva messo 437
+dei 561 tiri delle finali **dentro l'addestramento**, mentre README e
+`config.Gruppo` dichiaravano da M2 che quelle partite servivano come prova
+fuori campione. Non era leakage in senso stretto, ma il progetto diceva una
+cosa e ne faceva un'altra. La separazione ora avviene in
+`features.separa_applicazione`, prima della divisione e quindi prima che
+qualunque numero venga misurato.
 
 ### L'accordo con StatsBomb (M5-T8)
 
