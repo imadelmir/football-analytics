@@ -12,24 +12,29 @@
 
 [theme]
 base = "light"
-primaryColor = "#0f6e56"
-backgroundColor = "#f4f7f4"
+primaryColor = "#15803d"
+backgroundColor = "#f6f8f7"
 secondaryBackgroundColor = "#ffffff"
-textColor = "#10231b"
-borderColor = "#e3e8e3"
+textColor = "#111827"
+borderColor = "#d5dedb"
 baseRadius = "9px"
 font = "sans serif"
 
 [theme.sidebar]
-backgroundColor = "#0b3a2c"
-textColor = "#c9e8dc"
-primaryColor = "#1d9e75"
+backgroundColor = "#ffffff"
+textColor = "#111827"
+primaryColor = "#15803d"
 
 [server]
 headless = true
-# I Parquet stanno nel repository e non cambiano mentre l'app gira: sorvegliare
-# i file sprecherebbe memoria su Streamlit Cloud, che ne da' meno di 1 GB.
-fileWatcherType = "none"
+
+# NON rimettere `fileWatcherType = "none"`.
+#
+# C'era, con la motivazione che sorvegliare i file sprecasse memoria su
+# Streamlit Cloud. Il risparmio e' irrilevante; il costo no: disattiva il
+# ricaricamento automatico, quindi l'app continua a eseguire il codice
+# caricato all'avvio e ogni modifica sembra non avere effetto. E' costata
+# un giro intero di modifiche apparentemente ignorate.
 
 [browser]
 gatherUsageStats = false

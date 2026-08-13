@@ -364,3 +364,68 @@ def test_senza_presenze_la_tabella_e_vuota_ma_valida() -> None:
 
     assert len(vuota) == 0
     assert list(vuota.columns) == list(transform.TIPI_GIOCATORI)
+
+
+# ---------------------------------------------------------------------------
+# Il nome d'uso dei giocatori (M6-T3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("completo", "soprannome", "atteso"),
+    [
+        ("Cristiano Ronaldo dos Santos Aveiro", "Cristiano Ronaldo", "Cristiano Ronaldo"),
+        ("Neymar da Silva Santos Junior", "Neymar", "Neymar"),
+        ("Vágner Silva de Souza", "Vágner Love", "Vágner Love"),
+        ("Edinson Roberto Cavani Gómez", "Edinson Cavani", "Edinson Cavani"),
+    ],
+)
+def test_il_soprannome_di_statsbomb_ha_la_precedenza(
+    completo: str, soprannome: str, atteso: str
+) -> None:
+    """Il nome d'uso viene dalla fonte, non da una regola.
+
+    Nessuna euristica ci arriverebbe: le prime due parole darebbero «Edinson
+    Roberto», la prima e l'ultima «Cristiano Aveiro», e «Vágner Love» dal nome
+    completo non si ricava in nessun modo.
+    """
+    voce = {"player_name": completo, "player_nickname": soprannome}
+
+    assert transform.nome_breve(voce) == atteso
+
+
+@pytest.mark.parametrize(
+    ("completo", "atteso"),
+    [
+        ("Goran Pandev", "Goran Pandev"),
+        ("Zlatan Ibrahimović", "Zlatan Ibrahimović"),
+        ("Anders Rosenkrantz Lindegaard", "Anders Lindegaard"),
+        ("Dionatan do Nascimento Teixeira", "Dionatan Teixeira"),
+    ],
+)
+def test_senza_soprannome_si_tiene_nome_e_cognome(completo: str, atteso: str) -> None:
+    assert transform.nome_breve({"player_name": completo}) == atteso
+
+
+@pytest.mark.parametrize(
+    ("completo", "atteso"),
+    [
+        ("Edwin van der Sar", "Edwin van der Sar"),
+        ("Daniel Van Buyten", "Daniel Van Buyten"),
+        ("Angelo Di Livio", "Angelo Di Livio"),
+        ("Sergio Sánchez de la Fuente", "Sergio de la Fuente"),
+    ],
+)
+def test_le_particelle_restano_attaccate_al_cognome(completo: str, atteso: str) -> None:
+    """Il difetto trovato guardando i 34 nomi lunghi senza soprannome.
+
+    Prendendo solo l'ultima parola, «Edwin van der Sar» diventa «Edwin Sar» e
+    «Daniel Van Buyten» diventa «Daniel Buyten». Sono i casi che saltano
+    all'occhio a chiunque guardi una classifica.
+    """
+    assert transform.nome_breve({"player_name": completo}) == atteso
+
+
+def test_un_nome_mancante_non_rompe_la_costruzione() -> None:
+    assert transform.nome_breve({}) == ""
+    assert transform.nome_breve({"player_name": "", "player_nickname": None}) == ""

@@ -158,6 +158,94 @@ def top_giocatori(
     return ammessi.sort_values(["gol", "xg"], ascending=False).head(quanti).reset_index(drop=True)
 
 
+#: I confini delle zone di tiro, nel sistema di StatsBomb.
+#:
+#: Coincidono con l'area di rigore e l'area piccola, quindi con quelle che il
+#: modello usa in :mod:`football_analytics.features`. Non e' una griglia
+#: arbitraria: sono i confini che un allenatore userebbe per parlare di tiri.
+ZONE: Final[tuple[tuple[str, float, float], ...]] = (
+    ("Fuori area", 0.0, 102.0),
+    ("Area di rigore", 102.0, 114.0),
+    ("Area piccola", 114.0, 120.0),
+)
+
+#: L'ampiezza dei blocchi in cui si divide la partita, in minuti.
+QUARTO: Final[int] = 15
+
+
+def realizzazione(tiri: pd.DataFrame) -> float:
+    """Quanta parte dell'xG si e' trasformata in gol.
+
+    Sopra il 100 % la selezione ha segnato piu' di quanto le occasioni
+    promettessero. **Non e' bravura ne' fortuna in modo netto**: su una
+    stagione intera e' quasi tutto rumore, su cinque anni comincia a essere
+    qualcosa. La vista lo mostra, non lo interpreta.
+
+    Args:
+        tiri: I tiri della selezione.
+
+    Returns:
+        Il rapporto fra gol e xG. Zero se non ci sono tiri.
+    """
+    giocati = tiri_di_gioco(tiri)
+    atteso = float(giocati["xg_statsbomb"].sum())
+    return float(giocati["gol"].sum()) / atteso if atteso else 0.0
+
+
+def per_zona(tiri: pd.DataFrame) -> pd.DataFrame:
+    """Quanto vale un tiro, zona per zona.
+
+    Args:
+        tiri: I tiri della selezione.
+
+    Returns:
+        Una riga per zona, con quanti tiri, quanti gol e l'xG medio.
+    """
+    giocati = tiri_di_gioco(tiri)
+    righe = []
+    for nome, da, a in ZONE:
+        parte = giocati[(giocati["x"] >= da) & (giocati["x"] < a)]
+        righe.append(
+            {
+                "zona": nome,
+                "tiri": len(parte),
+                "gol": int(parte["gol"].sum()),
+                "xg_medio": float(parte["xg_statsbomb"].mean()) if len(parte) else 0.0,
+                "xg": float(parte["xg_statsbomb"].sum()),
+            }
+        )
+    return pd.DataFrame(righe)
+
+
+def per_quarto_dora(tiri: pd.DataFrame) -> pd.DataFrame:
+    """Come si distribuisce l'xG lungo i novanta minuti.
+
+    I blocchi sono di un quarto d'ora: piu' stretti diventano rumore, piu'
+    larghi nascondono il finale di tempo, che e' proprio il momento in cui le
+    partite cambiano.
+
+    Args:
+        tiri: I tiri della selezione.
+
+    Returns:
+        Una riga per blocco, in ordine di minuto.
+    """
+    giocati = tiri_di_gioco(tiri)
+    if giocati.empty:
+        return pd.DataFrame(columns=["blocco", "da", "tiri", "gol", "xg"])
+
+    blocchi = (giocati["minuto"] // QUARTO).clip(upper=5)
+    tabella = (
+        giocati.assign(blocco=blocchi)
+        .groupby("blocco", observed=True)
+        .agg(tiri=("gol", "size"), gol=("gol", "sum"), xg=("xg_statsbomb", "sum"))
+        .reset_index()
+    )
+    tabella["da"] = tabella["blocco"] * QUARTO
+    tabella["blocco"] = tabella["da"].map(lambda m: f"{int(m)}′–{int(m) + QUARTO}′")
+    return tabella.sort_values("da").reset_index(drop=True)
+
+
 def andamento(partite: pd.DataFrame, colonne: Sequence[str] = ("gol", "xg")) -> pd.DataFrame:
     """Gol e xG per data, per vedere se una stagione cambia strada.
 

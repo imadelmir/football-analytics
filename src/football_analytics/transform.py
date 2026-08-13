@@ -177,6 +177,7 @@ TIPI_GIOCATORI: Final[dict[str, str]] = {
     "stagione": "category",
     "giocatore_id": "int32",
     "giocatore": "string",
+    "giocatore_breve": "string",
     "squadra": "category",
     "ruolo": "category",
     "partite": "int16",
@@ -195,6 +196,44 @@ TIPI_GIOCATORI: Final[dict[str, str]] = {
 
 #: Il nome del ruolo che identifica il portiere nei fotogrammi.
 RUOLO_PORTIERE: Final[str] = "Goalkeeper"
+
+#: Quante parole rendono un nome gia' abbastanza breve da lasciarlo stare.
+NOMI_BREVI: Final[int] = 2
+
+#: Le particelle che fanno parte del cognome e non vanno staccate.
+#:
+#: Senza, «Edwin van der Sar» diventa «Edwin Sar» e «Daniel Van Buyten» diventa
+#: «Daniel Buyten». Sono i casi che saltano all'occhio a chiunque guardi una
+#: classifica.
+PARTICELLE: Final[frozenset[str]] = frozenset(
+    {
+        "van",
+        "von",
+        "der",
+        "den",
+        "ter",
+        "te",
+        "de",
+        "del",
+        "della",
+        "di",
+        "do",
+        "dos",
+        "da",
+        "das",
+        "du",
+        "la",
+        "le",
+        "el",
+        "al",
+        "bin",
+        "ibn",
+        "mac",
+        "mc",
+        "san",
+        "santa",
+    }
+)
 
 #: Tipo di dato di ogni colonna di ``freeze_frames.parquet``.
 #:
@@ -617,6 +656,46 @@ def _secondi(orario: str | None) -> int | None:
     return int(minuti) * 60 + int(secondi)
 
 
+def nome_breve(giocatore: dict[str, Any]) -> str:
+    """Il nome con cui un giocatore e' conosciuto, non quello all'anagrafe.
+
+    «Cristiano Ronaldo dos Santos Aveiro» in una classifica occupa mezza riga e
+    non aiuta nessuno. StatsBomb fornisce il nome d'uso nel campo
+    ``player_nickname``, e lo ha per circa due terzi dei giocatori: e' la
+    risposta giusta perche' viene dalla fonte invece che da una regola.
+
+    **Nessuna euristica ci arriverebbe.** Prendere le prime due parole darebbe
+    «Edinson Roberto» invece di «Edinson Cavani»; prendere la prima e l'ultima
+    darebbe «Cristiano Aveiro». E «Vágner Silva de Souza» in realta' si chiama
+    Vágner Love, che dal nome completo non si ricava in nessun modo.
+
+    Per il terzo restante il ripiego e' nome piu' cognome, dove il cognome
+    comprende **le sue particelle**: senza, «Edwin van der Sar» diventerebbe
+    «Edwin Sar». Resta imperfetto sui doppi cognomi spagnoli — «Javier
+    Hernández Balcázar» diventa «Javier Balcázar» invece di «Javier
+    Hernández» — ma sono trentaquattro nomi su migliaia, e nessuno di loro
+    compare nelle classifiche.
+
+    Args:
+        giocatore: La voce di formazione, con ``player_name`` ed
+            eventualmente ``player_nickname``.
+
+    Returns:
+        Il nome da mostrare.
+    """
+    soprannome = giocatore.get("player_nickname")
+    if soprannome:
+        return str(soprannome)
+    parole = str(giocatore.get("player_name", "")).split()
+    if len(parole) <= NOMI_BREVI:
+        return " ".join(parole)
+
+    inizio = len(parole) - 1
+    while inizio > 1 and parole[inizio - 1].lower() in PARTICELLE:
+        inizio -= 1
+    return " ".join([parole[0], *parole[inizio:]])
+
+
 def presenze_di_partita(
     match_id: int, comp: Competizione, meta: dict[str, Any], durata: int
 ) -> list[dict[str, Any]]:
@@ -669,6 +748,7 @@ def presenze_di_partita(
                     "stagione": comp.stagione,
                     "giocatore_id": int(giocatore["player_id"]),
                     "giocatore": str(giocatore["player_name"]),
+                    "giocatore_breve": nome_breve(giocatore),
                     "squadra": nome,
                     "in_casa": in_casa,
                     "ruolo": str(spezzoni[0].get("position", "")),
@@ -846,8 +926,17 @@ def costruisci_giocatori(
         .agg(partite=("match_id", "nunique"), minuti=("minuti", "sum"))
         .reset_index()
     )
-    for attributo in ("giocatore", "ruolo"):
+    for attributo in ("giocatore", "giocatore_breve", "ruolo"):
+        if attributo not in presenze.columns:
+            continue
         base = base.merge(_prevalente(presenze, chiave, attributo), on=chiave, how="left")
+
+    # `giocatore_breve` e' arrivato a M6-T3, dopo che il magazzino esisteva
+    # gia'. Un insieme di presenze costruito prima non ce l'ha, e la tabella
+    # deve nascere lo stesso: il nome completo e' un ripiego accettabile,
+    # una colonna mancante no.
+    if "giocatore_breve" not in base.columns:
+        base["giocatore_breve"] = base["giocatore"]
 
     # I rigori finali non sono tiri della partita: non entrano nelle
     # statistiche del giocatore, altrimenti chi calcia dal dischetto a fine

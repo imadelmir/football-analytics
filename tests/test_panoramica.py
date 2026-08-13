@@ -156,9 +156,12 @@ def test_i_gol_dei_kpi_comprendono_gli_autogol() -> None:
     assert dai_kpi == pytest.approx(dai_tiri)
 
     # Con un autogol la relazione si rompe, ed e' esattamente il caso che il
-    # conteggio dai tiri sbaglierebbe.
+    # conteggio dai tiri sbaglierebbe. La modifica passa per numpy perche'
+    # `.loc[riga, colonna]` non e' tipizzabile con pandas-stubs.
     con_autogol = partite.copy()
-    con_autogol.loc[0, "gol_casa"] = int(con_autogol.loc[0, "gol_casa"]) + 1
+    aumentati = con_autogol["gol_casa"].to_numpy().copy()
+    aumentati[0] += 1
+    con_autogol["gol_casa"] = aumentati
 
     assert panoramica.kpi(tiri, con_autogol)["gol"] == pytest.approx(dai_tiri + 1)
 

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from football_analytics import features, tema, viz
@@ -156,7 +158,26 @@ def test_il_campo_usa_i_colori_del_tema(scelto: tema.Tema) -> None:
 
     assert scelto.erba_chiara in usati
     assert scelto.erba_scura in usati
-    assert disegnato.layout.paper_bgcolor == scelto.superficie
+
+
+@pytest.mark.parametrize("scelto", list(tema.TEMI.values()), ids=lambda t: t.nome)
+def test_i_grafici_non_disegnano_il_proprio_fondo(scelto: tema.Tema) -> None:
+    """Il fondo delle figure e' trasparente, non del colore della scheda.
+
+    Prima ``paper_bgcolor`` valeva ``tema.superficie``, che e' lo stesso colore
+    della scheda che contiene il grafico: sulla carta identico, in pagina no.
+    Il rettangolo di Plotly ha angoli vivi dentro una scheda con angoli
+    arrotondati, e non arriva mai fino al bordo — si vedeva un riquadro bianco
+    stampato sopra la scheda bianca, visibile proprio agli angoli.
+
+    Trasparente non e' equivalente: e' l'unico valore che continua a funzionare
+    se un giorno la scheda cambia fondo, o ne ha uno sfumato.
+    """
+    for figura in (
+        viz.campo(scelto),
+        viz.ciambella(0.42, "42%", "xG realizzato", scelto),
+    ):
+        assert figura.layout.paper_bgcolor == tema.TRASPARENTE
 
 
 def test_le_finali_disegnano_un_campo_blu() -> None:
@@ -191,9 +212,281 @@ def test_l_erba_copre_tutto_il_campo() -> None:
     assert all(float(s["y1"]) == pytest.approx(viz.LARGHEZZA) for s in strisce)
 
 
+# ---------------------------------------------------------------------------
+# La shot map (M6-T3)
+# ---------------------------------------------------------------------------
+
+
+def tiri_di_prova() -> pd.DataFrame:
+    """Sei tiri, due dei quali gol, con xG noti.
+
+    Returns:
+        Una tabella nella forma di ``shots.parquet``.
+    """
+    return pd.DataFrame(
+        {
+            "x": [110.0, 100.0, 95.0, 112.0, 105.0, 90.0],
+            "y": [40.0, 30.0, 50.0, 44.0, 36.0, 40.0],
+            "gol": [True, False, False, True, False, False],
+            "xg_statsbomb": [0.40, 0.10, 0.05, 0.60, 0.08, 0.02],
+            "giocatore": ["A", "B", "C", "D", "E", "F"],
+            "squadra": ["Uno"] * 6,
+            "minuto": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+
+def test_la_shot_map_divide_i_tiri_in_fasce_di_xg() -> None:
+    """Cinque classi invece di una scala continua.
+
+    Su migliaia di pallini piccoli e sovrapposti un gradiente non si legge:
+    nessuno distingue 0,18 da 0,24 guardando una sfumatura. Cinque classi si
+    leggono dalla legenda e si contano.
+    """
+    mappa = viz.shot_map(tiri_di_prova(), tema.VERDE)
+
+    nomi = [traccia.name for traccia in mappa.data]
+    attese = [voce[0] for voce in tema.scala_di(tema.VERDE)]
+
+    assert set(nomi) <= set(attese)
+    assert len(nomi) >= 2
+
+
+def test_le_fasce_sono_in_ordine_di_pericolosita() -> None:
+    # La legenda deve leggersi dal meno al piu' pericoloso: al contrario
+    # sarebbe corretta e faticosa.
+    mappa = viz.shot_map(tiri_di_prova(), tema.VERDE)
+    ordine = [voce[0] for voce in tema.scala_di(tema.VERDE)]
+    disegnate = [t.name for t in mappa.data]
+
+    assert disegnate == sorted(disegnate, key=ordine.index)
+
+
+def test_ogni_tiro_finisce_in_una_fascia_e_una_sola() -> None:
+    # Se i confini si sovrapponessero o lasciassero un buco, qualche tiro
+    # sparirebbe dalla mappa senza che niente lo segnali.
+    tiri = tiri_di_prova()
+
+    mappa = viz.shot_map(tiri, tema.VERDE)
+
+    disegnati = sum(len(traccia.x) for traccia in mappa.data)
+    assert disegnati == len(tiri)
+
+
+def test_i_gol_hanno_un_contorno_e_non_un_colore_diverso() -> None:
+    """Distinguere l'esito col colore toglierebbe la lettura dell'xG.
+
+    E succederebbe proprio sui tiri piu' interessanti: i gol sono quasi tutti
+    ad alto xG, cioe' i pallini che uno guarda per primi.
+    """
+    tiri = tiri_di_prova()
+
+    mappa = viz.shot_map(tiri, tema.VERDE)
+
+    spessori = [larghezza for traccia in mappa.data for larghezza in traccia.marker.line.width]
+    assert sum(1 for s in spessori if s > 0) == int(tiri["gol"].sum())
+
+
+def test_le_fasce_basse_sono_piu_trasparenti() -> None:
+    """L'opacita' e' cio' che decide se la mappa si legge.
+
+    I tiri da niente sono meta' del totale: a piena opacita' formano una massa
+    che copre le occasioni vere, cioe' proprio quello che si vuole guardare.
+    E' stato il primo difetto visibile della mappa, e non era il colore.
+    """
+    trasparenze = [voce[3] for voce in tema.scala_di(tema.VERDE)]
+
+    assert trasparenze == sorted(trasparenze)
+    assert trasparenze[0] < 0.4
+    assert trasparenze[-1] > 0.9
+
+
+def test_l_opacita_arriva_fino_al_disegno() -> None:
+    mappa = viz.shot_map(tiri_di_prova(), tema.VERDE)
+    per_fascia = {voce[0]: voce[3] for voce in tema.scala_di(tema.VERDE)}
+
+    for traccia in mappa.data:
+        assert traccia.marker.opacity == pytest.approx(per_fascia[traccia.name])
+
+
+def test_la_legenda_e_accesa() -> None:
+    # Senza legenda le fasce di colore sono decorazione.
+    assert viz.shot_map(tiri_di_prova(), tema.VERDE).layout.showlegend is True
+
+
+def test_la_dimensione_cresce_con_la_radice_dell_xg() -> None:
+    """L'occhio confronta le aree, non i raggi.
+
+    Con il raggio proporzionale all'xG, un tiro da 0,40 sembrerebbe quattro
+    volte uno da 0,10 in **larghezza** e sedici volte in **area**. E' il modo
+    piu' comune di esagerare un grafico senza volerlo.
+    """
+    raggi = viz._dimensioni([0.10, 0.40])
+    escursione = viz.PALLINO_MASSIMO - viz.PALLINO_MINIMO
+
+    quota_piccolo = (raggi[0] - viz.PALLINO_MINIMO) / escursione
+    quota_grande = (raggi[1] - viz.PALLINO_MINIMO) / escursione
+
+    assert quota_grande == pytest.approx(1.0)
+    assert quota_piccolo == pytest.approx(0.5)
+
+
+def test_un_xg_nullo_non_produce_un_pallino_invisibile() -> None:
+    raggi = viz._dimensioni([0.0, 0.5])
+
+    assert min(raggi) >= viz.PALLINO_MINIMO
+
+
+def test_tutti_gli_xg_a_zero_non_dividono_per_zero() -> None:
+    raggi = viz._dimensioni([0.0, 0.0, 0.0])
+
+    assert all(r == pytest.approx(viz.PALLINO_MINIMO) for r in raggi)
+
+
+def test_senza_tiri_resta_solo_il_campo() -> None:
+    vuota = viz.shot_map(tiri_di_prova().iloc[0:0], tema.VERDE)
+
+    assert len(vuota.data) == 0
+    assert len(forme(vuota)) > 10
+
+
+def test_la_shot_map_disegna_sul_campo_del_tema_scelto() -> None:
+    blu = viz.shot_map(tiri_di_prova(), tema.BLU)
+    colori_notte = {voce[2] for voce in tema.SCALA_XG_NOTTE}
+
+    assert blu.layout.plot_bgcolor == tema.BLU.erba_scura
+    assert {t.marker.color for t in blu.data} <= colori_notte
+
+
 def test_le_strisce_si_alternano() -> None:
     strisce = viz.erba(tema.VERDE)
     colori = [s["fillcolor"] for s in strisce]
 
     assert len(set(colori)) == 2
     assert all(colori[i] != colori[i + 1] for i in range(len(colori) - 1))
+
+
+def test_la_mappa_non_mostra_nomi_al_passaggio() -> None:
+    """Nessun nome di giocatore compare passando il mouse sulla mappa.
+
+    In area i tiri sono decine, sovrapposti a pochi pixel l'uno dall'altro: il
+    puntatore pesca quello che sta sopra nell'ordine di disegno, che non e'
+    quello che si sta guardando. Il riquadro mostrava quindi un nome
+    plausibile e quasi sempre sbagliato — peggio di nessun nome, perche' sembra
+    un'informazione.
+
+    Il test guarda ``customdata`` e non il solo ``hoverinfo``: e' il dato a
+    dover mancare, altrimenti i nomi viaggiano comunque nell'HTML della pagina
+    e basta una riga altrove per rimetterli in vista.
+    """
+    figura = viz.shot_map(tiri_di_prova(), tema.VERDE)
+
+    for traccia in figura.data:
+        assert traccia.customdata is None
+        assert traccia.hovertemplate is None
+
+
+# ---------------------------------------------------------------------------
+# La mappa di calore
+# ---------------------------------------------------------------------------
+
+
+def test_la_mappa_di_calore_conserva_tutti_i_tiri() -> None:
+    """Nessun tiro si perde e nessuno viene contato due volte.
+
+    Il controllo e' sulla somma dei conteggi ricostruiti dalla radice: se i
+    bordi delle celle fossero sfasati di mezza iarda, o l'ultimo bordo
+    escludesse i tiri sulla linea di fondo, il totale non tornerebbe e la mappa
+    mostrerebbe una densita' sbagliata senza sembrare rotta.
+    """
+    tiri = tiri_di_prova()
+    figura = viz.mappa_di_calore(tiri, tema.VERDE)
+
+    conteggi = np.square(np.asarray(figura.data[0].z))
+
+    assert round(float(conteggi.sum())) == len(tiri)
+
+
+def test_la_barra_dei_colori_mostra_i_conteggi_non_le_radici() -> None:
+    """La trasformazione serve all'occhio, non deve arrivare all'etichetta.
+
+    E' la parte in cui una scala non lineare diventa disonesta: se la barra
+    riportasse le radici, un lettore che confronta due zone leggerebbe numeri
+    che non sono tiri.
+    """
+    tiri = tiri_di_prova()
+    figura = viz.mappa_di_calore(tiri, tema.VERDE)
+    barra = figura.data[0].colorbar
+
+    massimo = float(np.square(np.asarray(figura.data[0].z)).max())
+
+    assert float(barra.ticktext[-1]) == pytest.approx(massimo, abs=0.5)
+    assert float(barra.tickvals[-1]) == pytest.approx(massimo**0.5, rel=1e-6)
+
+
+def test_la_radice_salva_le_celle_rare() -> None:
+    """La ragione per cui la scala non e' lineare, misurata invece che asserita.
+
+    I due numeri non sono inventati: sono la forma vera della distribuzione de
+    La Liga con celle da quattro iarde — cella piu' battuta 385 tiri, mediana
+    delle celle piene 8. La prima stesura di questo test usava 400 e 3 scelti a
+    occhio, e falliva: con quel rapporto nemmeno la radice basta. Serviva
+    guardare i dati invece di immaginarli.
+    """
+    conteggi = np.array([385.0, *([8.0] * 40)])
+
+    lineare = conteggi / conteggi.max()
+    radice = np.sqrt(conteggi) / np.sqrt(conteggi.max())
+
+    assert (lineare[1:] < 0.10).all(), "la scala lineare dovrebbe spegnere la coda"
+    assert (radice[1:] > 0.10).all(), "la radice dovrebbe salvarla"
+
+
+def test_le_linee_del_campo_stanno_sopra_la_mappa_di_calore() -> None:
+    """Una superficie opaca sopra l'area di rigore nasconde l'area di rigore.
+
+    Le linee sono l'unico riferimento per capire dove si stia guardando: sotto
+    una mappa di calore devono passare sopra, mentre nella nuvola di punti
+    restano sotto perche' li' coprirebbero i tiri.
+    """
+    calore = viz.mappa_di_calore(tiri_di_prova(), tema.VERDE)
+    punti = viz.shot_map(tiri_di_prova(), tema.VERDE)
+
+    def livelli(figura: Any) -> set[str]:
+        return {f.layer for f in forme(figura) if f.line and f.line.color == tema.VERDE.linee}
+
+    assert livelli(calore) == {"above"}
+    assert livelli(punti) == {"below"}
+
+
+def test_la_mappa_di_calore_vuota_resta_un_campo() -> None:
+    vuota = viz.mappa_di_calore(tiri_di_prova().head(0), tema.VERDE)
+
+    assert len(vuota.data) == 0
+    assert len(forme(vuota)) > 0
+
+
+@pytest.mark.parametrize("scelto", list(tema.TEMI.values()), ids=lambda t: t.nome)
+def test_la_scala_di_calore_parte_invisibile(scelto: tema.Tema) -> None:
+    """Il primo gradino e' trasparente, o il campo sparisce sotto una patina.
+
+    Deve anche essere la **stessa tinta** del gradino successivo: partendo da
+    un nero trasparente, Plotly interpolerebbe verso il grigio e le zone quasi
+    vuote prenderebbero una sfumatura sporca che non significa niente.
+    """
+    scala = tema.scala_calore(scelto)
+    primo, secondo = scala[0][1], scala[1][1]
+
+    assert primo.startswith("rgba(") and primo.endswith(",0)")
+    canali = primo[len("rgba(") : -len(",0)")]
+    atteso = ",".join(str(int(secondo[i : i + 2], 16)) for i in (1, 3, 5))
+    assert canali == atteso
+
+
+@pytest.mark.parametrize("scelto", list(tema.TEMI.values()), ids=lambda t: t.nome)
+def test_le_posizioni_della_scala_sono_ordinate(scelto: tema.Tema) -> None:
+    posizioni = [posizione for posizione, _ in tema.scala_calore(scelto)]
+
+    assert posizioni == sorted(posizioni)
+    assert posizioni[0] == 0.0
+    assert posizioni[-1] == 1.0
