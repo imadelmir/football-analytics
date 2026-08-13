@@ -148,7 +148,15 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 minversion = "9.0"
 testpaths = ["tests"]
-pythonpath = ["src"]
+# `app` accanto a `src`, ed e' una correzione, non una comodita'.
+#
+# I moduli della dashboard (`dati`, `guscio`, `theme`) si importano per nome,
+# come fa Streamlit che mette la cartella dello script sul percorso. Nei test
+# funzionava **per caso**: `AppTest.from_file` aggiunge `app/` a ``sys.path``,
+# quindi bastava che un test di pagina fosse girato prima. In CI quei test sono
+# saltati — il magazzino non c'e' fino a M7-T1 — e sette test sono morti con
+# ``ModuleNotFoundError``. Sulla macchina di sviluppo passavano tutti.
+pythonpath = ["src", "app"]
 addopts = [
   "-ra",
   "--strict-markers",
