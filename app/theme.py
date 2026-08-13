@@ -24,7 +24,13 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from football_analytics.tema import Tema, per_competizione, per_gruppo
+from football_analytics.tema import (
+    Tema,
+    e_scuro,
+    fondo_sfumato,
+    per_competizione,
+    per_gruppo,
+)
 
 if TYPE_CHECKING:
     from football_analytics.config import Gruppo
@@ -81,6 +87,38 @@ def fascia(tema: Tema) -> str:
     return f"linear-gradient(90deg, {', '.join(colori)})"
 
 
+def sfondo_di(tema: Tema) -> str:
+    """Il fondo della pagina: i colori d'identita' spenti fino alla notte.
+
+    **Solo per i temi scuri.** Il neutro e' chiaro e resta tinta unita: la
+    stessa sfumatura su fondo bianco darebbe un alone colorato che sembra un
+    difetto di stampa.
+
+    La sfumatura scende in diagonale e ripete l'ordine della fascia in cima:
+    la Serie A ha verde, grigio e rosso, La Liga rosso e oro, la Premier due
+    azzurri. Le due cose si continuano invece di accostarsi, e la pagina si
+    riconosce prima ancora di leggere il titolo.
+
+    **Il fondo tinge, non colora.** I colori arrivano al 17 % sopra un blu
+    notte: piu' di cosi' e il testo comincia a faticare, meno e tutti i temi
+    tornano uguali.
+
+    Args:
+        tema: La palette attiva.
+
+    Returns:
+        Il valore CSS di ``background``.
+    """
+    if not e_scuro(tema):
+        return f"var({PREFISSO}sfondo)"
+    colori = fondo_sfumato(tema)
+    if len(colori) == 1:
+        return colori[0]
+    passo = 100 / (len(colori) - 1)
+    tappe = ", ".join(f"{colore} {i * passo:.4g}%" for i, colore in enumerate(colori))
+    return f"linear-gradient(160deg, {tappe})"
+
+
 def foglio_di_stile(tema: Tema) -> str:
     """Costruisce il foglio di stile completo per un tema.
 
@@ -96,7 +134,8 @@ def foglio_di_stile(tema: Tema) -> str:
 }}
 
 .stApp {{
-  background-color: var({PREFISSO}sfondo);
+  background: {sfondo_di(tema)};
+  background-attachment: fixed;
   color: var({PREFISSO}testo);
 }}
 
@@ -146,6 +185,23 @@ header[data-testid="stHeader"] {{
    un quinto dell'altezza e il menu comincia a meta'. */
 [data-testid="stSidebarUserContent"] {{ padding-top: .4rem; }}
 [data-testid="stSidebarHeader"] {{ height: 0; padding: 0; }}
+
+/* Il menu automatico e' gia' spento da `.streamlit/config.toml`, che Streamlit
+   legge prima di disegnare. Questa regola resta come rete di sicurezza per chi
+   avviasse l'app ignorando quel file — ma da sola non basterebbe: arriverebbe
+   dopo il primo disegno, e a ogni cambio pagina si vedrebbe comparire e
+   sparire un secondo menu con i nomi dei file. */
+[data-testid="stSidebarNav"] {{ display: none; }}
+
+/* La distanza fra le voci del menu. Vale identica per tutte perche' le voci
+   sono tutte lo stesso componente — otto pulsanti — e lo spazio lo mette il
+   contenitore, non i singoli elementi. */
+[data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {{
+  gap: .3rem;
+}}
+[data-testid="stSidebarUserContent"] [data-testid="stElementContainer"] {{
+  margin: 0;
+}}
 section[data-testid="stSidebar"] {{ width: 228px !important; }}
 
 /* Le colonne stanno piu' vicine: con lo spazio predefinito sei schede KPI
@@ -221,6 +277,42 @@ h5 {{ margin-bottom: .6rem; }}
   color: var({PREFISSO}testo);
 }}
 [data-baseweb="popover"] li:hover {{ background-color: var({PREFISSO}primario_tenue); }}
+
+/* La tabella e i pulsanti sono componenti nativi: senza queste regole
+   restano quelli del tema statico di config.toml, che e' sempre chiaro, e
+   nelle finali diventano rettangoli bianchi su fondo nero con il testo
+   illeggibile. */
+[data-testid="stDataFrame"], [data-testid="stDataFrameResizable"] {{
+  background-color: var({PREFISSO}superficie);
+  border-color: var({PREFISSO}bordo);
+}}
+[data-testid="stDataFrame"] * {{ color: var({PREFISSO}testo); }}
+[data-testid="stElementToolbar"] button {{ color: var({PREFISSO}testo); }}
+
+/* Solo i pulsanti del contenuto: quelli della barra laterale sono voci di
+   menu e li veste `guscio.FOGLIO`. Senza `.main`, questa regola rimetteva
+   cornice e sfondo anche al menu, che li aveva appena tolti. */
+section[data-testid="stMain"] [data-testid="stBaseButton-secondary"] {{
+  background-color: var({PREFISSO}superficie);
+  border-color: var({PREFISSO}bordo);
+  color: var({PREFISSO}testo);
+}}
+section[data-testid="stMain"] [data-testid="stBaseButton-secondary"] p {{
+  color: var({PREFISSO}testo);
+}}
+section[data-testid="stMain"] [data-testid="stBaseButton-secondary"]:hover {{
+  border-color: var({PREFISSO}primario);
+  color: var({PREFISSO}primario);
+}}
+section[data-testid="stMain"] [data-testid="stBaseButton-secondary"]:hover p {{
+  color: var({PREFISSO}primario);
+}}
+
+[data-testid="stExpander"] details {{
+  background-color: var({PREFISSO}superficie);
+  border-color: var({PREFISSO}bordo);
+}}
+[data-testid="stExpander"] summary p {{ color: var({PREFISSO}testo); }}
 
 h1, h2, h3 {{ color: var({PREFISSO}testo); }}
 a {{ color: var({PREFISSO}primario); }}

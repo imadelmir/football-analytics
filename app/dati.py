@@ -13,11 +13,14 @@ al primo utente che tocca un filtro.
 
 from __future__ import annotations
 
+import base64
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
-from football_analytics import config
-from football_analytics.config import DATA_PROCESSED
+from football_analytics import albo, config
+from football_analytics.config import CHAMPIONS_FINALI, DATA_PROCESSED
 
 
 @st.cache_data(show_spinner="Carico il magazzino…")
@@ -53,6 +56,91 @@ def competizioni() -> list[str]:
     return sorted(leggi("matches")["competizione"].unique())
 
 
+#: Dove stanno i loghi delle competizioni.
+LOGHI: Path = Path(__file__).parent / "assets" / "loghi"
+
+#: Il marchio dell'app, quello nella barra laterale.
+MARCHIO: Path = Path(__file__).parent / "assets" / "marchio.png"
+
+
+def marchio() -> str:
+    """Il marchio dell'app come URI incorporabile nel CSS.
+
+    Va in linea e non come file servito perche' il marchio finisce dentro un
+    ``background-image``, e Streamlit non espone una cartella statica senza
+    attivare ``enableStaticServing``: un interruttore in piu' da ricordare in
+    fase di deploy per un file da sedici chilobyte.
+
+    Returns:
+        Il marchio come ``data:`` URI, pronto per ``url(...)``.
+    """
+    codificato = base64.b64encode(MARCHIO.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{codificato}"
+
+
+def logo_di(chiave: str) -> Path | None:
+    """Il logo di una competizione, se c'e'.
+
+    **La mappa e' per chiave e non per ``competition_id``**, a differenza di
+    quella dei temi: Euro 2020 ed Euro 2024 condividono l'identificativo ma
+    hanno due loghi diversi, uno per edizione. Il colore e' della competizione,
+    il marchio dell'edizione.
+
+    Args:
+        chiave: La chiave della competizione.
+
+    Returns:
+        Il percorso del file, oppure ``None`` se non esiste. Chi chiama deve
+        reggere l'assenza: i loghi non sono dati, sono decorazione, e una
+        competizione nuova non deve rompere la pagina per un file mancante.
+    """
+    percorso = LOGHI / f"{NOMI_LOGHI.get(chiave, chiave)}.svg"
+    return percorso if percorso.exists() else None
+
+
+#: Il nome del file per ciascuna competizione del magazzino.
+NOMI_LOGHI: dict[str, str] = {
+    "la_liga_2015_16": "la_liga",
+    "premier_2015_16": "premier",
+    "serie_a_2015_16": "serie_a",
+    "ligue1_2015_16": "ligue1",
+    "champions_finali": "champions",
+    "mondiali_2022": "mondiali",
+    "coppa_africa_2023": "coppa_africa",
+    "euro_2024": "euro_2024",
+    "euro_2020": "euro_2020",
+}
+
+
+def insegna(chiave: str, altezza: int) -> str:
+    """Il logo di una competizione come immagine in linea, ad altezza fissa.
+
+    **Ad altezza e non a larghezza**, ed e' il punto: i nove loghi hanno
+    proporzioni molto diverse — il tondo della Serie A, il fuso dei Mondiali —
+    e fissando la larghezza quello stretto diventava alto il doppio degli
+    altri. Fissando l'altezza stanno tutti sulla stessa riga.
+
+    Il file viene incorporato invece che servito: sono SVG di pochi kilobyte,
+    e cosi' il markup della targa resta un pezzo solo di HTML invece di un
+    elemento Streamlit accanto a un altro, che porterebbe i propri margini.
+
+    Args:
+        chiave: La chiave della competizione.
+        altezza: L'altezza in pixel.
+
+    Returns:
+        Il tag ``img``, oppure stringa vuota se il logo non c'e'.
+    """
+    percorso = logo_di(chiave)
+    if percorso is None:
+        return ""
+    codificato = base64.b64encode(percorso.read_bytes()).decode("ascii")
+    return (
+        f'<img class="insegna" src="data:image/svg+xml;base64,{codificato}" '
+        f'style="height:{altezza}px" alt="" />'
+    )
+
+
 def nome_di(chiave: str) -> str:
     """Il solo nome della competizione, senza la stagione.
 
@@ -70,6 +158,21 @@ def nome_di(chiave: str) -> str:
         return config.competizione(chiave).nome
     except ValueError:
         return chiave
+
+
+def stagione_di(chiave: str) -> str:
+    """La stagione di una competizione, per i riquadri di scelta.
+
+    Args:
+        chiave: La chiave della competizione.
+
+    Returns:
+        La stagione, oppure stringa vuota se la chiave non e' nota.
+    """
+    try:
+        return config.competizione(chiave).stagione
+    except ValueError:
+        return ""
 
 
 def etichetta_di(chiave: str) -> str:
@@ -142,3 +245,23 @@ def gruppo_di(competizione: str | None, partite: pd.DataFrame) -> str:
         return ""
     gruppi = list(partite.loc[partite["competizione"] == competizione, "gruppo"].unique())
     return str(gruppi[0]) if len(gruppi) == 1 else ""
+
+
+@st.cache_data(show_spinner=False)
+def albo_champions() -> pd.DataFrame:
+    """L'albo d'oro delle finali di Champions presenti nel magazzino.
+
+    Legge **tutto** il magazzino e non la selezione corrente: le finali sono una
+    competizione a se', e le coppe di una squadra non smettono di esistere
+    perche' si sta guardando la Serie A.
+
+    Returns:
+        Il risultato di :func:`football_analytics.albo.albo`.
+    """
+    chiave = CHAMPIONS_FINALI.chiave
+    partite = leggi("matches")
+    tiri = leggi("shots")
+    return albo.albo(
+        partite[partite["competizione"] == chiave],
+        tiri[tiri["competizione"] == chiave],
+    )

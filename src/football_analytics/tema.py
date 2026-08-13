@@ -6,23 +6,23 @@ scritto dentro un grafico e' invisibile finche' non serve cambiarlo, e allora
 va cercato in venti file. Peggio, sopravvive al cambio di tema — la vista
 resterebbe verde anche quando tutto il resto e' diventato blu.
 
-Il progetto usa **un tema per competizione**, ma su due soli livelli, e la
-distinzione fra i due livelli e' la cosa importante:
+Il progetto usa **un tema per competizione**, su due livelli:
 
-- **i temi chiari** — verde neutro, piu' uno per ciascuno dei quattro
-  campionati — cambiano l'accento, la sfumatura del fondo e la fascia
-  d'identita' in cima alla pagina. La struttura resta la stessa: fondo chiaro,
-  schede bianche, testo scuro. Servono a far sentire dove si sta guardando.
-- **il tema scuro** e' uno solo, ed e' quello delle finali di Champions
-  League: 18 partite dal 1971 al 2019, e soprattutto le uniche su cui il
-  modello viene **applicato** invece che addestrato.
+- **il neutro e' chiaro.** Senza una competizione scelta la dashboard e'
+  bianca: e' lo stato in cui non si sta guardando niente in particolare, e non
+  ha senso che indossi i colori di qualcuno.
+- **ogni competizione e' scura e porta i propri colori.** La Serie A verde,
+  bianco e rosso; La Liga rosso e oro; la Premier due azzurri; le finali blu
+  notte e azzurro. Quei colori compaiono in tre punti — la fascia in cima,
+  l'accento e il fondo, dove sono spenti fino a diventare notte — e vengono
+  tutti da :attr:`Tema.striscia`, quindi cambiarne uno li cambia insieme.
 
-**Perche' solo le finali diventano scure.** Il buio era il segnale di quella
-differenza epistemica, e dare un colore proprio a ogni lega rischiava di
-spegnerlo: se tutto cambia colore, cambiare colore non vuol dire piu' niente.
-Tenendo il buio per le sole finali il segnale sopravvive — le leghe si
-distinguono fra loro, ma restano tutte «dove il modello ha imparato», e una
-sola vista dichiara «qui il modello sta indovinando».
+**Il buio non e' piu' il segnale delle finali.** Lo era, e diceva «qui il
+modello viene applicato a partite mai viste» invece che addestrato. Ora tutte
+le competizioni sono scure, quindi quel significato e' stato speso per
+l'identita' visiva: cio' che **deve** restare e' la dichiarazione scritta
+nella vista delle finali, perche' da un colore nessuno puo' dedurre che quei
+diciotto match sono fuori campione.
 
 Il tema si sceglie dalla competizione, quindi dai dati, e non da un
 interruttore che qualcuno puo' dimenticare in una posizione sbagliata. La
@@ -63,10 +63,19 @@ class Tema:
         gol: Serie che rappresentano gol realizzati.
         atteso: Serie che rappresentano valori attesi, cioe' l'xG.
         pericolo: Scarti negativi e avvisi.
-        barra: Il fondo della barra laterale, scuro anche a tema chiaro: separa
-            la navigazione dal contenuto senza bisogno di una linea.
-        barra_testo: Il testo sulla barra laterale.
-        barra_accento: La voce selezionata nella barra laterale.
+        barra: Il fondo della barra laterale. **Bianco in tutti i temi**: la
+            navigazione non appartiene a una competizione, e vederla cambiare
+            colore a ogni scelta la faceva sembrare parte del contenuto.
+        barra_testo: Il testo sulla barra laterale, scuro perche' il fondo e'
+            chiaro ovunque.
+        barra_accento: La voce selezionata. E' il **primo colore della
+            striscia** e non l'accento del tema: quello e' schiarito per
+            leggersi sul fondo scuro delle pagine, e su una barra bianca
+            sparirebbe.
+        barra_tenue: Le voci spente del menu. Stesso motivo di
+            ``barra_accento``: ``testo_tenue`` e' tarato sul fondo scuro delle
+            pagine e sulla barra bianca diventa illeggibile.
+        bordo_barra: Lo sfondo di una voce al passaggio del mouse.
         striscia: I colori della fascia d'identita' in cima alla pagina, da
             sinistra a destra. **Tre colori diventano bande nette**, cioe' una
             bandiera; **due diventano una sfumatura**, cioe' un marchio. La
@@ -91,6 +100,8 @@ class Tema:
     barra: str
     barra_testo: str
     barra_accento: str
+    barra_tenue: str
+    bordo_barra: str
     striscia: tuple[str, ...]
 
 
@@ -118,6 +129,8 @@ VERDE: Final[Tema] = Tema(
     barra="#ffffff",
     barra_testo="#111827",
     barra_accento="#15803d",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
     striscia=("#15803d", "#4ade80"),
 )
 
@@ -129,22 +142,24 @@ VERDE: Final[Tema] = Tema(
 #: 5,93 a 1 sul bianco, dove per un elemento grafico ne bastano 3.
 PREMIER: Final[Tema] = Tema(
     nome="premier",
-    sfondo="#f4f8fc",
-    superficie="#ffffff",
-    bordo="#d3dfea",
-    testo="#0d1b2a",
-    testo_tenue="#5b6b7c",
-    primario="#0369a1",
-    primario_tenue="#dbeafe",
-    erba_chiara="#eef4fa",
-    erba_scura="#e5eef7",
-    linee="#7d94a8",
-    gol="#0369a1",
-    atteso="#b45309",
-    pericolo="#dc2626",
+    sfondo="#091f35",
+    superficie="#0f263d",
+    bordo="#0c3654",
+    testo="#e8eef8",
+    testo_tenue="#95c0d8",
+    primario="#6da8c8",
+    primario_tenue="#082b47",
+    erba_chiara="#102339",
+    erba_scura="#091c2f",
+    linee="#3084b2",
+    gol="#6da8c8",
+    atteso="#94a3b8",
+    pericolo="#f97316",
     barra="#ffffff",
-    barra_testo="#0d1b2a",
+    barra_testo="#111827",
     barra_accento="#0369a1",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
     striscia=("#0369a1", "#38bdf8"),
 )
 
@@ -155,22 +170,24 @@ PREMIER: Final[Tema] = Tema(
 #: un colore d'allarme senza confondersi con l'accento.
 LIGA: Final[Tema] = Tema(
     nome="liga",
-    sfondo="#fcf6f5",
-    superficie="#ffffff",
-    bordo="#ead9d6",
-    testo="#1c1210",
-    testo_tenue="#7a6460",
-    primario="#b91c1c",
-    primario_tenue="#fee2e2",
-    erba_chiara="#f8f2f0",
-    erba_scura="#f1e9e7",
-    linee="#a89490",
-    gol="#b91c1c",
-    atteso="#1d4ed8",
-    pericolo="#b45309",
+    sfondo="#26131f",
+    superficie="#291b2b",
+    bordo="#4a1b27",
+    testo="#e8eef8",
+    testo_tenue="#e2a0a0",
+    primario="#d67b7b",
+    primario_tenue="#3e141f",
+    erba_chiara="#221b2b",
+    erba_scura="#1f1220",
+    linee="#c64545",
+    gol="#d67b7b",
+    atteso="#94a3b8",
+    pericolo="#f97316",
     barra="#ffffff",
-    barra_testo="#1c1210",
+    barra_testo="#111827",
     barra_accento="#b91c1c",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
     striscia=("#b91c1c", "#f2b705", "#b91c1c"),
 )
 
@@ -181,22 +198,24 @@ LIGA: Final[Tema] = Tema(
 #: lavoro e' la fascia tricolore in cima, non l'accento.
 SERIE_A: Final[Tema] = Tema(
     nome="serie_a",
-    sfondo="#f4faf6",
-    superficie="#ffffff",
-    bordo="#d3e5da",
-    testo="#10201a",
-    testo_tenue="#5d7268",
-    primario="#008c45",
-    primario_tenue="#d6f0e0",
-    erba_chiara="#eff7f2",
-    erba_scura="#e6f1ea",
-    linee="#7f9a8c",
-    gol="#008c45",
-    atteso="#1d4ed8",
-    pericolo="#ce2b37",
+    sfondo="#082526",
+    superficie="#0f2b30",
+    bordo="#0b4135",
+    testo="#e8eef8",
+    testo_tenue="#94cfb1",
+    primario="#6bbc93",
+    primario_tenue="#07362b",
+    erba_chiara="#0f262f",
+    erba_scura="#092024",
+    linee="#2ea166",
+    gol="#6bbc93",
+    atteso="#94a3b8",
+    pericolo="#f97316",
     barra="#ffffff",
-    barra_testo="#10201a",
+    barra_testo="#111827",
     barra_accento="#008c45",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
     striscia=("#008c45", "#ffffff", "#ce2b37"),
 )
 
@@ -206,23 +225,105 @@ SERIE_A: Final[Tema] = Tema(
 #: luminosita' opposte, e le due fasce d'identita' non si somigliano.
 LIGUE1: Final[Tema] = Tema(
     nome="ligue1",
-    sfondo="#f5f7fc",
-    superficie="#ffffff",
-    bordo="#d6dcea",
-    testo="#0e1526",
-    testo_tenue="#5f6a80",
-    primario="#1e3a8a",
-    primario_tenue="#dbe3f8",
-    erba_chiara="#f0f3fa",
-    erba_scura="#e7ecf6",
-    linee="#8290a8",
-    gol="#1e3a8a",
-    atteso="#b45309",
-    pericolo="#ce2b37",
+    sfondo="#0d1831",
+    superficie="#131f3a",
+    bordo="#15264d",
+    testo="#e8eef8",
+    testo_tenue="#a0acce",
+    primario="#7c8dbb",
+    primario_tenue="#101d40",
+    erba_chiara="#121e36",
+    erba_scura="#0c162d",
+    linee="#465d9f",
+    gol="#7c8dbb",
+    atteso="#94a3b8",
+    pericolo="#f97316",
     barra="#ffffff",
-    barra_testo="#0e1526",
+    barra_testo="#111827",
     barra_accento="#1e3a8a",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
     striscia=("#1e3a8a", "#ffffff", "#ce2b37"),
+)
+
+#: Coppa d'Africa: verde scuro e oro.
+COPPA_AFRICA: Final[Tema] = Tema(
+    nome="coppa_africa",
+    sfondo="#192f32",
+    superficie="#293e40",
+    bordo="#47595b",
+    testo="#e8eef8",
+    testo_tenue="#9cb7a7",
+    primario="#779b85",
+    primario_tenue="#2e4744",
+    erba_chiara="#24393c",
+    erba_scura="#192f32",
+    linee="#3e7253",
+    gol="#779b85",
+    atteso="#94a3b8",
+    pericolo="#f97316",
+    barra="#ffffff",
+    barra_testo="#111827",
+    barra_accento="#14532d",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
+    striscia=("#14532d", "#c99a2e", "#14532d"),
+)
+
+#: Campionato Europeo: rosso e blu.
+#:
+#: Il rosso e' piu' rosato di quello de La Liga, che e' mattone: due tornei che
+#: non si incontrano mai nella stessa vista possono somigliarsi, ma non fino a
+#: rendere inutile il colore.
+EUROPEI: Final[Tema] = Tema(
+    nome="europei",
+    sfondo="#1b2a52",
+    superficie="#2b395e",
+    bordo="#495575",
+    testo="#e8eef8",
+    testo_tenue="#e49bad",
+    primario="#d9768e",
+    primario_tenue="#453b5f",
+    erba_chiara="#26355b",
+    erba_scura="#1b2a52",
+    linee="#ca3d5f",
+    gol="#d9768e",
+    atteso="#94a3b8",
+    pericolo="#f97316",
+    barra="#ffffff",
+    barra_testo="#111827",
+    barra_accento="#1e40af",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
+    striscia=("#1e40af", "#be123c"),
+)
+
+#: Coppa del Mondo: oro.
+#:
+#: L'oro puro non si puo' usare per il testo — su bianco sta sotto il 3 a 1 —
+#: quindi l'accento e' il bronzo dorato che regge 4,92, e il giallo pieno resta
+#: nella fascia d'identita', dove non deve essere letto ma visto.
+MONDIALI: Final[Tema] = Tema(
+    nome="mondiali",
+    sfondo="#37312a",
+    superficie="#453f39",
+    bordo="#5f5a55",
+    testo="#e8eef8",
+    testo_tenue="#d8bd97",
+    primario="#c8a46f",
+    primario_tenue="#574a39",
+    erba_chiara="#413b35",
+    erba_scura="#37312a",
+    linee="#b27e34",
+    gol="#c8a46f",
+    atteso="#94a3b8",
+    pericolo="#f97316",
+    barra="#ffffff",
+    barra_testo="#111827",
+    barra_accento="#a16207",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
+    striscia=("#a16207", "#e8c766"),
 )
 
 #: Le finali di Champions League: nero, blu notte, azzurro.
@@ -236,39 +337,50 @@ LIGUE1: Final[Tema] = Tema(
 #: giusto.
 BLU: Final[Tema] = Tema(
     nome="blu",
-    sfondo="#05070e",
-    superficie="#0d1526",
-    bordo="#1e2b45",
+    sfondo="#162438",
+    superficie="#263346",
+    bordo="#455060",
     testo="#e6edf8",
-    testo_tenue="#8fa0bd",
+    testo_tenue="#93a6c4",
     primario="#38bdf8",
-    primario_tenue="#123049",
-    erba_chiara="#101a2e",
-    erba_scura="#0c1424",
-    linee="#33425f",
+    primario_tenue="#1d4662",
+    erba_chiara="#222f42",
+    erba_scura="#162438",
+    linee="#3a4f73",
     gol="#38bdf8",
     atteso="#94a3b8",
     pericolo="#f97316",
-    barra="#05070e",
-    barra_testo="#f2f6fc",
-    barra_accento="#38bdf8",
+    barra="#ffffff",
+    barra_testo="#111827",
+    barra_accento="#0b2545",
+    barra_tenue="#6b7280",
+    bordo_barra="#eef1f0",
     striscia=("#0b2545", "#38bdf8"),
 )
 
 #: Tutti i temi, per nome.
-TEMI: Final[dict[str, Tema]] = {t.nome: t for t in (VERDE, PREMIER, LIGA, SERIE_A, LIGUE1, BLU)}
+TEMI: Final[dict[str, Tema]] = {
+    t.nome: t for t in (VERDE, PREMIER, LIGA, SERIE_A, LIGUE1, COPPA_AFRICA, EUROPEI, MONDIALI, BLU)
+}
 
-#: Da quale competizione di StatsBomb viene ciascun tema di lega.
+#: Da quale competizione di StatsBomb viene ciascun tema.
 #:
 #: La chiave e' il ``competition_id``, non la chiave della stagione: aggiungere
-#: la Premier 2016/17 non richiede di toccare questa tabella. I tornei per
-#: nazionali — Mondiali, Europei, Coppa d'Africa — non compaiono di proposito
-#: e restano sul tema neutro.
+#: la Premier 2016/17 non richiede di toccare questa tabella, e i due Europei
+#: del magazzino — 2020 e 2024 — condividono il tema perche' condividono
+#: l'identificativo, che e' il comportamento giusto: sono la stessa
+#: competizione in due edizioni.
+#:
+#: Il neutro resta per le selezioni senza competizione, non per i tornei:
+#: quelli hanno il proprio colore come i campionati.
 PER_COMPETIZIONE: Final[dict[int, Tema]] = {
     config.PREMIER_2015_16.competition_id: PREMIER,
     config.LA_LIGA_2015_16.competition_id: LIGA,
     config.SERIE_A_2015_16.competition_id: SERIE_A,
     config.LIGUE_1_2015_16.competition_id: LIGUE1,
+    config.COPPA_AFRICA_2023.competition_id: COPPA_AFRICA,
+    config.EURO_2024.competition_id: EUROPEI,
+    config.MONDIALI_2022.competition_id: MONDIALI,
 }
 
 #: La scala di colori dei tiri, dal meno pericoloso al piu' pericoloso.
@@ -304,6 +416,101 @@ SCALA_XG_NOTTE: Final[tuple[tuple[str, float, str, float], ...]] = (
     ("0,30 – 0,50", 0.50, "#a78bfa", 0.86),
     ("> 0,50", 1.01, "#fb923c", 1.0),
 )
+
+
+#: La soglia sotto cui la formula WCAG usa il ramo lineare invece della potenza.
+GINOCCHIO: Final[float] = 0.03928
+
+#: Il punto di mezzo fra chiaro e scuro, in luminanza.
+MEZZO: Final[float] = 0.5
+
+
+def luminanza(colore: str) -> float:
+    """La luminanza relativa di un colore, secondo la formula WCAG.
+
+    Args:
+        colore: Un colore esadecimale a sei cifre.
+
+    Returns:
+        Un valore fra 0 (nero) e 1 (bianco).
+    """
+    canali = [int(colore[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+    lineari = [v / 12.92 if v <= GINOCCHIO else ((v + 0.055) / 1.055) ** 2.4 for v in canali]
+    return 0.2126 * lineari[0] + 0.7152 * lineari[1] + 0.0722 * lineari[2]
+
+
+def e_scuro(tema: Tema) -> bool:
+    """Se il tema ha il fondo scuro.
+
+    **Si misura, non si elenca.** Un tema e' scuro perche' il suo fondo lo e',
+    non perche' si chiama in un certo modo: cosi' le regole che valgono «sui
+    temi scuri» continuano a valere se domani ne nasce un altro, e non c'e' un
+    elenco di nomi da tenere aggiornato in due posti.
+
+    Args:
+        tema: La palette.
+
+    Returns:
+        Vero se il fondo e' piu' scuro del punto di mezzo.
+    """
+    return luminanza(tema.sfondo) < MEZZO
+
+
+#: Il fondo notte con cui si smorzano i colori d'identita'.
+#:
+#: Non e' nero puro: il nero spegne la tinta e tutti i fondi verrebbero uguali.
+#: E' anche piu' chiaro di un blu notte pieno, perche' il fondo deve restare un
+#: ambiente e non un pozzo — a 0a1120 le schede sembravano illuminate da un
+#: faro.
+NOTTE: Final[str] = "#1a2334"
+
+#: Quanto resta del colore d'identita' nel fondo. Il resto e' notte.
+QUANTO_TINGE: Final[float] = 0.26
+
+
+def _mescola(primo: str, secondo: str, quota: float) -> str:
+    """Fonde due colori.
+
+    Args:
+        primo: Il colore di partenza.
+        secondo: Quello verso cui andare.
+        quota: Quanto del secondo, fra 0 e 1.
+
+    Returns:
+        Il colore risultante, esadecimale.
+    """
+    canali = (
+        round(int(primo[i : i + 2], 16) * (1 - quota) + int(secondo[i : i + 2], 16) * quota)
+        for i in (1, 3, 5)
+    )
+    return "#" + "".join(f"{min(255, max(0, c)):02x}" for c in canali)
+
+
+def fondo_sfumato(tema: Tema) -> tuple[str, ...]:
+    """I colori del fondo della pagina, dai colori d'identita' della competizione.
+
+    **Il fondo e' la bandiera, spenta fino a diventare notte.** La Serie A ha
+    verde, bianco e rosso; il fondo li porta tutti e tre, ognuno scurito al
+    punto da restare un'atmosfera invece che un colore. Cosi' la pagina si
+    riconosce prima ancora di leggere il titolo, e non serve inventare una
+    seconda tavolozza accanto a quella che gia' definisce la competizione.
+
+    **Quanto un colore tinge dipende da quanto e' chiaro.** Il bianco della
+    Serie A e della Ligue 1 con una quota fissa schiariva il fondo fino a
+    portare il testo sotto la soglia di leggibilita': moltiplicando la quota
+    per ``1 - luminanza`` il bianco tinge quasi nulla e resta la banda neutra
+    fra le due colorate, che e' il ruolo che ha nella bandiera, mentre un
+    verde o un rosso scuri tingono pieno.
+
+    Args:
+        tema: La palette.
+
+    Returns:
+        I colori del fondo, nell'ordine della fascia d'identita'.
+    """
+    return tuple(
+        _mescola(NOTTE, colore, QUANTO_TINGE * (1 - luminanza(colore))) for colore in tema.striscia
+    )
 
 
 def _senza_opacita(colore: str) -> str:
@@ -353,7 +560,7 @@ SCALA_CALORE: Final[tuple[tuple[float, str], ...]] = (
 )
 
 
-def scala_calore(tema: Tema) -> tuple[tuple[float, str], ...]:
+def scala_calore(tema: Tema, sotto: float = 0.0) -> tuple[tuple[float, str], ...]:
     """La scala continua delle mappe di calore.
 
     Le finali di Champions tengono la propria, costruita dal tema: sul fondo
@@ -361,20 +568,38 @@ def scala_calore(tema: Tema) -> tuple[tuple[float, str], ...]:
     blu notte e sale all'azzurro, che e' esattamente il contrasto che il tema
     scuro puo' permettersi.
 
+    **Sotto una soglia la mappa e' del tutto trasparente**, cosi' l'erba resta
+    erba. Senza, Plotly interpola l'opacita' dal primo gradino e le zone dove
+    non si tira quasi mai prendono un velo biancastro: il campo sembra coperto
+    di nebbia e non si capisce piu' dove finisce il dato e dove comincia il
+    disegno. La soglia arriva da chi chiama perche' dipende dal massimo di
+    *quella* mappa — vedi :func:`football_analytics.viz.mappa_di_calore`.
+
     Args:
         tema: La palette attiva.
+        sotto: La posizione sulla scala, fra 0 e 1, fino alla quale la mappa
+            resta invisibile. A zero la scala e' quella piena di sempre.
 
     Returns:
         I gradini della scala, come coppie posizione-colore.
     """
+    gradini = SCALA_CALORE
     if tema.nome == BLU.nome:
-        return (
+        gradini = (
             (0.0, _senza_opacita(tema.primario_tenue)),
             (0.15, tema.primario_tenue),
             (0.55, tema.primario),
             (1.0, scala_di(tema)[-1][2]),
         )
-    return SCALA_CALORE
+    if sotto <= 0.0:
+        return gradini
+
+    # Due gradini con la stessa tinta trasparente, non uno: con un gradino solo
+    # Plotly comincerebbe a far salire l'opacita' subito dopo lo zero, che e'
+    # il difetto che questa soglia esiste per togliere.
+    invisibile = _senza_opacita(gradini[1][1])
+    coda = tuple((sotto + posizione * (1.0 - sotto), colore) for posizione, colore in gradini[1:])
+    return ((0.0, invisibile), (sotto, invisibile), *coda)
 
 
 def scala_di(tema: Tema) -> tuple[tuple[str, float, str, float], ...]:

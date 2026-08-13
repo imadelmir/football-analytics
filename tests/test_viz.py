@@ -394,15 +394,15 @@ def test_la_mappa_non_mostra_nomi_al_passaggio() -> None:
 def test_la_mappa_di_calore_conserva_tutti_i_tiri() -> None:
     """Nessun tiro si perde e nessuno viene contato due volte.
 
-    Il controllo e' sulla somma dei conteggi ricostruiti dalla radice: se i
-    bordi delle celle fossero sfasati di mezza iarda, o l'ultimo bordo
+    Il controllo e' sulla griglia **prima** della sfocatura: quella disegnata
+    non conserva la somma, perche' ai bordi la finestra della media sporge dal
+    campo. Se i bordi delle celle fossero sfasati di mezza iarda, o l'ultimo
     escludesse i tiri sulla linea di fondo, il totale non tornerebbe e la mappa
     mostrerebbe una densita' sbagliata senza sembrare rotta.
     """
     tiri = tiri_di_prova()
-    figura = viz.mappa_di_calore(tiri, tema.VERDE)
 
-    conteggi = np.square(np.asarray(figura.data[0].z))
+    conteggi, _, _ = viz.griglia_dei_tiri(tiri)
 
     assert round(float(conteggi.sum())) == len(tiri)
 
@@ -418,7 +418,7 @@ def test_la_barra_dei_colori_mostra_i_conteggi_non_le_radici() -> None:
     figura = viz.mappa_di_calore(tiri, tema.VERDE)
     barra = figura.data[0].colorbar
 
-    massimo = float(np.square(np.asarray(figura.data[0].z)).max())
+    massimo = float(viz.griglia_dei_tiri(tiri)[0].max())
 
     assert float(barra.ticktext[-1]) == pytest.approx(massimo, abs=0.5)
     assert float(barra.tickvals[-1]) == pytest.approx(massimo**0.5, rel=1e-6)
@@ -490,3 +490,176 @@ def test_le_posizioni_della_scala_sono_ordinate(scelto: tema.Tema) -> None:
     assert posizioni == sorted(posizioni)
     assert posizioni[0] == 0.0
     assert posizioni[-1] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# La rete dei passaggi e la mappa per esito
+# ---------------------------------------------------------------------------
+
+
+def rete_di_prova() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+    """Tre giocatori e due legami, con posizioni scelte a mano.
+
+    Returns:
+        Nodi, archi e coinvolgimenti.
+    """
+    nodi = pd.DataFrame(
+        {
+            "giocatore_id": [1, 2, 3],
+            "giocatore_breve": ["Uno", "Due", "Tre"],
+            "ruolo": ["Goalkeeper", "Center Back", "Striker"],
+            "minuti": [900, 800, 700],
+            "x_media": [10.0, 45.0, 90.0],
+            "y_media": [40.0, 30.0, 45.0],
+        }
+    )
+    archi = pd.DataFrame(
+        {
+            "x0": [10.0, 45.0],
+            "y0": [40.0, 30.0],
+            "x1": [45.0, 90.0],
+            "y1": [30.0, 45.0],
+            "da": ["Uno", "Due"],
+            "a": ["Due", "Tre"],
+            "passaggi": [100, 40],
+        }
+    )
+    conteggi = pd.Series([100.0, 140.0, 40.0], index=nodi["giocatore_breve"])
+    return nodi, archi, conteggi
+
+
+def test_la_rete_disegna_un_arco_per_legame() -> None:
+    """Gli archi sono forme, i giocatori una traccia sola.
+
+    Plotly non sa variare lo spessore dentro una traccia: venti legami di
+    spessore diverso vorrebbero dire venti tracce, e venti voci di legenda da
+    nascondere una per una.
+    """
+    nodi, archi, conteggi = rete_di_prova()
+    campo_solo = viz.campo(tema.VERDE, meta_campo=False)
+
+    figura = viz.rete_passaggi(nodi, archi, conteggi, tema.VERDE)
+
+    assert len(figura.data) == 1
+    assert len(forme(figura)) == len(forme(campo_solo)) + len(archi)
+
+
+def test_il_legame_piu_battuto_e_il_piu_spesso() -> None:
+    nodi, archi, conteggi = rete_di_prova()
+
+    figura = viz.rete_passaggi(nodi, archi, conteggi, tema.VERDE)
+
+    aggiunte = forme(figura)[-len(archi) :]
+    spessori = [f.line.width for f in aggiunte]
+    assert spessori[0] > spessori[1]
+    assert max(spessori) <= viz.SPESSORE_MASSIMO
+
+
+def test_i_giocatori_portano_il_nome_e_non_un_numero() -> None:
+    """I numeri di maglia non esistono in ``player_stats``.
+
+    Inventarli per far somigliare la rete a una formazione sarebbe l'unica
+    cosa falsa della vista.
+    """
+    nodi, archi, conteggi = rete_di_prova()
+
+    figura = viz.rete_passaggi(nodi, archi, conteggi, tema.VERDE)
+
+    assert list(figura.data[0].text) == ["Uno", "Due", "Tre"]
+
+
+def test_la_rete_senza_giocatori_resta_un_campo() -> None:
+    nodi, archi, conteggi = rete_di_prova()
+
+    vuota = viz.rete_passaggi(nodi.head(0), archi, conteggi, tema.VERDE)
+
+    assert len(vuota.data) == 0
+    assert len(forme(vuota)) > 0
+
+
+def test_la_mappa_per_esito_separa_gol_e_tiri() -> None:
+    tiri = tiri_di_prova()
+
+    figura = viz.per_esito(tiri, tema.VERDE)
+
+    per_nome = {traccia.name: traccia for traccia in figura.data}
+    assert set(per_nome) == {"tiro", "gol"}
+    assert len(per_nome["gol"].x) == int(tiri["gol"].astype(bool).sum())
+    assert len(per_nome["tiro"].x) == len(tiri) - len(per_nome["gol"].x)
+
+
+def test_la_mappa_per_esito_non_mostra_nomi() -> None:
+    figura = viz.per_esito(tiri_di_prova(), tema.VERDE)
+
+    for traccia in figura.data:
+        assert traccia.customdata is None
+        assert traccia.hovertemplate is None
+
+
+def test_la_sfocatura_rende_la_mappa_piu_liscia() -> None:
+    """La misura di cio' che la sfocatura deve ottenere.
+
+    «Piu' liscia» non e' un'opinione: e' il salto medio fra celle vicine. Su
+    una griglia a scacchiera — il caso peggiore — la media pesata sui vicini
+    deve abbatterlo, o non sta facendo niente.
+    """
+    scacchiera = (np.indices((20, 20)).sum(axis=0) % 2 * 100.0).astype(np.float64)
+
+    smussata = viz._sfoca(scacchiera)
+
+    prima = np.abs(np.diff(scacchiera, axis=0)).mean()
+    dopo = np.abs(np.diff(smussata, axis=0)).mean()
+    assert dopo < prima / 10
+
+
+def test_la_scala_resta_sui_conteggi_veri_dopo_la_sfocatura() -> None:
+    """Smussare abbassa il picco: la barra deve continuare a dire il vero.
+
+    Senza il riscalamento, la cella piu' battuta risulterebbe avere meno tiri
+    di quanti ne ha — un numero sbagliato, non un'approssimazione grafica.
+    """
+    tiri = tiri_di_prova()
+    figura = viz.mappa_di_calore(tiri, tema.VERDE)
+
+    conteggi = np.square(np.asarray(figura.data[0].z))
+    dichiarato = float(figura.data[0].colorbar.ticktext[-1])
+
+    assert conteggi.max() == pytest.approx(dichiarato, rel=1e-6)
+
+
+def test_dove_non_si_tira_il_campo_resta_scoperto() -> None:
+    """Sotto la soglia la mappa non deve disegnare niente.
+
+    Servono **due** gradini trasparenti, non uno: con uno solo Plotly comincia
+    a far salire l'opacita' subito dopo lo zero e le zone quasi vuote prendono
+    il velo biancastro che la soglia esiste per togliere.
+    """
+    tiri = tiri_di_prova()
+    scala = viz.mappa_di_calore(tiri, tema.VERDE).data[0].colorscale
+
+    assert scala[0][0] == 0.0
+    assert scala[0][1].endswith(",0)")
+    assert scala[1][1] == scala[0][1]
+    assert scala[1][0] > 0.0
+
+
+def test_la_soglia_e_in_tiri_non_in_posizione_sulla_scala() -> None:
+    """La stessa posizione sulla scala vale conteggi diversi.
+
+    E' il motivo per cui la soglia non puo' essere una costante fissa: con la
+    radice, la posizione dipende dal massimo della mappa. Due insiemi con
+    massimi diversi devono avere il plateau trasparente in punti diversi, ma
+    entrambi corrispondenti a :data:`viz.SOGLIA_CALORE` tiri.
+    """
+    pochi = tiri_di_prova()
+    molti = pd.concat([tiri_di_prova()] * 9, ignore_index=True)
+
+    for tiri in (pochi, molti):
+        massimo = float(viz.griglia_dei_tiri(tiri)[0].max())
+        soglia = viz.mappa_di_calore(tiri, tema.VERDE).data[0].colorscale[1][0]
+
+        assert soglia**2 * massimo == pytest.approx(viz.SOGLIA_CALORE, rel=1e-6)
+
+    scarso = viz.mappa_di_calore(pochi, tema.VERDE).data[0].colorscale[1][0]
+    abbondante = viz.mappa_di_calore(molti, tema.VERDE).data[0].colorscale[1][0]
+    assert scarso > abbondante
