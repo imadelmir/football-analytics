@@ -180,21 +180,26 @@ def test_i_grafici_non_disegnano_il_proprio_fondo(scelto: tema.Tema) -> None:
         assert figura.layout.paper_bgcolor == tema.TRASPARENTE
 
 
-def test_le_finali_disegnano_un_campo_blu() -> None:
-    """Il criterio di M6-T1: le finali rendono l'app blu, campo compreso.
+def test_il_campo_e_lo_stesso_in_ogni_competizione() -> None:
+    """Regola cambiata, e il test cambia con lei invece di sparire.
 
-    La prima stesura confrontava ``paper_bgcolor``, cioe' il fondo della
-    scheda. Con il tema chiaro quello e' bianco in **entrambi** i temi — ed e'
-    giusto che lo sia — quindi il test falliva pur essendo tutto a posto.
-    Cio' che distingue davvero i due campi e' l'erba.
+    In M6-T1 il campo prendeva i colori del tema: verde nei campionati, blu
+    nelle finali. Era vistoso e sbagliato — la stessa mappa di calore su erba
+    scura si legge piu' intensa che su erba chiara, quindi il confronto fra
+    due competizioni diventava un confronto fra due fondi. Ora il campo e' uno
+    strumento di misura e non cambia unita' con l'occasione.
+
+    L'identita' della competizione resta dove non falsa niente: i colori dei
+    tiri, che questo test verifica restino diversi.
     """
     verde = viz.campo(tema.per_gruppo("campionato"))
     blu = viz.campo(tema.per_gruppo("finali"))
 
-    assert verde.layout.plot_bgcolor != blu.layout.plot_bgcolor
-    assert blu.layout.plot_bgcolor == tema.BLU.erba_scura
-    assert tema.BLU.erba_chiara in {f.fillcolor for f in forme(blu) if f.fillcolor}
-    assert tema.VERDE.erba_chiara not in {f.fillcolor for f in forme(blu) if f.fillcolor}
+    assert verde.layout.plot_bgcolor == blu.layout.plot_bgcolor == tema.ERBA_SCURA
+    riempimenti = {f.fillcolor for f in forme(blu) if f.fillcolor}
+    assert tema.ERBA_CHIARA in riempimenti
+    # Cio' che distingue le finali sono le tracce, non il prato.
+    assert {voce[2] for voce in tema.SCALA_XG_NOTTE} != {voce[2] for voce in tema.SCALA_XG}
 
 
 def test_la_figura_nasce_senza_dati(figura: Any) -> None:
@@ -354,7 +359,7 @@ def test_la_shot_map_disegna_sul_campo_del_tema_scelto() -> None:
     blu = viz.shot_map(tiri_di_prova(), tema.BLU)
     colori_notte = {voce[2] for voce in tema.SCALA_XG_NOTTE}
 
-    assert blu.layout.plot_bgcolor == tema.BLU.erba_scura
+    assert blu.layout.plot_bgcolor == tema.ERBA_SCURA
     assert {t.marker.color for t in blu.data} <= colori_notte
 
 

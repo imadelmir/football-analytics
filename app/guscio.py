@@ -22,6 +22,7 @@ import streamlit as st
 import dati
 import theme
 from football_analytics import albo, squadre
+from football_analytics.tema import per_competizione
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -64,6 +65,13 @@ CON_ZOOM: dict[str, object] = {
 
 #: Quante righe nelle classifiche laterali.
 QUANTE: int = 5
+
+#: Quante competizioni per riga nei riquadri di scelta.
+PER_RIGA: int = 3
+
+#: Altezza del logo nei riquadri di scelta e nella testata, in pixel.
+LOGO: int = 44
+LOGO_TESTATA: int = 58
 
 #: Le chiavi con cui i filtri vivono in ``st.session_state``.
 #:
@@ -114,7 +122,7 @@ RICHIAMO_HOME: str = "torna_alla_home"
 MENU: tuple[tuple[str, str, str], ...] = (
     ("Home", "M6-T3", "Panoramica.py"),
     ("Squadre", "M6-T4", "pages/Squadre.py"),
-    ("Giocatori", "M6-T5", ""),
+    ("Giocatori", "M6-T5", "pages/Giocatori.py"),
     ("Partite", "M6-T7", ""),
     ("Confronto leghe", "M6-T8", ""),
     ("Modello xG", "M6-T9", ""),
@@ -264,6 +272,62 @@ def barra_laterale(attiva: str) -> None:
             )
             if premuto and pagina:
                 vai_a(pagina)
+
+
+def riquadri_competizioni() -> None:
+    """I rettangoli con cui si sceglie il campionato.
+
+    **Sostituiscono la fila di pulsantini e la tabella sempre aperta.** Con
+    nove competizioni tutte uguali in una riga non si capiva quale fosse un
+    campionato e quale un torneo, e la tabella compariva prima ancora che si
+    fosse scelto qualcosa — mostrando le squadre di tutto il magazzino
+    mescolate, che non e' una classifica di niente.
+
+    **Ogni riquadro porta i colori della propria competizione**, presi dallo
+    stesso tema che vestira' la pagina una volta aperta: la scelta e' anche
+    un'anteprima, e nove riquadri identici non aiutavano a distinguere la Liga
+    dai Mondiali.
+
+    Ogni riquadro scrive la scelta e fa ripartire lo script: al giro dopo la
+    pagina mostra i dati di quella competizione.
+
+    **Sta nel guscio e non in una pagina**, perche' la usano sia Squadre sia
+    Giocatori: due copie divergerebbero al primo ritocco, e la schermata con
+    cui si entra in una vista sarebbe diversa a seconda di quale vista.
+    """
+    # Tutto dentro un contenitore **con chiave**, e non e' decorazione.
+    #
+    # Scegliendo una competizione la pagina passa da questi riquadri alla
+    # striscia degli indicatori, e le due cose hanno la stessa forma: colonne
+    # di contenitori con bordo. Streamlit riconcilia gli elementi per
+    # posizione, quindi riusava i riquadri come schede e per un istante i
+    # pulsanti «Apri» comparivano dentro gli indicatori. Con una chiave i due
+    # blocchi hanno identita' diverse e vengono sostituiti invece che riusati.
+    with st.container(key="scelta_competizione"):
+        _riquadri()
+
+
+def _riquadri() -> None:
+    """Disegna i riquadri veri e propri."""
+    st.markdown('<p class="sezione-scelta">Scegli una competizione</p>', unsafe_allow_html=True)
+    chiavi = dati.competizioni()
+    for riga in range(0, len(chiavi), PER_RIGA):
+        gruppo = chiavi[riga : riga + PER_RIGA]
+        for colonna, chiave in zip(st.columns(PER_RIGA), gruppo, strict=False):
+            suo = per_competizione(chiave)
+            with colonna, st.container(border=True):
+                st.markdown(
+                    f'<div class="targa" style="border-left:4px solid {suo.primario}">'
+                    f"{dati.insegna(chiave, LOGO)}"
+                    f'<div><span class="nome-competizione" style="color:{suo.primario}">'
+                    f"{dati.nome_di(chiave)}</span>"
+                    f'<span class="stagione">{dati.stagione_di(chiave)}</span></div></div>'
+                    f'<div class="fascetta" style="background:{fascia_di(suo)}"></div>',
+                    unsafe_allow_html=True,
+                )
+                if st.button("Apri", key=f"apri_{chiave}", width="stretch"):
+                    st.session_state[CONSEGNA_COMPETIZIONE] = chiave
+                    st.rerun()
 
 
 def indicatori(numeri: dict[str, float], quota: float, squadra: str | None = None) -> None:

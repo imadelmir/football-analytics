@@ -39,6 +39,29 @@ from typing import Final
 from football_analytics import config
 from football_analytics.config import Gruppo
 
+#: Il campo da gioco, **uguale in tutte le competizioni**.
+#:
+#: Prima ogni tema aveva la propria erba, e il campo diventava viola nella
+#: Liga e blu notte in Ligue 1. Il risultato era che la stessa mappa dei tiri
+#: sembrava dire cose diverse a seconda del campionato: una zona calda su erba
+#: scura si legge piu' intensa della stessa zona su erba chiara, e il confronto
+#: fra due competizioni diventava un confronto fra due fondi.
+#:
+#: L'identita' della competizione resta dove non falsa niente: la fascia in
+#: cima, l'accento, il fondo della pagina. Il campo e' uno strumento di misura,
+#: e uno strumento di misura non cambia unita' con l'occasione.
+#:
+#: **Le linee vanno scelte insieme all'erba, non dopo.**
+#:
+#: Rendendo il prato piu' verde le vecchie linee ``#7d8f85`` scendevano a 2,70
+#: a 1 sulla striscia chiara, sotto il 3 a 1 che WCAG chiede a un elemento
+#: grafico: sarebbero rimaste visibili a chi ha vista buona e sparite agli
+#: altri. Con ``#64796c`` il contrasto risale a 3,69 sulla striscia chiara e
+#: 3,39 su quella scura.
+ERBA_CHIARA: Final[str] = "#d5ead7"
+ERBA_SCURA: Final[str] = "#c9e2cc"
+LINEE_CAMPO: Final[str] = "#64796c"
+
 
 @dataclass(frozen=True, slots=True)
 class Tema:
@@ -57,9 +80,12 @@ class Tema:
         testo_tenue: Didascalie, unita' di misura, note.
         primario: Il colore d'accento: pulsanti, selezioni, serie principale.
         primario_tenue: Riempimenti e aree sotto le curve.
-        erba_chiara: La striscia chiara del campo.
-        erba_scura: La striscia scura del campo.
-        linee: Le linee del campo, e le griglie dei grafici.
+        erba_chiara: La striscia chiara del campo. **Uguale in tutti i temi**,
+            vedi :data:`ERBA_CHIARA`: resta un campo del tema perche' i
+            grafici lo leggono da li', non perche' vari.
+        erba_scura: La striscia scura del campo, anch'essa condivisa.
+        linee: Le linee del campo, condivise per lo stesso motivo. Le griglie
+            dei grafici usano invece ``bordo``, che segue il tema.
         gol: Serie che rappresentano gol realizzati.
         atteso: Serie che rappresentano valori attesi, cioe' l'xG.
         pericolo: Scarti negativi e avvisi.
@@ -120,9 +146,9 @@ VERDE: Final[Tema] = Tema(
     testo_tenue="#6b7280",
     primario="#15803d",
     primario_tenue="#dcfce7",
-    erba_chiara="#eef4f0",
-    erba_scura="#e6eeea",
-    linee="#7d8f85",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#15803d",
     atteso="#2f6fed",
     pericolo="#dc2626",
@@ -149,9 +175,9 @@ PREMIER: Final[Tema] = Tema(
     testo_tenue="#95c0d8",
     primario="#6da8c8",
     primario_tenue="#082b47",
-    erba_chiara="#102339",
-    erba_scura="#091c2f",
-    linee="#3084b2",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#6da8c8",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -177,9 +203,9 @@ LIGA: Final[Tema] = Tema(
     testo_tenue="#e2a0a0",
     primario="#d67b7b",
     primario_tenue="#3e141f",
-    erba_chiara="#221b2b",
-    erba_scura="#1f1220",
-    linee="#c64545",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#d67b7b",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -205,9 +231,9 @@ SERIE_A: Final[Tema] = Tema(
     testo_tenue="#94cfb1",
     primario="#6bbc93",
     primario_tenue="#07362b",
-    erba_chiara="#0f262f",
-    erba_scura="#092024",
-    linee="#2ea166",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#6bbc93",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -232,9 +258,9 @@ LIGUE1: Final[Tema] = Tema(
     testo_tenue="#a0acce",
     primario="#7c8dbb",
     primario_tenue="#101d40",
-    erba_chiara="#121e36",
-    erba_scura="#0c162d",
-    linee="#465d9f",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#7c8dbb",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -256,9 +282,9 @@ COPPA_AFRICA: Final[Tema] = Tema(
     testo_tenue="#9cb7a7",
     primario="#779b85",
     primario_tenue="#2e4744",
-    erba_chiara="#24393c",
-    erba_scura="#192f32",
-    linee="#3e7253",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#779b85",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -284,9 +310,9 @@ EUROPEI: Final[Tema] = Tema(
     testo_tenue="#e49bad",
     primario="#d9768e",
     primario_tenue="#453b5f",
-    erba_chiara="#26355b",
-    erba_scura="#1b2a52",
-    linee="#ca3d5f",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#d9768e",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -312,9 +338,9 @@ MONDIALI: Final[Tema] = Tema(
     testo_tenue="#d8bd97",
     primario="#c8a46f",
     primario_tenue="#574a39",
-    erba_chiara="#413b35",
-    erba_scura="#37312a",
-    linee="#b27e34",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#c8a46f",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -344,9 +370,9 @@ BLU: Final[Tema] = Tema(
     testo_tenue="#93a6c4",
     primario="#38bdf8",
     primario_tenue="#1d4662",
-    erba_chiara="#222f42",
-    erba_scura="#162438",
-    linee="#3a4f73",
+    erba_chiara=ERBA_CHIARA,
+    erba_scura=ERBA_SCURA,
+    linee=LINEE_CAMPO,
     gol="#38bdf8",
     atteso="#94a3b8",
     pericolo="#f97316",
@@ -550,9 +576,9 @@ def _senza_opacita(colore: str) -> str:
 #: salto percettivo misura ΔE 79-87 contro i 34-45 di ogni altro passo, e
 #: quello si vedrebbe come un anello netto attorno al punto piu' caldo.
 SCALA_CALORE: Final[tuple[tuple[float, str], ...]] = (
-    (0.00, "rgba(226,243,231,0)"),
-    (0.06, "#e2f3e7"),
-    (0.26, "#b6e39c"),
+    (0.00, "rgba(205,235,180,0)"),
+    (0.06, "#cdebb4"),
+    (0.26, "#96e673"),
     (0.46, "#f2cc25"),
     (0.64, "#ef8118"),
     (0.84, "#cf1f2d"),

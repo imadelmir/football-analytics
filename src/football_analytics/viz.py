@@ -423,6 +423,104 @@ def linee(
     return _sfondo(figura, tema, altezza)
 
 
+def attese_contro_realizzato(
+    tabella: pd.DataFrame,
+    tema: Tema,
+    *,
+    nome: str = "giocatore",
+    etichette: int = 6,
+    altezza: int = 380,
+) -> go.Figure:
+    """Gol contro xG, un punto per giocatore, con la bisettrice.
+
+    **La diagonale e' il grafico.** Senza, due nuvole di punti dicono soltanto
+    che chi tira di piu' segna di piu'; con la retta ``gol = xG`` la distanza
+    verticale da essa diventa leggibile a occhio: sopra sta chi ha realizzato
+    piu' di quanto le occasioni promettessero, sotto chi ha sprecato.
+
+    **Gli assi hanno la stessa scala e la stessa lunghezza.** Se non lo fossero
+    la bisettrice non sarebbe a quarantacinque gradi, e la distanza da essa
+    ingannerebbe l'occhio: e' il modo silenzioso in cui questo grafico mente.
+
+    Solo i punti piu' lontani dalla retta portano il nome: con quattrocento
+    giocatori le etichette diventano un muro di testo che copre i punti.
+
+    Args:
+        tabella: Le statistiche dei giocatori, con ``xg``, ``gol`` e
+            ``gol_meno_xg``.
+        tema: La palette attiva.
+        nome: La colonna da cui prendere l'etichetta. Il magazzino ha sia il
+            nome completo sia quello con cui il giocatore e' conosciuto, e su
+            un grafico serve il secondo: l'ultima parola del nome anagrafico
+            di Cristiano Ronaldo e' «Aveiro».
+        etichette: Quanti nomi mostrare per lato, sopra e sotto la retta.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    figura = go.Figure()
+    if tabella.empty:
+        return _sfondo(figura, tema, altezza)
+
+    limite = float(max(tabella["xg"].max(), tabella["gol"].max())) * 1.08
+    figura.add_shape(
+        type="line",
+        x0=0.0,
+        y0=0.0,
+        x1=limite,
+        y1=limite,
+        line={"color": tema.linee, "width": 1.4, "dash": "dash"},
+        layer="below",
+    )
+
+    scarto = tabella["gol_meno_xg"]
+    colonna = nome if nome in tabella.columns else "giocatore"
+    da_nominare = set(tabella.nlargest(etichette, "gol_meno_xg")[colonna]) | set(
+        tabella.nsmallest(etichette, "gol_meno_xg")[colonna]
+    )
+    nomi = [
+        str(etichetta) if etichetta in da_nominare else ""
+        for etichetta in tabella[colonna].to_numpy()
+    ]
+
+    figura.add_trace(
+        go.Scatter(
+            x=tabella["xg"].to_numpy(),
+            y=tabella["gol"].to_numpy(),
+            mode="markers+text",
+            text=nomi,
+            textposition="top center",
+            textfont={"size": 10, "color": tema.testo_tenue},
+            marker={
+                "size": 9,
+                "color": [tema.gol if valore >= 0 else tema.pericolo for valore in scarto],
+                "line": {"color": tema.superficie, "width": 1},
+                "opacity": 0.85,
+            },
+            customdata=tabella[colonna].to_numpy(),
+            hovertemplate="%{customdata}<br>xG %{x:.1f} · gol %{y:.0f}<extra></extra>",
+            showlegend=False,
+        )
+    )
+
+    figura.update_xaxes(
+        title={"text": "xG generato", "font": {"size": 11}},
+        range=[0, limite],
+        gridcolor=tema.bordo,
+        zeroline=False,
+    )
+    figura.update_yaxes(
+        title={"text": "gol", "font": {"size": 11}},
+        range=[0, limite],
+        gridcolor=tema.bordo,
+        zeroline=False,
+        scaleanchor="x",
+        scaleratio=1,
+    )
+    return _sfondo(figura, tema, altezza)
+
+
 def per_esito(tiri: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.Figure:
     """I tiri di una squadra, distinti solo fra gol e non gol.
 
