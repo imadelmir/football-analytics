@@ -429,7 +429,7 @@ def test_la_competizione_sopravvive_ai_rerun() -> None:
 
 
 @senza_magazzino
-@pytest.mark.parametrize("pagina", ["Panoramica.py", "pages/Squadre.py"])
+@pytest.mark.parametrize("pagina", ["Panoramica.py", "pages/Squadre.py", "pages/Giocatori.py"])
 def test_il_menu_e_fatto_di_voci_tutte_uguali(pagina: str) -> None:
     """Otto pulsanti identici, in ogni pagina.
 
@@ -453,8 +453,19 @@ def test_il_menu_e_fatto_di_voci_tutte_uguali(pagina: str) -> None:
 
     assert all(voce is not None for voce in menu), "una voce del menu non e' un pulsante"
     assert len(menu) == len(guscio.MENU)
-    spenti = [voce.label for voce in menu if voce.disabled]
-    assert len(spenti) == len(guscio.MENU) - 1, "solo la vista corrente e' un vicolo cieco"
+    # Spente devono essere due cose e solo due: la vista corrente, perche' un
+    # collegamento a se stessi non serve, e le viste non ancora costruite.
+    # Il conto si ricava da `MENU`, non da un numero fisso: cosi' il test non
+    # va aggiornato ogni volta che una task chiude, ma continua ad accorgersi
+    # se una pagina esistente resta irraggiungibile.
+    spente = {voce.label for voce in menu if voce.disabled}
+    da_costruire = {
+        f"{etichetta}  ·  {task}" for etichetta, task, percorso in guscio.MENU if not percorso
+    }
+    corrente = {etichetta for etichetta, _, percorso in guscio.MENU if percorso == pagina}
+    attesa = da_costruire | corrente
+
+    assert spente == attesa, "spente devono essere solo la vista corrente e quelle da costruire"
 
 
 @senza_magazzino
@@ -863,3 +874,114 @@ def test_lo_scarto_chiude_la_pagina_sopra_l_attribuzione() -> None:
 
         assert 'class="evidenza"' in ultimi[0], squadra
         assert 'class="attribuzione"' in ultimi[1], squadra
+
+
+def su_giocatori(chiave: str) -> object:
+    """La vista Giocatori con una competizione aperta.
+
+    Args:
+        chiave: La chiave della competizione.
+
+    Returns:
+        L'applicazione.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Giocatori.py")
+    app.run()
+    app.button(key=f"apri_{chiave}").click().run()
+    return app
+
+
+@senza_magazzino
+def test_i_giocatori_si_aprono_sui_riquadri_e_non_su_una_classifica() -> None:
+    """Senza una competizione scelta non c'e' una graduatoria sensata.
+
+    Mettere in colonna un attaccante di Ligue 1 con trentaquattro presenze e
+    uno visto per tre partite a un Mondiale produce un ordinamento che sembra
+    significativo e non lo e'.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Giocatori.py")
+    app.run()
+
+    assert not app.exception, [str(e.value) for e in app.exception]
+    assert len(app.dataframe) == 0
+    assert app.button(key="apri_serie_a_2015_16") is not None
+
+
+@senza_magazzino
+def test_la_vista_giocatori_mostra_le_quattro_graduatorie() -> None:
+    """Le quattro ci sono tutte, e il capocannoniere e' quello vero."""
+    app = su_giocatori("serie_a_2015_16")
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
+    for titolo in ("Marcatori", "xG generato", "Gol sopra le attese", "Gol sotto le attese"):
+        assert titolo in testo, titolo
+    assert "Higuaín" in testo
+
+
+@senza_magazzino
+def test_il_filtro_reparto_restringe_le_graduatorie() -> None:
+    """Con i soli portieri le graduatorie non devono piu' mostrare attaccanti.
+
+    E' il modo in cui un filtro puo' rompersi restando plausibile: se non
+    venisse applicato, la pagina mostrerebbe le stesse classifiche di prima e
+    nessuno se ne accorgerebbe.
+
+    Il riquadro «Capocannoniere» resta su Higuaín ed e' voluto: la striscia in
+    cima descrive la competizione e sta **sopra** il filtro. Il test guarda
+    quindi i soli blocchi delle graduatorie, non tutto il testo della pagina.
+    """
+    import dati  # noqa: PLC0415
+    from football_analytics import giocatori as logica  # noqa: PLC0415
+
+    app = su_giocatori("serie_a_2015_16")
+    graduatorie = " ".join(
+        voce.value
+        for voce in app.markdown  # type: ignore[attr-defined]
+        if 'class="classifica"' in voce.value
+    )
+    assert "Higuaín" in graduatorie
+
+    app.session_state["filtro_reparto"] = ["Portiere"]  # type: ignore[attr-defined]
+    app.run()  # type: ignore[attr-defined]
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    dopo = " ".join(
+        voce.value
+        for voce in app.markdown  # type: ignore[attr-defined]
+        if 'class="classifica"' in voce.value
+    )
+    assert "Higuaín" not in dopo
+
+    # Il conto passa dalla stessa somma per giocatore che usa la pagina: un
+    # portiere trasferito a gennaio ha due righe nel magazzino e una sola qui,
+    # e confrontare con le righe grezze farebbe fallire il test per il motivo
+    # sbagliato.
+    portieri = logica.con_reparto(
+        logica.per_giocatore(dati.filtra(dati.leggi("player_stats"), "serie_a_2015_16"))
+    )
+    attesi = len(portieri[portieri["reparto"] == "Portiere"])
+    assert len(app.dataframe[0].value) == attesi  # type: ignore[attr-defined]
+
+
+@senza_magazzino
+def test_la_tabella_dei_giocatori_tiene_anche_chi_sta_sotto_la_soglia() -> None:
+    """Escluderli anche dalla tabella li farebbe sparire senza spiegazione."""
+    import dati  # noqa: PLC0415
+    from football_analytics import giocatori as logica  # noqa: PLC0415
+
+    app = su_giocatori("serie_a_2015_16")
+
+    mostrati = len(app.dataframe[0].value)  # type: ignore[attr-defined]
+    tutti = logica.per_giocatore(dati.filtra(dati.leggi("player_stats"), "serie_a_2015_16"))
+
+    assert mostrati == len(tutti)
+    assert mostrati > len(logica.qualificati(tutti))

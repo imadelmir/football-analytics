@@ -31,11 +31,12 @@ import guscio
 import theme
 from football_analytics import classifica
 from football_analytics.config import ATTRIBUZIONE
-from football_analytics.tema import per_competizione as tema_di
 from guscio import foglio, numero
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from streamlit.delta_generator import DeltaGenerator
 
 
 st.set_page_config(page_title="Football Analytics — Squadre", layout="wide")
@@ -91,44 +92,6 @@ PER_RIGA: int = 3
 #: Altezza del logo nei riquadri e nella testata, in pixel.
 LOGO: int = 44
 LOGO_TESTATA: int = 58
-
-
-def riquadri_competizioni() -> None:
-    """I rettangoli con cui si sceglie il campionato.
-
-    **Sostituiscono la fila di pulsantini e la tabella sempre aperta.** Con
-    nove competizioni tutte uguali in una riga non si capiva quale fosse un
-    campionato e quale un torneo, e la tabella compariva prima ancora che si
-    fosse scelto qualcosa — mostrando le squadre di tutto il magazzino
-    mescolate, che non e' una classifica di niente.
-
-    **Ogni riquadro porta i colori della propria competizione**, presi dallo
-    stesso tema che vestira' la pagina una volta aperta: la scelta e' anche
-    un'anteprima, e nove riquadri identici non aiutavano a distinguere la Liga
-    dai Mondiali.
-
-    Ogni riquadro scrive la scelta e fa ripartire lo script: al giro dopo la
-    pagina mostra la tabella di quella competizione.
-    """
-    st.markdown('<p class="sezione-scelta">Scegli una competizione</p>', unsafe_allow_html=True)
-    chiavi = dati.competizioni()
-    for riga in range(0, len(chiavi), PER_RIGA):
-        gruppo = chiavi[riga : riga + PER_RIGA]
-        for colonna, chiave in zip(st.columns(PER_RIGA), gruppo, strict=False):
-            suo = tema_di(chiave)
-            with colonna, st.container(border=True):
-                st.markdown(
-                    f'<div class="targa" style="border-left:4px solid {suo.primario}">'
-                    f"{dati.insegna(chiave, LOGO)}"
-                    f'<div><span class="nome-competizione" style="color:{suo.primario}">'
-                    f"{dati.nome_di(chiave)}</span>"
-                    f'<span class="stagione">{dati.stagione_di(chiave)}</span></div></div>'
-                    f'<div class="fascetta" style="background:{guscio.fascia_di(suo)}"></div>',
-                    unsafe_allow_html=True,
-                )
-                if st.button("Apri", key=f"apri_{chiave}", width="stretch"):
-                    st.session_state[guscio.CONSEGNA_COMPETIZIONE] = chiave
-                    st.rerun()
 
 
 def nota_partite_mancanti(parziali: Sequence[str]) -> None:
@@ -238,6 +201,29 @@ def main() -> None:
     tema = theme.applica(dati.gruppo_di(competizione, partite_tutte), competizione)
     st.markdown(foglio(tema), unsafe_allow_html=True)
 
+    # Tutto il corpo in un solo `st.empty()`, come in Giocatori: Streamlit
+    # sostituisce un elemento alla volta, e passando dai riquadri alla
+    # classifica si vedrebbe per un istante la testata nuova sopra e i riquadri
+    # vecchi sotto.
+    corpo = st.empty()
+    with corpo.container():
+        _corpo(partite_tutte, competizione, squadra, intestazione)
+
+
+def _corpo(
+    partite_tutte: pd.DataFrame,
+    competizione: str | None,
+    squadra: str | None,
+    intestazione: Sequence[DeltaGenerator],
+) -> None:
+    """Il contenuto della pagina, qualunque sia lo stato della scelta.
+
+    Args:
+        partite_tutte: Tutte le partite del magazzino.
+        competizione: La competizione scelta, oppure ``None``.
+        squadra: La squadra scelta nel filtro, oppure ``None``.
+        intestazione: Le colonne della testata, gia' create.
+    """
     sotto = "Scegli un campionato per vederne la classifica"
     if competizione is not None:
         sotto = dati.nome_di(competizione)
@@ -255,7 +241,7 @@ def main() -> None:
     # di nulla, e le prime righe sarebbero un confronto fra la Liga e i
     # Mondiali.
     if competizione is None:
-        riquadri_competizioni()
+        guscio.riquadri_competizioni()
         st.markdown(f'<p class="attribuzione">{ATTRIBUZIONE}</p>', unsafe_allow_html=True)
         return
 
