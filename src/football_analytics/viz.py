@@ -24,6 +24,7 @@ questi dati, perche' produce grafici plausibili e sbagliati.
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any, Final
 
 import numpy as np
@@ -245,6 +246,10 @@ def segnature(tema: Tema, *, sopra: bool = False) -> list[dict[str, Any]]:
 PALLINO_MINIMO: Final[float] = 3.5
 PALLINO_MASSIMO: Final[float] = 22.0
 
+#: Spessore minimo e massimo di un legame nella rete dei passaggi.
+SPESSORE_MINIMO: Final[float] = 1.0
+SPESSORE_MASSIMO: Final[float] = 9.0
+
 
 def _dimensioni(xg: npt.ArrayLike) -> list[float]:
     """Traduce l'xG in raggi visibili.
@@ -294,6 +299,7 @@ def _sfondo(figura: go.Figure, tema: Tema, altezza: int) -> go.Figure:
         margin={"l": 10, "r": 10, "t": 10, "b": 10},
         paper_bgcolor=TRASPARENTE,
         plot_bgcolor=TRASPARENTE,
+        dragmode=False,
         font={"color": tema.testo, "size": 12},
         hoverlabel={"bgcolor": tema.superficie, "font": {"color": tema.testo}},
     )
@@ -417,6 +423,136 @@ def linee(
     return _sfondo(figura, tema, altezza)
 
 
+def per_esito(tiri: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.Figure:
+    """I tiri di una squadra, distinti solo fra gol e non gol.
+
+    **Due colori invece di cinque fasce.** Sulla selezione di una squadra i
+    tiri sono qualche centinaio invece di decine di migliaia: le fasce di xG
+    diventano una legenda inutilmente fitta, mentre la domanda che si fa
+    guardando una singola squadra e' «da dove ha segnato». L'xG resta, ma
+    nell'area del cerchio.
+
+    Args:
+        tiri: I tiri della squadra.
+        tema: La palette attiva.
+        altezza: Altezza della figura in pixel.
+
+    Returns:
+        Il campo con i tiri sopra.
+    """
+    figura = campo(tema, altezza=altezza, meta_campo=True)
+    if tiri.empty:
+        return figura
+
+    for etichetta, riempimento, gol in (
+        ("tiro", tema.primario_tenue, False),
+        ("gol", tema.gol, True),
+    ):
+        parte = tiri[tiri["gol"].astype(bool) == gol]
+        if parte.empty:
+            continue
+        figura.add_trace(
+            go.Scatter(
+                x=parte["x"],
+                y=parte["y"],
+                mode="markers",
+                name=etichetta,
+                marker={
+                    "size": _dimensioni(parte["xg_statsbomb"].to_numpy()),
+                    "color": riempimento,
+                    "opacity": 0.9 if gol else 0.75,
+                    "line": {"width": 1.0, "color": tema.gol if gol else tema.linee},
+                },
+                hoverinfo="skip",
+            )
+        )
+    figura.update_layout(
+        showlegend=True,
+        legend={
+            "orientation": "h",
+            "y": -0.02,
+            "x": 0,
+            "bgcolor": TRASPARENTE,
+            "font": {"size": 11},
+            "itemsizing": "constant",
+        },
+    )
+    return figura
+
+
+def rete_passaggi(
+    nodi: pd.DataFrame,
+    archi: pd.DataFrame,
+    dimensioni: pd.Series,
+    tema: Tema,
+    *,
+    altezza: int = 420,
+) -> go.Figure:
+    """La rete dei passaggi sopra il campo intero.
+
+    **I giocatori portano il nome, non il numero di maglia.** I numeri non
+    esistono in ``player_stats``, e inventarli per far somigliare il grafico a
+    una formazione sarebbe l'unica cosa falsa di tutta la pagina.
+
+    Gli archi sono forme e non tracce: Plotly non sa variare lo spessore
+    **dentro** una traccia, quindi venti legami di spessore diverso
+    vorrebbero dire venti tracce e venti voci di legenda da nascondere.
+
+    Args:
+        nodi: Il risultato di :func:`passaggi.titolari`.
+        archi: Il risultato di :func:`passaggi.rete`.
+        dimensioni: Il risultato di :func:`passaggi.coinvolgimento`.
+        tema: La palette attiva.
+        altezza: Altezza della figura in pixel.
+
+    Returns:
+        Il campo con la rete sopra.
+    """
+    figura = campo(tema, altezza=altezza, meta_campo=False)
+    if nodi.empty:
+        return figura
+
+    if not archi.empty:
+        massimo = float(archi["passaggi"].max())
+        linee_arco = [
+            {
+                "type": "line",
+                "x0": riga["x0"],
+                "y0": riga["y0"],
+                "x1": riga["x1"],
+                "y1": riga["y1"],
+                "line": {
+                    "color": tema.primario,
+                    "width": SPESSORE_MINIMO
+                    + (SPESSORE_MASSIMO - SPESSORE_MINIMO) * riga["passaggi"] / massimo,
+                },
+                "opacity": 0.35,
+                "layer": "below",
+            }
+            for riga in archi.to_dict("records")
+        ]
+        figura.update_layout(shapes=[*figura.layout.shapes, *linee_arco])
+
+    coinvolti = dimensioni.reindex(nodi["giocatore_breve"]).fillna(0.0).to_numpy()
+    figura.add_trace(
+        go.Scatter(
+            x=nodi["x_media"],
+            y=nodi["y_media"],
+            mode="markers+text",
+            text=nodi["giocatore_breve"],
+            textposition="bottom center",
+            textfont={"size": 10, "color": tema.testo},
+            marker={
+                "size": _dimensioni(coinvolti / max(coinvolti.max(), 1.0)),
+                "color": tema.primario,
+                "line": {"width": 1.4, "color": tema.superficie},
+            },
+            hoverinfo="skip",
+        )
+    )
+    return figura
+
+
 def shot_map(
     tiri: pd.DataFrame,
     tema: Tema,
@@ -531,6 +667,9 @@ def campo(
         height=altezza,
         margin={"l": 8, "r": 8, "t": 8, "b": 8},
         showlegend=False,
+        # Nessun trascinamento finche' non si preme il pulsante dello zoom: su
+        # un campo il movimento del mouse e' esplorazione, non un comando.
+        dragmode=False,
         hoverlabel={"bgcolor": tema.superficie, "font": {"color": tema.testo}},
     )
     figura.update_xaxes(
@@ -557,6 +696,84 @@ PASSO_CALORE: Final[float] = 4.0
 
 #: Quanti gradini nella barra dei colori.
 GRADINI: Final[int] = 5
+
+#: Ampiezza della sfocatura della mappa di calore, in celle.
+#:
+#: ``zsmooth`` di Plotly interpola fra celle vicine ma non toglie il rumore:
+#: una cella con due tiri accanto a una vuota resta una macchia quadrata, e su
+#: quarantamila tiri il campo si riempiva di quadretti staccati. Una media
+#: pesata sui vicini li fonde in una nuvola continua, che e' quello che una
+#: mappa di densita' dovrebbe essere.
+SFOCATURA: Final[int] = 2
+
+#: Sotto quanti tiri per cella la mappa di calore non disegna niente.
+#:
+#: Una cella dove si e' tirato meno di una volta non ha niente da mostrare, e
+#: lasciarla verde e' piu' onesto che velarla di bianco. La soglia e' in
+#: **tiri veri**, non in posizione sulla scala: la stessa posizione vale 1,6
+#: tiri in Serie A (cella piu' battuta 441) e 0,09 nelle finali di Champions
+#: (cella piu' battuta 26), quindi una soglia fissa sulla scala coprirebbe due
+#: cose diverse. Cosi' com'e', sulla Serie A resta scoperto il 67 % del campo —
+#: esattamente le celle dove nessuno ha mai tirato.
+SOGLIA_CALORE: Final[float] = 1.0
+
+
+def _sfoca(griglia: npt.NDArray[np.float64], raggio: int = SFOCATURA) -> npt.NDArray[np.float64]:
+    """Smussa una griglia con una media pesata sui vicini.
+
+    E' una gaussiana separabile applicata due volte, una per asse: costa due
+    passate invece di una convoluzione bidimensionale, e non serve scipy —
+    che il progetto non ha fra le dipendenze e non vale la pena aggiungere per
+    quindici righe.
+
+    **La somma non si conserva**, e va detto: ai bordi la finestra sporge dal
+    campo e i pesi che cadono fuori vengono persi. Non e' un problema qui
+    perche' il colore e' relativo al massimo, ma vorrebbe dire che questa
+    funzione non si puo' riusare dove i conteggi devono tornare.
+
+    Args:
+        griglia: I conteggi per cella.
+        raggio: Quante celle per lato entrano nella media.
+
+    Returns:
+        La griglia smussata, della stessa forma.
+    """
+    distanze = np.arange(-raggio, raggio + 1, dtype=np.float64)
+    pesi = np.exp(-((distanze / raggio) ** 2) * 2.0)
+    pesi /= pesi.sum()
+
+    smussata = np.apply_along_axis(lambda riga: np.convolve(riga, pesi, mode="same"), 0, griglia)
+    return np.apply_along_axis(lambda riga: np.convolve(riga, pesi, mode="same"), 1, smussata)
+
+
+def griglia_dei_tiri(
+    tiri: pd.DataFrame, passo: float = PASSO_CALORE
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Conta i tiri per cella, senza smussare niente.
+
+    Sta fuori da :func:`mappa_di_calore` perche' e' l'unico punto in cui i
+    conteggi sono ancora esatti: la sfocatura che viene dopo **non conserva la
+    somma** — ai bordi la finestra sporge dal campo e i pesi che cadono fuori
+    si perdono — quindi «nessun tiro e' andato perso» si puo' verificare solo
+    qui.
+
+    Args:
+        tiri: I tiri da contare, con ``x`` e ``y``.
+        passo: Il lato della cella, in iarde.
+
+    Returns:
+        I conteggi, i bordi in x e i bordi in y.
+    """
+    bordi_x: npt.NDArray[np.float64] = np.arange(0.0, LUNGHEZZA + passo, passo, dtype=np.float64)
+    bordi_y: npt.NDArray[np.float64] = np.arange(0.0, LARGHEZZA + passo, passo, dtype=np.float64)
+    # ``histogram2d`` restituisce ``Any`` per i conteggi: senza l'annotazione
+    # esplicita il tipo si perderebbe qui e ricomparirebbe come ``Any`` in ogni
+    # chiamante, che e' il modo silenzioso in cui mypy smette di servire.
+    conteggi: npt.NDArray[np.float64]
+    conteggi, _, _ = np.histogram2d(
+        tiri["x"].to_numpy(), tiri["y"].to_numpy(), bins=[bordi_x, bordi_y]
+    )
+    return conteggi, bordi_x, bordi_y
 
 
 def mappa_di_calore(
@@ -585,6 +802,10 @@ def mappa_di_calore(
     l'area di rigore rende impossibile capire dove sia l'area di rigore, che e'
     l'unico riferimento per leggere la mappa.
 
+    **Dove non si tira il campo resta verde**: sotto :data:`SOGLIA_CALORE` tiri
+    per cella la mappa e' trasparente. La soglia e' convertita in posizione
+    sulla scala qui, perche' dipende dal massimo di questa mappa.
+
     Args:
         tiri: I tiri da contare, con le colonne ``x`` e ``y``.
         tema: La palette attiva.
@@ -599,14 +820,16 @@ def mappa_di_calore(
     if tiri.empty:
         return figura
 
-    bordi_x = np.arange(0.0, LUNGHEZZA + passo, passo)
-    bordi_y = np.arange(0.0, LARGHEZZA + passo, passo)
-    conteggi, _, _ = np.histogram2d(
-        tiri["x"].to_numpy(), tiri["y"].to_numpy(), bins=[bordi_x, bordi_y]
-    )
+    conteggi, bordi_x, bordi_y = griglia_dei_tiri(tiri, passo)
     massimo = float(conteggi.max())
     if massimo <= 0:
         return figura
+    # La barra dei colori riporta i conteggi veri, quindi la scala resta legata
+    # al massimo **prima** della sfocatura: smussando, il picco si abbassa, e
+    # leggere la scala su quello ridotto direbbe che la cella piu' battuta ha
+    # meno tiri di quanti ne ha.
+    smussati = _sfoca(conteggi)
+    conteggi = smussati * (massimo / max(float(smussati.max()), 1e-9))
 
     centri_x = (bordi_x[:-1] + bordi_x[1:]) / 2
     centri_y = (bordi_y[:-1] + bordi_y[1:]) / 2
@@ -617,7 +840,10 @@ def mappa_di_calore(
             x=centri_x,
             y=centri_y,
             z=np.sqrt(conteggi).T,
-            colorscale=[list(gradino) for gradino in scala_calore(tema)],
+            colorscale=[
+                list(gradino)
+                for gradino in scala_calore(tema, math.sqrt(min(SOGLIA_CALORE / massimo, 1.0)))
+            ],
             zmin=0.0,
             zmax=float(np.sqrt(massimo)),
             zsmooth="best",

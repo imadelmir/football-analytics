@@ -25,6 +25,17 @@ backgroundColor = "#ffffff"
 textColor = "#111827"
 primaryColor = "#15803d"
 
+# Il menu delle pagine che Streamlit disegna da solo resta spento.
+#
+# **Va spento qui e non con il CSS.** Nasconderlo con una regola iniettata
+# dallo script arriva troppo tardi: fra il disegno della pagina e l'esecuzione
+# del codice passa un istante in cui la barra nativa e' gia' visibile, e a
+# ogni cambio pagina si vedeva comparire e sparire un secondo menu con i nomi
+# dei file — «Panoramica, Scheda, Squadre». Questo file Streamlit lo legge
+# prima di disegnare qualunque cosa, quindi la barra non viene proprio creata.
+[client]
+showSidebarNavigation = false
+
 [server]
 headless = true
 

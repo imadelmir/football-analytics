@@ -241,15 +241,32 @@ def test_ogni_campionato_ha_il_proprio_tema(chiave: str, atteso: str) -> None:
     assert tema.per_competizione(chiave).nome == atteso
 
 
-@pytest.mark.parametrize("chiave", ["mondiali_2022", "euro_2020", "euro_2024", "coppa_africa_2023"])
-def test_i_tornei_per_nazionali_restano_neutri(chiave: str) -> None:
-    """I tornei non hanno un tema proprio, ed e' una scelta.
+@pytest.mark.parametrize(
+    ("chiave", "atteso"),
+    [
+        ("mondiali_2022", "mondiali"),
+        ("coppa_africa_2023", "coppa_africa"),
+        ("euro_2020", "europei"),
+        ("euro_2024", "europei"),
+    ],
+)
+def test_anche_i_tornei_hanno_il_proprio_tema(chiave: str, atteso: str) -> None:
+    """Ogni competizione ha il suo colore, tornei compresi.
 
-    Un Mondiale non e' una lega con un'identita' visiva stabile, e dare un
-    colore anche a quello avrebbe lasciato senza colore proprio solo la
-    selezione vuota — cioe' avrebbe tolto al neutro il suo significato.
+    All'inizio i tornei restavano sul tema neutro, con la motivazione che un
+    Mondiale non ha un'identita' visiva stabile come una lega. La motivazione
+    non regge dal lato di chi guarda: nella pagina Squadre le nove competizioni
+    stanno una accanto all'altra, e sei riquadri identici non aiutano a
+    distinguerle.
+
+    **I due Europei condividono il tema perche' condividono l'identificativo**
+    — ``competition_id`` 55 — ed e' giusto: sono la stessa competizione in due
+    edizioni, e due colori suggerirebbero due tornei distinti.
+
+    Il neutro resta solo per la selezione senza competizione, dove vuol dire
+    «nessuna in particolare».
     """
-    assert tema.per_competizione(chiave) is tema.VERDE
+    assert tema.per_competizione(chiave).nome == atteso
 
 
 def test_una_competizione_sconosciuta_non_rompe_la_dashboard() -> None:
@@ -268,17 +285,22 @@ def test_una_competizione_sconosciuta_non_rompe_la_dashboard() -> None:
     assert tema.per_competizione("") is tema.VERDE
 
 
-def test_solo_le_finali_hanno_un_tema_scuro() -> None:
-    """L'invariante che tiene in vita il segnale del buio.
+def test_solo_il_neutro_e_chiaro() -> None:
+    """Il fondo scuro dice «stai guardando una competizione precisa».
 
-    Il fondo scuro dice «qui il modello viene applicato a partite mai viste».
-    Funziona solo finche' e' raro: bastano due viste scure e diventa una scelta
-    estetica. Questo test e' l'unica cosa che impedisce a un tema futuro di
-    spegnere il segnale senza che nessuno se ne accorga.
+    Il neutro e' lo stato in cui non si sta guardando niente in particolare, e
+    non ha senso che indossi i colori di qualcuno: resta bianco. Tutte le
+    competizioni sono scure e portano la propria bandiera.
+
+    **Il buio non e' piu' il segnale delle finali**, che era il suo primo
+    significato: diceva «qui il modello viene applicato invece che
+    addestrato». Quel significato e' stato speso per l'identita' visiva, e a
+    M6-T10 va sostituito da una dichiarazione scritta nella vista — da un
+    colore nessuno puo' dedurre che quei diciotto match sono fuori campione.
     """
-    scuri = [t.nome for t in tema.TEMI.values() if luminanza(t.sfondo) < 0.5]
+    chiari = [t.nome for t in tema.TEMI.values() if not tema.e_scuro(t)]
 
-    assert scuri == ["blu"]
+    assert chiari == ["verde"]
 
 
 def test_i_temi_non_si_somigliano() -> None:
@@ -359,3 +381,91 @@ def test_i_gradini_della_scala_sono_percettivamente_regolari() -> None:
     passi = [distanza_percettiva(prima, dopo) for prima, dopo in pairwise(colori)]
 
     assert max(passi) / min(passi) < 2.0, [f"{p:.0f}" for p in passi]
+
+
+def test_il_menu_automatico_e_spento_dalla_configurazione() -> None:
+    """Il menu delle pagine di Streamlit non deve mai comparire, nemmeno per un attimo.
+
+    Nasconderlo con il CSS non basta: la regola viaggia con lo script, e fra il
+    disegno della pagina e l'esecuzione del codice c'e' un istante in cui la
+    barra nativa e' gia' visibile. A ogni cambio pagina si vedeva comparire e
+    sparire un secondo menu con i nomi dei file — «Panoramica, Scheda,
+    Squadre». ``config.toml`` Streamlit lo legge prima di disegnare qualunque
+    cosa, quindi li' la barra non nasce proprio.
+
+    Il test guarda il file di configurazione e non il CSS, perche' e' il file
+    che risolve il difetto; la regola CSS resta come rete di sicurezza.
+    """
+    percorso = PACCHETTO.parents[1] / ".streamlit" / "config.toml"
+    configurazione = percorso.read_text(encoding="utf-8")
+
+    assert "[client]" in configurazione
+    assert "showSidebarNavigation = false" in configurazione
+
+
+def test_ogni_competizione_del_magazzino_ha_un_tema_distinto() -> None:
+    """Nove competizioni, nove identita' riconoscibili.
+
+    Nella pagina Squadre i riquadri stanno tutti nella stessa schermata: due
+    competizioni con lo stesso accento sarebbero indistinguibili proprio dove
+    il colore serve. L'unica coppia che condivide il tema sono i due Europei,
+    che sono la stessa competizione.
+    """
+    accenti: dict[str, list[str]] = {}
+    for voce in config.COMPETIZIONI:
+        accenti.setdefault(tema.per_competizione(voce.chiave).primario, []).append(voce.chiave)
+
+    doppioni = {colore: chiavi for colore, chiavi in accenti.items() if len(chiavi) > 1}
+
+    assert list(doppioni.values()) == [["euro_2024", "euro_2020"]], doppioni
+
+
+@pytest.mark.parametrize("scelto", list(tema.TEMI.values()), ids=lambda t: t.nome)
+def test_l_accento_si_vede_sulla_propria_superficie(scelto: tema.Tema) -> None:
+    """L'accento regge la soglia WCAG per gli elementi grafici.
+
+    Tre a uno e' la soglia per cio' che non e' testo — bordi, barre, pallini —
+    ed e' il ruolo dell'accento: se scendesse sotto, i riquadri della pagina
+    Squadre avrebbero un colore che non si distingue dal fondo.
+    """
+    assert contrasto(scelto.primario, scelto.superficie) >= 3.0
+    assert contrasto(scelto.primario, scelto.sfondo) >= 3.0
+
+
+def test_il_fondo_di_ogni_tema_e_la_sua_bandiera() -> None:
+    """Il fondo nasce dai colori d'identita', non da una seconda tavolozza.
+
+    La Serie A ha verde, bianco e rosso: il fondo li porta tutti e tre, spenti
+    fino a diventare notte. Se il fondo fosse scritto a mano, cambiare la
+    fascia lascerebbe le due cose scollegate.
+
+    Serie A e Ligue 1 condividono due dei tre colori — bianco e rosso stanno
+    in entrambe le bandiere — e infatti i loro fondi differiscono solo nella
+    prima banda. E' una conseguenza dei dati, non un difetto.
+    """
+    import theme  # noqa: PLC0415
+
+    for scelto in tema.TEMI.values():
+        if not tema.e_scuro(scelto):
+            continue
+        fondo = tema.fondo_sfumato(scelto)
+        assert len(fondo) == len(scelto.striscia)
+        for spento, acceso in zip(fondo, scelto.striscia, strict=True):
+            assert luminanza(spento) < luminanza(acceso), scelto.nome
+        assert all(colore in theme.sfondo_di(scelto) for colore in fondo)
+
+
+@pytest.mark.parametrize("scelto", list(tema.TEMI.values()), ids=lambda t: t.nome)
+def test_il_testo_si_legge_su_tutto_il_fondo(scelto: tema.Tema) -> None:
+    """Nessun punto della sfumatura schiarisce fino a mangiarsi il testo.
+
+    Il fondo non e' una tinta unita: e' un gradiente fra due o tre colori, e la
+    soglia va rispettata in **tutti**, non solo in ``sfondo``.
+    """
+    if not tema.e_scuro(scelto):
+        # Il neutro e' una tinta unita, gia' coperta da
+        # `test_il_testo_si_legge_sullo_sfondo`.
+        return
+    for colore in tema.fondo_sfumato(scelto):
+        assert contrasto(scelto.testo, colore) >= 4.5, colore
+        assert contrasto(scelto.testo_tenue, colore) >= 3.0, colore

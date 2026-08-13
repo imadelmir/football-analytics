@@ -60,6 +60,6 @@ quadrato bianco dentro il cerchio.
 
 ## Perche' non stanno nel repository
 
-Gli stemmi sono marchi registrati dei club. Il progetto li mostra a scopo di
+I loghi sono marchi registrati dei rispettivi titolari. Il progetto li mostra a scopo di
 identificazione e non li rivendica; chi clona il repository decide da se' se
 metterceli. Il codice funziona in entrambi i casi.

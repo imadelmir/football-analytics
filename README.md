@@ -24,8 +24,17 @@ resi disponibili gratuitamente da StatsBomb. La citazione della fonte e' una
 della dashboard e nella pagina Metodologia.
 
 I dati sono soggetti alla licenza pubblicata nel repository di StatsBomb.
-Nessuno stemma di club e nessuna fotografia di agenzia e' usato in questo
-progetto.
+
+**Nessuno stemma di club e nessuna fotografia di agenzia e' usato in questo
+progetto**: al posto degli stemmi c'e' la sigla della squadra in un cerchio,
+generata dal nome.
+
+I **loghi delle competizioni** in `app/assets/loghi/` sono invece presenti, e
+sono marchi registrati dei rispettivi titolari — UEFA, FIFA, CAF, LaLiga, Lega
+Serie A, Premier League, LFP. Compaiono a titolo puramente descrittivo, per
+identificare la competizione di cui si stanno mostrando i dati; questo
+progetto non e' affiliato ne' sponsorizzato da nessuno di loro, e i marchi
+restano dei rispettivi proprietari.
 
 ---
 
