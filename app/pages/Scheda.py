@@ -95,6 +95,43 @@ def anagrafica(squadra: str, numeri: dict[str, float], *, con_punti: bool) -> No
     )
 
 
+def confronto(tabella: pd.DataFrame, squadra: str, tema: Tema) -> None:
+    """Il confronto con le prime, o con una squadra scelta.
+
+    **Il menu «confronta con» e' il criterio di chiusura di M6-T4**, e la prima
+    stesura non lo aveva: mostrava solo le prime cinque per xG. Utile, ma
+    un'altra cosa — con le prime cinque non si puo' rispondere a «come siamo
+    messi rispetto a chi ci sta davanti in classifica».
+
+    Senza una scelta il riquadro resta com'era: le prime del campionato sono il
+    confronto sensato quando non se ne chiede uno preciso.
+
+    Args:
+        tabella: Il risultato di :func:`classifica.tabella`.
+        squadra: La squadra della scheda.
+        tema: La palette attiva.
+    """
+    altre = [nome for nome in tabella["squadra"] if nome != squadra]
+    scelta = st.selectbox(
+        "Confronta con",
+        altre,
+        index=None,
+        placeholder="Le prime del campionato",
+        key="confronta_con",
+    )
+
+    if scelta is None:
+        st.markdown("##### Confronto con le prime del campionato")
+        righe = tabella.nlargest(CONFRONTO, "xg_fatti")
+        if squadra not in set(righe["squadra"]):
+            righe = pd.concat([righe, tabella[tabella["squadra"] == squadra]])
+    else:
+        st.markdown(f"##### {squadra} contro {scelta}")
+        righe = tabella[tabella["squadra"].isin([squadra, str(scelta)])]
+
+    st.markdown(barre(righe, "xg_fatti", "squadra", tema, decimali=1), unsafe_allow_html=True)
+
+
 def evidenza(numeri: dict[str, float]) -> None:
     """Lo scarto fra gol e occasioni, in chiusura di pagina.
 
@@ -172,14 +209,7 @@ def scheda(
 
     sotto_sinistra, sotto_destra = st.columns(2)
     with sotto_sinistra, st.container(border=True):
-        st.markdown("##### Confronto con le prime del campionato")
-        migliori = tabella.nlargest(CONFRONTO, "xg_fatti")
-        if squadra not in set(migliori["squadra"]):
-            migliori = pd.concat([migliori, tabella[tabella["squadra"] == squadra]])
-        st.markdown(
-            barre(migliori, "xg_fatti", "squadra", tema, decimali=1),
-            unsafe_allow_html=True,
-        )
+        confronto(tabella, squadra, tema)
 
     with sotto_destra, st.container(border=True):
         st.markdown("##### Gol contro xG, partita dopo partita")
@@ -228,8 +258,17 @@ def main() -> None:
         f'<p class="sottotitolo">{dati.nome_di(competizione) if competizione else ""}</p></div>',
         unsafe_allow_html=True,
     )
-    if st.button("← Torna alla classifica", key="torna_classifica"):
-        st.switch_page("pages/Squadre.py")
+    indietro, avanti = st.columns(2)
+    with indietro:
+        if st.button("← Torna alla classifica", key="torna_classifica", width="stretch"):
+            st.switch_page("pages/Squadre.py")
+    with avanti:
+        # Il criterio di chiusura di M6-T7: alla vista Partite ci si arriva
+        # anche da qui, con il filtro gia' impostato su questa squadra.
+        if st.button(f"Vedi le partite del {squadra} →", key="vai_a_partite", width="stretch"):
+            st.session_state[guscio.CONSEGNA_COMPETIZIONE] = competizione
+            st.session_state[guscio.CONSEGNA_SQUADRA] = squadra
+            st.switch_page("pages/Partite.py")
 
     partite = dati.filtra(dati.leggi("matches"), competizione)
     tiri = dati.filtra(dati.leggi("shots"), competizione)
