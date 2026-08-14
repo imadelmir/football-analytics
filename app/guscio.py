@@ -131,7 +131,7 @@ MENU: tuple[tuple[str, str, str], ...] = (
     ("Giocatori", "M6-T5", "pages/Giocatori.py"),
     ("Partite", "M6-T7", "pages/Partite.py"),
     ("Confronto leghe", "M6-T8", "pages/Confronto.py"),
-    ("Modello xG", "M6-T9", ""),
+    ("Modello xG", "M6-T9", "pages/Modello.py"),
     ("Finali Champions", "M6-T10", ""),
     ("Metodologia", "M6-T11", ""),
 )

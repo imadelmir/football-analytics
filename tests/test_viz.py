@@ -741,3 +741,62 @@ def test_la_mappa_dei_tocchi_vuota_resta_un_campo() -> None:
 
     assert len(vuota.data) == 0
     assert len(forme(vuota)) > 10
+
+
+def test_la_calibrazione_ha_la_bisettrice_e_gli_assi_agganciati() -> None:
+    """Senza il quarantacinque gradi la distanza dalla retta inganna l'occhio.
+
+    E' lo stesso difetto silenzioso di :func:`viz.attese_contro_realizzato`: un
+    grafico con assi di scala diversa resta plausibile e dice il falso, perche'
+    uno scarto di due punti percentuali sembra grande in basso e piccolo in
+    alto.
+    """
+    curve = pd.DataFrame(
+        [
+            {
+                "modello": "Base",
+                "gruppo": indice,
+                "tiri": 800,
+                "xg_previsto": indice / 10,
+                "gol_osservati": indice / 10,
+                "errore_standard": 0.01,
+                "scarto": 0.0,
+                "scarto_in_se": 0.0,
+            }
+            for indice in range(5)
+        ]
+    )
+
+    figura = viz.calibrazione(curve, {"Base": "#123456"}, tema.VERDE)
+
+    assert figura.layout.yaxis.scaleanchor == "x"
+    assert figura.layout.yaxis.scaleratio == 1
+    assert [forma for forma in forme(figura) if forma["type"] == "line"], "manca la bisettrice"
+    assert figura.data[0].error_y.array is not None, "le barre d'errore sono il senso del grafico"
+
+
+def test_la_calibrazione_senza_punti_non_esplode() -> None:
+    vuota = viz.calibrazione(pd.DataFrame(), {}, tema.VERDE)
+
+    assert len(vuota.data) == 0
+
+
+def test_le_barre_divergenti_sono_simmetriche_attorno_allo_zero() -> None:
+    """Dimezzare e raddoppiare devono dare barre lunghe uguali.
+
+    Chi chiama passa i pesi gia' in logaritmo, quindi il compito del grafico e'
+    non rovinarli: l'intervallo deve essere centrato sullo zero, o meta' delle
+    barre risulterebbe schiacciata contro il bordo.
+    """
+    figura = viz.barre_divergenti(
+        ["dimezza", "raddoppia"], [-1.0, 1.0], ["#111", "#222"], ["×0,50", "×2,00"], tema.VERDE
+    )
+
+    sinistra, destra = figura.layout.xaxis.range
+    assert sinistra == pytest.approx(-destra)
+    assert figura.layout.yaxis.autorange == "reversed", "la prima barra deve stare in cima"
+    assert list(figura.data[0].text) == ["×0,50", "×2,00"]
+
+
+def test_le_barre_divergenti_senza_dati_non_esplodono() -> None:
+    assert len(viz.barre_divergenti([], [], [], [], tema.VERDE).data) == 0

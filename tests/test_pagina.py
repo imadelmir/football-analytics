@@ -1239,3 +1239,96 @@ def test_la_frase_del_confronto_nasce_dai_numeri() -> None:
     peggiore = max(rapporti, key=lambda chiave: rapporti[chiave])
     assert peggiore == "conversione"
     assert rapporti[peggiore] == pytest.approx(1.16, abs=0.01)
+
+
+@senza_magazzino
+def test_la_vista_modello_risponde_alle_quattro_domande() -> None:
+    """Il criterio di M6-T9: un tecnico deve capire il modello senza il codice.
+
+    Le quattro intestazioni sono le quattro domande che si fa chi valuta un
+    modello, e stanno in pagina in quell'ordine. Se una sparisse, la pagina
+    resterebbe bella e smetterebbe di soddisfare il criterio.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Modello.py")
+    app.run()
+
+    assert not app.exception, [str(e.value) for e in app.exception]
+    testo = " ".join(voce.value for voce in app.markdown)
+    for domanda in ("È calibrato?", "Cosa guarda", "I dati 360 servono?", "Regge fuori"):
+        assert domanda in testo, f"manca il blocco «{domanda}»"
+
+
+@senza_magazzino
+def test_la_vista_modello_nomina_le_metriche_e_le_spiega() -> None:
+    """Registro tecnico, con una riga in chiaro sotto ogni blocco.
+
+    Le metriche restano con il loro nome — un tecnico deve poterle leggere — ma
+    la pagina dice anche cosa vogliono dire, o chi non fa ML non ricava niente.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Modello.py")
+    app.run()
+
+    testo = " ".join(voce.value for voce in [*app.markdown, *app.caption])
+
+    for metrica in ("Brier", "Log loss", "AUC"):
+        assert metrica in testo
+    assert "calibrato" in testo
+    assert "deviazione standard" in testo, "la metrica va nominata e anche spiegata"
+
+
+@senza_magazzino
+def test_la_vista_modello_dichiara_la_divisione_per_partita() -> None:
+    """E' la regola che protegge tutti i numeri della pagina.
+
+    Dividere per tiro invece che per partita farebbe filtrare informazione fra
+    addestramento e verifica, e ogni punteggio della pagina sarebbe gonfiato.
+    Chi valuta il progetto cerca proprio questa frase.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Modello.py")
+    app.run()
+
+    testo = " ".join(voce.value for voce in [*app.markdown, *app.caption])
+
+    assert "per partita intera" in testo
+    assert "mai visti dal modello" in testo, "le finali fuori campione vanno dichiarate"
+
+
+def test_le_frasi_della_vista_modello_nascono_dai_numeri() -> None:
+    """Nessun testo fisso: le conclusioni si ricalcolano dal rendiconto.
+
+    Con i numeri di M5 le variabili spaziali valgono un 3,5 % di Brier. Una
+    frase scritta a mano resterebbe li' a dire il falso se il modello venisse
+    riaddestrato.
+
+    Non serve il magazzino: il rendiconto e' un JSON, ed e' in git. Questo
+    controllo gira anche in CI.
+    """
+    from football_analytics import rendiconto  # noqa: PLC0415
+
+    brier = rendiconto.per_nome(rendiconto.ablazione(), "passo", "brier")
+    base = brier["Modello base"]
+    completo = brier["Modello 360"]
+
+    assert (base - completo) / base * 100 == pytest.approx(3.5, abs=0.3)
+
+
+def test_la_vista_modello_e_agganciata_al_menu() -> None:
+    """Una pagina che esiste e non compare nel menu non esiste per chi guarda."""
+    import guscio  # noqa: PLC0415
+
+    voci = {etichetta: pagina for etichetta, _, pagina in guscio.MENU}
+
+    assert voci["Modello xG"] == "pages/Modello.py"
+    assert (Path(__file__).parents[1] / "app" / voci["Modello xG"]).exists()
