@@ -1,11 +1,15 @@
 """Il confronto fra i quattro campionati (M6-T8).
 
-Il test piu' importante di questo file non guarda un calcolo: verifica che la
-premessa su cui poggia l'intera vista sia vera nei dati. Il backlog chiedeva di
-avvertire che «la Serie A usa il modello base», e misurando la copertura 360
-risulta che **nessuno** dei quattro campionati ha quei dati. Se un giorno il
-magazzino cambiasse, l'avvertenza scritta in pagina diventerebbe falsa senza
-che nulla protesti.
+I test piu' importanti di questo file non guardano un calcolo: misurano le due
+coperture su cui poggiava l'avvertenza della vista, e stanno qui perche' la
+prima versione di quella avvertenza era **falsa**.
+
+Diceva che senza i dati 360 l'xG e' stimato «senza sapere dove fossero
+difensori e portiere». La prima meta' era giusta — i dati 360 sono a zero in
+tutti e quattro i campionati — ma la conseguenza no, perche' i dati 360 e il
+fotogramma del tiro sono due prodotti diversi. Il test misura entrambi: il
+fotogramma c'e' quasi sempre ovunque, i dati 360 solo nei tornei recenti. Con
+tutte e due le coperture scritte, la confusione non si puo' rifare in silenzio.
 """
 
 from __future__ import annotations
@@ -20,6 +24,14 @@ senza_magazzino = pytest.mark.skipif(
     not (DATA_PROCESSED / "matches.parquet").exists(),
     reason="il magazzino non e' costruito; i Parquet entrano in git a M7-T1",
 )
+
+#: Sotto quale quota di tiri col fotogramma il modello spaziale non reggerebbe.
+#:
+#: Le coperture misurate stanno fra il 95 % delle finali di Champions e il
+#: 99,3 % della Premier. La soglia e' larga apposta: serve a distinguere «c'e'
+#: quasi sempre» da «non c'e'», non a inchiodare una cifra che cambierebbe se
+#: StatsBomb ripubblicasse una stagione.
+MINIMA_COPERTURA = 0.90
 
 
 def due_campionati() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -121,12 +133,13 @@ def test_senza_campionati_non_esplode() -> None:
 
 @senza_magazzino
 def test_nessun_campionato_ha_i_dati_360() -> None:
-    """La premessa dell'avvertenza, verificata invece che ripetuta.
+    """I dati 360 sono i fotogrammi di ogni evento: solo nei tornei recenti.
 
     Il backlog diceva che la Serie A e' il caso particolare. Non lo e': la
-    copertura e' zero in tutti e quattro. La pagina scrive che il confronto
-    regge fra i campionati e non verso i tornei, e questa affermazione deve
-    restare vera anche se il magazzino cambia.
+    copertura e' zero in tutti e quattro. Il test da solo pero' non basta, e la
+    storia di questo file lo dimostra — da questo fatto vero e' stata tratta
+    una conseguenza falsa. Va letto insieme a
+    :func:`test_il_fotogramma_del_tiro_invece_c_e_quasi_sempre`.
     """
     partite = pd.read_parquet(DATA_PROCESSED / "matches.parquet")
 
@@ -137,6 +150,34 @@ def test_nessun_campionato_ha_i_dati_360() -> None:
         "un campionato ha i dati 360: l'avvertenza va rivista"
     )
     assert nei_tornei["ha_360"].all(), "i tornei dovrebbero avere i dati 360"
+
+
+@senza_magazzino
+def test_il_fotogramma_del_tiro_invece_c_e_quasi_sempre() -> None:
+    """Il fatto che rende falsa la prima stesura dell'avvertenza.
+
+    Il *fotogramma del tiro* — la posizione dei giocatori nell'istante del tiro
+    — e' allegato agli eventi di tiro anche dove i dati 360 non ci sono. E'
+    quello che il modello spaziale legge, ed e' il motivo per cui gira anche
+    sui campionati 2015/16.
+
+    La prova che i due prodotti sono indipendenti sta nelle **finali di
+    Champions**: dati 360 a zero, fotogramma del tiro sul 95 % dei tiri, e M5
+    ci ha applicato sopra il modello spaziale.
+    """
+    tiri = pd.read_parquet(DATA_PROCESSED / "shots.parquet")
+
+    nei_campionati = tiri[tiri["competizione"].isin(leghe.campionati())]
+    nelle_finali = tiri[tiri["competizione"] == "champions_finali"]
+
+    assert nei_campionati["ha_fotogramma"].mean() > MINIMA_COPERTURA, (
+        "senza il fotogramma del tiro il modello spaziale non potrebbe girare sui campionati"
+    )
+    assert nei_campionati["ha_360"].sum() == 0
+    assert nelle_finali["ha_360"].sum() == 0
+    assert nelle_finali["ha_fotogramma"].mean() > MINIMA_COPERTURA, (
+        "le finali hanno il fotogramma del tiro pur senza i dati 360: sono due cose diverse"
+    )
 
 
 @senza_magazzino

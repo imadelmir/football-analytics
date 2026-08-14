@@ -2,8 +2,9 @@
 
 **Il criterio della task e' che un tecnico capisca il modello senza leggere il
 codice**, e detta cosi' impone quattro risposte in quest'ordine: e' calibrato?
-cosa guarda? i dati 360 servono davvero? regge fuori dal campione su cui e'
-stato misurato? La pagina e' fatta di quei quattro blocchi e di niente altro.
+cosa guarda? le variabili spaziali servono davvero? regge fuori dal campione
+su cui e' stato misurato? La pagina e' fatta di quei quattro blocchi e di
+niente altro.
 
 **Nessun numero viene calcolato qui.** Tutti arrivano gia' misurati da
 :mod:`football_analytics.rendiconto`, che legge il rendiconto di M5 e le schede
@@ -58,7 +59,7 @@ GRUPPO_SCHEMA: str = "Origine dell'azione"
 def colori_modelli(tema: Tema) -> dict[str, str]:
     """Il colore di ciascun modello, usato in tutta la pagina.
 
-    **Uno solo per modello, in tutti i grafici.** Se la variante 360 fosse blu
+    **Uno solo per modello, in tutti i grafici.** Se la variante spaziale fosse blu
     nella calibrazione e verde fra i coefficienti, ogni grafico costringerebbe
     a rileggere la legenda.
 
@@ -68,7 +69,7 @@ def colori_modelli(tema: Tema) -> dict[str, str]:
     Returns:
         Il colore per nome del modello.
     """
-    return {"Base": tema.atteso, "360": tema.primario, "StatsBomb": tema.testo_tenue}
+    return {"Base": tema.atteso, "Spaziale": tema.primario, "StatsBomb": tema.testo_tenue}
 
 
 def cartellino(etichetta: str, valore: str, nota: str) -> str:
@@ -94,7 +95,7 @@ def intestazione(varianti: list[rendiconto.Variante], contesto: rendiconto.Conte
     """Le due varianti affiancate, con le metriche di ciascuna.
 
     Args:
-        varianti: Base e 360.
+        varianti: Base e Spaziale.
         contesto: Su quanti dati sono state misurate.
     """
     for colonna, variante in zip(st.columns(len(varianti)), varianti, strict=True):
@@ -135,7 +136,7 @@ def intestazione(varianti: list[rendiconto.Variante], contesto: rendiconto.Conte
         f"verifica farebbe filtrare informazione da una parte all'altra. "
         f"Addestramento su {numero(contesto.tiri_train)} tiri da "
         f"{numero(contesto.partite_train)} partite; {numero(contesto.scartati)} tiri "
-        f"scartati per fotogramma 360 incompleto. "
+        f"scartati per fotogramma del tiro incompleto. "
         f"scikit-learn {contesto.scikit_learn}, pandas {contesto.pandas}."
     )
 
@@ -149,7 +150,7 @@ def frase_calibrazione(curve: pd.DataFrame, varianti: list[rendiconto.Variante])
 
     Args:
         curve: Il risultato di :func:`rendiconto.calibrazione`.
-        varianti: Base e 360.
+        varianti: Base e Spaziale.
 
     Returns:
         La frase.
@@ -176,7 +177,7 @@ def blocco_calibrazione(
 
     Args:
         curve: Il risultato di :func:`rendiconto.calibrazione`.
-        varianti: Base e 360.
+        varianti: Base e Spaziale.
         tema: La palette attiva.
     """
     st.markdown("#### 1. È calibrato?")
@@ -255,7 +256,7 @@ def blocco_variabili(tema: Tema) -> None:
                 "Ogni barra è l'odds ratio per **una deviazione standard** della "
                 "variabile: è l'unico modo di confrontare metri con conteggi di "
                 "giocatori. In verde le sei variabili base, in colore d'accento le "
-                "cinque che arrivano dai fotogrammi 360. Le barre sono lunghe quanto il "
+                "cinque lette dal fotogramma del tiro. Le barre sono lunghe quanto il "
                 "logaritmo del rapporto, così dimezzare e raddoppiare pesano uguale; il "
                 "numero scritto è il rapporto vero."
             )
@@ -350,15 +351,22 @@ def tabella_metriche(tabella: pd.DataFrame, prima: str) -> None:
     )
 
 
-def blocco_360() -> None:
+def blocco_spaziale() -> None:
     """Il terzo blocco: le due varianti a confronto."""
-    st.markdown("#### 3. I dati 360 servono?")
+    st.markdown("#### 3. Le variabili spaziali servono?")
     ablazione = rendiconto.ablazione()
     st.markdown(
-        '<p class="vuoto">Ogni gruppo di variabili spaziali è stato aggiunto al modello '
-        "base <b>da solo</b>, non tolto dal modello completo. Le variabili 360 sono "
-        "correlate fra loro: togliendone una dal completo, il suo contributo viene "
-        "assorbito dalle altre e sembra nullo.</p>",
+        '<p class="vuoto">Le cinque variabili spaziali vengono dal <b>fotogramma del '
+        "tiro</b>: la posizione dei giocatori nell'istante in cui la palla parte, che "
+        "StatsBomb allega agli eventi di tiro. Non sono i <b>dati 360</b>, che sono "
+        "un'altra cosa — i fotogrammi di ogni evento, presenti solo nei tornei recenti. "
+        "La distinzione conta: i quattro campionati 2015/16 non hanno i dati 360, ma il "
+        "fotogramma del tiro ce l'hanno sul 99 % dei tiri, e il modello spaziale gira "
+        "anche lì.</p>"
+        '<p class="vuoto">Ogni gruppo è stato aggiunto al modello base <b>da solo</b>, '
+        "non tolto dal modello completo: le variabili spaziali sono correlate fra loro, "
+        "e togliendone una dal completo il suo contributo viene assorbito dalle altre e "
+        "sembra nullo.</p>",
         unsafe_allow_html=True,
     )
     with st.container(border=True):
@@ -367,13 +375,13 @@ def blocco_360() -> None:
             return
         tabella_metriche(ablazione, "passo")
         st.markdown(
-            f'<div class="evidenza">{frase_360(ablazione)}</div>',
+            f'<div class="evidenza">{frase_spaziale(ablazione)}</div>',
             unsafe_allow_html=True,
         )
 
 
-def frase_360(ablazione: pd.DataFrame) -> str:
-    """Quanto valgono davvero i 360, calcolato dalla tabella.
+def frase_spaziale(ablazione: pd.DataFrame) -> str:
+    """Quanto valgono davvero le variabili spaziali, calcolato dalla tabella.
 
     Args:
         ablazione: Il risultato di :func:`rendiconto.ablazione`.
@@ -382,16 +390,17 @@ def frase_360(ablazione: pd.DataFrame) -> str:
         La frase.
     """
     brier = rendiconto.per_nome(ablazione, "passo", "brier")
-    if "Modello base" not in brier or "Modello 360" not in brier:
+    if "Modello base" not in brier or "Modello spaziale" not in brier:
         return ""
     base = brier["Modello base"]
-    completo = brier["Modello 360"]
+    completo = brier["Modello spaziale"]
     guadagno = (base - completo) / base * 100
     return (
         f"Le cinque variabili spaziali portano il Brier da {numero(base, 4)} a "
         f"{numero(completo, 4)}: un miglioramento del {numero(guadagno, 1)} %. "
-        f"È reale e si misura, ma è molto meno di quanto la parola «360» suggerisca — "
-        f"dove il tiro parte resta di gran lunga l'informazione principale."
+        f"È reale e si misura, ma è modesto: sapere dove fossero difensori e portiere "
+        f"aiuta molto meno di quanto ci si aspetti, e da dove parte il tiro resta di "
+        f"gran lunga l'informazione principale."
     )
 
 
@@ -491,7 +500,7 @@ def main() -> None:
     st.divider()
     blocco_variabili(tema)
     st.divider()
-    blocco_360()
+    blocco_spaziale()
     st.divider()
     blocco_fuori_campione(contesto)
 

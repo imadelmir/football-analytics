@@ -2,15 +2,26 @@
 
 **Solo i quattro campionati 2015/16, e non e' una semplificazione.** Sono
 l'unico gruppo del magazzino davvero confrontabile: stessa stagione, trentotto
-giornate, stessa generazione di dati StatsBomb, e soprattutto **nessuno dei
-quattro ha i dati 360**.
+giornate, stessa generazione di dati StatsBomb.
 
 Il backlog chiedeva di avvertire che «la Serie A usa il modello base», come se
-fosse l'eccezione. Misurando la copertura nel magazzino risulta il contrario:
-la quota di partite con freeze frame e' **zero in tutti e quattro** — Liga,
-Premier, Serie A, Ligue 1 — mentre e' del 100 % nei Mondiali 2022 e negli
-Europei, e del 2 % in Coppa d'Africa. L'avvertenza serve quindi verso i tornei,
-non fra i campionati, e la pagina la scrive cosi'.
+fosse l'eccezione. Non lo e': i *dati 360* — i fotogrammi di **ogni** evento —
+sono a zero in tutti e quattro i campionati, e al 100 % nei Mondiali 2022 e
+negli Europei.
+
+**Ma da quel fatto vero e' stata tratta una conseguenza falsa**, e la nota qui
+serve a non ripeterla. I dati 360 non sono il *fotogramma del tiro*: quello e'
+allegato agli eventi di tiro ovunque e copre il 99,3 % dei tiri di Premier, il
+99,1 % di Liga e Ligue 1, il 98,8 % di Serie A. E' da li' che il modello
+spaziale prende le posizioni di difensori e portiere, ed e' il motivo per cui
+gira anche sui campionati — e sulle finali di Champions, che i dati 360 non li
+hanno affatto. Un test misura entrambe le coperture.
+
+La distinzione era gia' scritta in
+:class:`~football_analytics.config.Copertura360` fin da M2, con tanto di
+avvertenza a non confondere le due cose. Averla riscoperta a M6 e' il motivo
+per cui adesso c'e' anche un test: una docstring si puo' non leggere, una suite
+rossa no.
 
 **Resta un buco dichiarato:** la Ligue 1 ha 377 partite invece di 380, perche'
 all'Open Data ne mancano tre. Ogni numero di questo modulo e' normalizzato per
