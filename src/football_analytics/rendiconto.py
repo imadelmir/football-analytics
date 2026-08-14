@@ -52,11 +52,26 @@ RISULTATI: Final[Path] = config.PROJECT_ROOT / "docs" / "milestones" / "M5-risul
 #: Le due varianti che vanno in produzione: chiave del file, nome in pagina,
 #: e la frase che dice cosa le distingue.
 #:
-#: **I nomi in pagina sono «Base» e «360», ovunque.** Nel rendiconto di M5 le
-#: stesse due cose si chiamano «logistica base» e «logistica spaziale», perche'
-#: li' andavano distinte anche dalle varianti ad alberi. Portarsi dietro due
-#: nomi per lo stesso modello e' il modo piu' rapido per far credere a chi
-#: guarda che i modelli siano quattro.
+#: **In pagina si chiamano «Base» e «Spaziale», non «360», ed e' una
+#: correzione.** La prima stesura di questa vista le chiamava «Base» e «360»
+#: perche' i file di M5-T9 si chiamano ``xg_base.pkl`` e ``xg_360.pkl``, e con
+#: il nome si e' portato dietro un significato sbagliato: che le cinque
+#: variabili spaziali vengano dai dati 360 di StatsBomb. Non e' cosi'.
+#:
+#: Sono **due prodotti diversi**. Il *fotogramma del tiro* e' la posizione dei
+#: giocatori nell'istante del tiro, e StatsBomb lo allega agli eventi di tiro
+#: ovunque: nel magazzino copre il 99,3 % dei tiri di Premier, il 99,1 % di
+#: Liga e Ligue 1, il 98,8 % di Serie A e il 95,1 % delle finali di Champions.
+#: I *dati 360* sono invece i fotogrammi di **ogni** evento, e ci sono solo nei
+#: tornei recenti — zero in tutti e quattro i campionati **e zero nelle finali
+#: di Champions**, dove pure il modello spaziale gira.
+#:
+#: Le variabili spaziali leggono ``freeze_frames.parquet``, cioe' il fotogramma
+#: del tiro. Il nome dei file resta quello di M5: cambiarlo vorrebbe dire
+#: riaddestrare, e i numeri misurati non si toccano senza rigenerarli.
+#:
+#: La distinzione e' documentata per esteso in
+#: :class:`~football_analytics.config.Copertura360`, dove sta da M2.
 VARIANTI: Final[tuple[tuple[str, str, str], ...]] = (
     (
         "xg_base",
@@ -66,19 +81,23 @@ VARIANTI: Final[tuple[tuple[str, str, str], ...]] = (
     ),
     (
         "xg_360",
-        "360",
+        "Spaziale",
         "Le sei di prima piu' cinque che descrivono chi c'era intorno, "
-        "ricavate dai fotogrammi 360 di StatsBomb.",
+        "lette dal fotogramma del tiro di StatsBomb.",
     ),
 )
 
 #: Come si chiamano in pagina i modelli del rendiconto di M5.
+#:
+#: «Spaziale» e' il nome che M5 usava gia': la sua tabella li chiama «logistica
+#: base» e «logistica spaziale». Qui si accorcia perche' in pagina la parola
+#: «logistica» e' detta una volta sola, nella scheda.
 NOMI: Final[dict[str, str]] = {
     "riferimento": "Riferimento",
     "logistica base": "Base",
     "alberi base": "Alberi (base)",
-    "logistica spaziale": "360",
-    "alberi spaziale": "Alberi (360)",
+    "logistica spaziale": "Spaziale",
+    "alberi spaziale": "Alberi (spaziale)",
     "StatsBomb": "StatsBomb",
 }
 
@@ -96,7 +115,7 @@ PASSI: Final[dict[str, str]] = {
     "+ solo portiere": "+ posizione del portiere",
     "+ solo difensori": "+ difensori e compagni attorno",
     "+ solo cono": "+ difensori nel cono di tiro",
-    "+ tutto": "Modello 360",
+    "+ tutto": "Modello spaziale",
 }
 
 #: I nomi leggibili delle variabili numeriche e booleane.
@@ -196,7 +215,7 @@ class Contesto:
         tiri_applicazione: Tiri delle finali di Champions, mai visti.
         finali_applicazione: Quante finali.
         quota_gol: La quota di gol nel test, cioe' il tasso base.
-        scartati: Tiri esclusi per fotogramma 360 incompleto.
+        scartati: Tiri esclusi per fotogramma del tiro incompleto.
         scikit_learn: La versione usata per addestrare.
         pandas: La versione usata per addestrare.
         addestrato_il: Quando, in ISO 8601.
@@ -282,7 +301,7 @@ def varianti() -> list[Variante]:
     """Le due varianti di produzione, dalle rispettive schede.
 
     Returns:
-        Base e 360, in quest'ordine.
+        Base e Spaziale, in quest'ordine.
     """
     elenco = []
     for chiave, etichetta, descrizione in VARIANTI:
@@ -408,7 +427,7 @@ def pesi() -> pd.DataFrame:
     Returns:
         Una riga per variabile con ``variabile``, ``odds_ratio``, ``peso``,
         ``per_unita``, ``unita``, ``direzione`` e ``spaziale`` — vero se la
-        variabile viene dai fotogrammi 360. Vuota se il rendiconto non
+        variabile viene dal fotogramma del tiro. Vuota se il rendiconto
         contiene la sezione.
     """
     righe = [
@@ -496,7 +515,7 @@ def per_nome(tabella: pd.DataFrame, chiave: str, colonna: str) -> dict[str, floa
     fra pagina e test — oppure questa funzione, che fa la conversione una volta
     sola e restituisce un dizionario con un tipo vero.
 
-    Ne guadagna anche la lettura: chi chiama scrive ``brier["Modello 360"]``
+    Ne guadagna anche la lettura: chi chiama scrive ``brier["Modello base"]``
     invece di una doppia indicizzazione con un ``float`` attorno.
 
     Args:
@@ -557,7 +576,7 @@ def confronto() -> pd.DataFrame:
 
 
 def ablazione() -> pd.DataFrame:
-    """Quanto vale ciascun gruppo di variabili 360, aggiunto da solo.
+    """Quanto vale ciascun gruppo di variabili spaziali, aggiunto da solo.
 
     **Aggiunto da solo, non tolto dal totale.** Le variabili spaziali sono
     correlate fra loro: togliendone una dal modello completo il suo contributo

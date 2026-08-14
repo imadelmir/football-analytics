@@ -30,7 +30,7 @@ DECILI = 10
 
 #: Quante variabili ha ciascuna delle due varianti.
 QUANTE_BASE = 6
-QUANTE_360 = 11
+QUANTE_SPAZIALE = 11
 
 #: Il rapporto atteso fra un colpo di testa e un tiro di piede destro, a
 #: parita' di tutto il resto. E' un fatto di dominio, non un numero di comodo:
@@ -49,16 +49,18 @@ def test_i_numeri_congelati_sono_al_loro_posto() -> None:
 
 
 def test_le_due_varianti_sono_quelle_che_vanno_in_produzione() -> None:
-    """Base e 360, entrambe logistiche, con il numero giusto di variabili."""
+    """Base e Spaziale, entrambe logistiche, con il numero giusto di variabili."""
     base, spaziale = rendiconto.varianti()
 
-    assert (base.etichetta, spaziale.etichetta) == ("Base", "360")
+    assert (base.etichetta, spaziale.etichetta) == ("Base", "Spaziale")
     assert base.classe == spaziale.classe == "LogisticRegression"
     assert len(base.variabili) == QUANTE_BASE == len(VARIABILI_BASE)
-    assert len(spaziale.variabili) == QUANTE_360 == len(VARIABILI_BASE) + len(VARIABILI_SPAZIALI)
+    assert (
+        len(spaziale.variabili) == QUANTE_SPAZIALE == len(VARIABILI_BASE) + len(VARIABILI_SPAZIALI)
+    )
 
 
-def test_il_360_batte_il_base_su_tutte_e_tre_le_metriche() -> None:
+def test_lo_spaziale_batte_il_base_su_tutte_e_tre_le_metriche() -> None:
     """Se non fosse cosi', la pagina non avrebbe niente da raccontare.
 
     Il guadagno e' modesto e la pagina lo dice, ma deve esistere: un modello con
@@ -77,7 +79,7 @@ def test_la_calibrazione_ha_tre_curve_da_dieci_decili() -> None:
     curve = rendiconto.calibrazione()
 
     assert len(curve) == len(rendiconto.CALIBRATI) * DECILI
-    assert set(curve["modello"]) == {"Base", "360", "StatsBomb"}
+    assert set(curve["modello"]) == {"Base", "Spaziale", "StatsBomb"}
     for nome in curve["modello"].unique():
         suoi = curve[curve["modello"] == nome]
         assert list(suoi["gruppo"]) == list(range(DECILI))
@@ -219,11 +221,11 @@ def test_l_ablazione_aggiunge_i_gruppi_uno_alla_volta() -> None:
     auc = rendiconto.per_nome(ablazione, "passo", "auc")
     brier = rendiconto.per_nome(ablazione, "passo", "brier")
     assert auc["Nessun modello"] == pytest.approx(0.5)
-    assert brier["Modello 360"] < brier["Modello base"]
+    assert brier["Modello spaziale"] < brier["Modello base"]
 
 
 def test_nessun_nome_di_modello_arriva_in_pagina_non_tradotto() -> None:
-    """Le tabelle mostrano «Base» e «360», mai «logistica spaziale».
+    """Le tabelle mostrano «Base» e «Spaziale», mai «logistica spaziale».
 
     Due nomi per lo stesso modello nella stessa pagina fanno credere che i
     modelli siano quattro.
@@ -247,7 +249,7 @@ def test_le_finali_sono_state_tenute_fuori_dall_addestramento() -> None:
 
     assert contesto.finali_applicazione > 0
     assert contesto.tiri_applicazione > 0
-    assert fuori["360"] < spaziale.brier, (
+    assert fuori["Spaziale"] < spaziale.brier, (
         "sulle finali il modello non deve peggiorare rispetto al proprio test"
     )
 

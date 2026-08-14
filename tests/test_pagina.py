@@ -1199,13 +1199,17 @@ def test_il_confronto_leghe_mostra_le_quattro_schede() -> None:
 
 
 @senza_magazzino
-def test_il_confronto_leghe_avverte_sul_360() -> None:
-    """E' il criterio di chiusura di M6-T8, riscritto su cio' che i dati dicono.
+def test_il_confronto_leghe_avverte_sul_limite_vero() -> None:
+    """E' il criterio di chiusura di M6-T8, e la nota e' stata riscritta due volte.
 
-    Il backlog chiedeva di segnalare che «la Serie A usa il modello base». La
-    copertura misurata e' zero in tutti e quattro i campionati, quindi
-    l'avvertenza corretta riguarda il confronto verso i **tornei**. Il test
-    pretende che la nota nomini i 360 e i tornei, non una lega sola.
+    La prima stesura seguiva il backlog e nominava la Serie A. La seconda
+    diceva che senza i dati 360 non si sa dove fossero difensori e portiere: e'
+    falso, quelle posizioni stanno nel fotogramma del tiro, che nei campionati
+    c'e' sul 99 % dei tiri. Il limite misurabile e' uno solo, ed e' la Ligue 1
+    a 377 partite invece di 380.
+
+    Il test pretende quel numero e **vieta** la frase sbagliata, cosi' non puo'
+    rientrare da una riscrittura distratta.
     """
     from streamlit.testing.v1 import AppTest  # noqa: PLC0415
 
@@ -1216,9 +1220,8 @@ def test_il_confronto_leghe_avverte_sul_360() -> None:
 
     avvisi = " ".join(voce.value for voce in app.warning)
 
-    assert "360" in avvisi
-    assert "tornei" in avvisi
     assert "377" in avvisi, "il buco della Ligue 1 va dichiarato dove i numeri si confrontano"
+    assert "senza sapere dove" not in avvisi, "e' la frase falsa: le posizioni si conoscono"
 
 
 @senza_magazzino
@@ -1258,7 +1261,7 @@ def test_la_vista_modello_risponde_alle_quattro_domande() -> None:
 
     assert not app.exception, [str(e.value) for e in app.exception]
     testo = " ".join(voce.value for voce in app.markdown)
-    for domanda in ("È calibrato?", "Cosa guarda", "I dati 360 servono?", "Regge fuori"):
+    for domanda in ("È calibrato?", "Cosa guarda", "variabili spaziali servono", "Regge fuori"):
         assert domanda in testo, f"manca il blocco «{domanda}»"
 
 
@@ -1319,7 +1322,7 @@ def test_le_frasi_della_vista_modello_nascono_dai_numeri() -> None:
 
     brier = rendiconto.per_nome(rendiconto.ablazione(), "passo", "brier")
     base = brier["Modello base"]
-    completo = brier["Modello 360"]
+    completo = brier["Modello spaziale"]
 
     assert (base - completo) / base * 100 == pytest.approx(3.5, abs=0.3)
 
