@@ -135,11 +135,24 @@ no_implicit_reexport = true
 show_error_codes = true
 pretty = true
 
+# pyarrow e' un caso diverso dalle librerie senza annotazioni elencate sotto:
+# i tipi ci sono, ma le sue funzioni non sono annotate, e `strict` vieta di
+# chiamare una funzione non annotata da una che lo e'. Serve a leggere i
+# metadati dei Parquet in `metodo.py` — righe e colonne senza aprire 1,2
+# milioni di record.
+#
+# `untyped_calls_exclude` e' la chiave giusta e non un override per modulo:
+# `disallow_untyped_calls` in un override si applica al modulo **chiamato**,
+# non a chi chiama, e non avrebbe avuto alcun effetto. L'alternativa era un
+# `# type: ignore` sulla riga, che non e' una correzione ma un silenziatore.
+untyped_calls_exclude = ["pyarrow"]
+
 # Queste librerie non distribuiscono annotazioni: senza la deroga `mypy`
 # fallirebbe all'import, e non per un difetto del nostro codice.
 [[tool.mypy.overrides]]
 module = ["statsbombpy.*", "sklearn.*", "joblib.*", "streamlit.*", "plotly.*"]
 ignore_missing_imports = true
+
 
 # ---------------------------------------------------------------------------
 # pytest
