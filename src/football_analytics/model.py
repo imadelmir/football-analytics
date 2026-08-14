@@ -56,10 +56,13 @@ BERSAGLIO: Final[str] = "gol"
 
 #: I nomi con cui i modelli vengono salvati in ``models/``.
 #:
-#: ``xg_logistica`` e' il riferimento di M5-T4: resta salvato perche' i numeri
-#: di un confronto vanno riproducibili, non ricordati. ``xg_base`` e
-#: ``xg_360`` sono i due modelli che la dashboard usa davvero.
-NOME_LOGISTICA: Final[str] = "xg_logistica"
+#: Sono due, e a M7-T1 erano diventati due davvero. C'era un terzo nome,
+#: ``xg_logistica``, che risaliva al confronto di M5-T4: la costante e' stata
+#: tolta insieme al file quando si e' visto che ``scripts/train_model.py`` non
+#: lo salvava piu' e nessuna riga di codice lo cercava. Il commento pero'
+#: continuava a dire che «resta salvato», e questo e' il difetto vero: una
+#: costante morta si nota, una frase che descrive un comportamento inesistente
+#: no.
 NOME_BASE: Final[str] = "xg_base"
 NOME_SPAZIALE: Final[str] = "xg_360"
 

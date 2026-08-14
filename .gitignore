@@ -4,38 +4,39 @@
 data/raw/*
 !data/raw/.gitkeep
 
-# --- Dati trasformati: esclusi FINO A M7-T1 --------------------------------
+# --- Dati trasformati: DENTRO da M7-T1 -------------------------------------
 #
-# I Parquet di data/processed/ devono finire in git: sono cio' che Streamlit
-# Cloud trova quando clona il repository, ed e' il criterio di M7-T1.
+# I Parquet di data/processed/ **sono in git**, ed e' il criterio di M7-T1:
+# un clone pulito contiene il magazzino e l'app parte senza scaricare niente.
+# Sono 6,3 MB su sei file, contro i 6,25 GB di JSON grezzi da cui nascono.
 #
-# Ma non adesso. Sono ancora un cantiere: si rigenerano a ogni passo — quando
-# arrivano passes e touches, quando si scaricano le altre competizioni, quando
-# M5 aggiunge l'xG calcolato. Git non sa fare diff dei binari, quindi ogni
-# versione e' una copia intera: a regime sono ~4 MB l'uno, e otto rigenerazioni
-# farebbero decine di megabyte di cronologia che nessuno potra' piu' togliere,
-# perche' main e' protetto contro il force push di proposito.
+# Fino a M6 erano esclusi, e la ragione vale la pena ricordarla perche' spiega
+# perche' entrano solo adesso: si rigeneravano a ogni passo — quando sono
+# arrivati passes e touches, quando si sono scaricate le altre competizioni,
+# quando M5 ha aggiunto l'xG. Git non sa fare diff dei binari, quindi ogni
+# versione e' una copia intera: otto rigenerazioni avrebbero lasciato decine di
+# megabyte di cronologia che nessuno puo' piu' togliere, perche' main e'
+# protetto contro il force push di proposito.
 #
-# Si versionano quando sono il prodotto finito, non mentre sono in costruzione.
-#
-# >>> A M7-T1: cancellare le due righe qui sotto e committare i Parquet. <<<
-data/processed/*.parquet
+# Si versionano da prodotto finito, non da cantiere. Da qui in avanti vanno
+# rigenerati solo quando cambia davvero qualcosa, e il commit va guardato:
+# `git show --stat` dice quanti megabyte si stanno aggiungendo per sempre.
 
-# --- Modelli addestrati: esclusi FINO A M7-T1 ------------------------------
+# --- Modelli addestrati: DENTRO da M7-T1 -----------------------------------
 #
-# Stesso ragionamento dei Parquet — si rigenerano a ogni modifica delle
-# variabili e git non sa fare diff dei binari — con un motivo in piu' che vale
-# la pena scrivere.
+# In `models/` stanno i due `.pkl` che `scripts/train_model.py` produce oggi —
+# xg_base e xg_360, 9,5 KB in tutto — piu' le due schede JSON che la dashboard
+# legge davvero.
 #
-# Un file `.pkl` e' Python serializzato: **caricarlo esegue codice**. Un
-# modello nel repository e' quindi una superficie di attacco, e un modello
-# committato per sbaglio da una macchina compromessa diventa codice che gira
-# sul computer di chi clona. A M7-T1 ce ne sara' uno solo, prodotto da
-# `scripts/train_model.py` e rigenerabile con un comando: quello e' il momento
-# di versionarlo, non prima.
+# **La dashboard non carica nessun pickle.** Un `.pkl` e' Python serializzato e
+# caricarlo esegue codice: la vista Modello legge solo i JSON, proprio per non
+# aprire quella superficie in un'app pubblica. I pickle stanno in git perche'
+# chi clona possa ispezionare e riusare i modelli, non perche' servano a far
+# girare l'app.
 #
-# >>> A M7-T1: cancellare la riga qui sotto e committare i modelli. <<<
-models/*.pkl
+# Un terzo file, xg_logistica.pkl, era rimasto da un addestramento precedente:
+# nessuno script lo produce piu' ed e' stato cancellato a M7-T1. Un file che
+# nessun comando rigenera non e' un artefatto, e' un residuo.
 
 # --- Python ----------------------------------------------------------------
 __pycache__/
