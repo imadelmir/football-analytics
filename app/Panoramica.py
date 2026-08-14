@@ -23,7 +23,7 @@ non esistono nei dati.**
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import streamlit as st
@@ -31,7 +31,7 @@ import streamlit as st
 import dati
 import guscio
 import theme
-from football_analytics import panoramica, viz
+from football_analytics import insights, panoramica, viz
 from football_analytics.config import ATTRIBUZIONE, SOGLIA_MINUTI
 from guscio import CON_ZOOM, QUANTE, SENZA_BARRA, barre, foglio, numero
 
@@ -43,81 +43,37 @@ if TYPE_CHECKING:
 st.set_page_config(page_title="Football Analytics — Panoramica", layout="wide")
 
 
-def riga_massima(tabella: pd.DataFrame, colonna: str) -> dict[str, Any] | None:
-    """La riga con il valore piu' alto in una colonna, come dizionario.
+def conclusioni(tiri: pd.DataFrame, partite: pd.DataFrame, competizione: str | None) -> None:
+    """Le frasi calcolate sulla selezione corrente (M6-T12).
 
-    Restituisce un dizionario e non una ``Series`` perche' con pandas-stubs il
-    tipo di ``.loc[etichetta]`` e' un'unione che comprende date e stringhe: ogni
-    lettura andrebbe silenziata con un ``type: ignore``, e un silenziatore non
-    e' mai una correzione.
+    **Erano quattro riquadri con dei numeri, e adesso sono frasi.** I numeri
+    c'erano gia' nella striscia degli indicatori sopra: ripeterli qui non
+    aggiungeva niente, mentre una frase mette in relazione due valori e dice la
+    conclusione — che e' cio' che la task chiede.
 
-    Args:
-        tabella: La tabella da esaminare.
-        colonna: La colonna su cui cercare il massimo.
-
-    Returns:
-        La riga, oppure ``None`` se la tabella e' vuota.
-    """
-    if tabella.empty:
-        return None
-    posizione = int(tabella[colonna].to_numpy().argmax())
-    return {nome: tabella[nome].to_numpy()[posizione] for nome in tabella.columns}
-
-
-def insight(
-    numeri: dict[str, float], zone: pd.DataFrame, quarti: pd.DataFrame, quota: float
-) -> None:
-    """La striscia di conclusioni, tutte **calcolate**.
-
-    Il piano di completamento lo chiede esplicitamente: nessun testo statico
-    che possa diventare falso cambiando filtro.
+    Il calcolo sta in :mod:`football_analytics.insights` e non qui: una
+    conclusione nasce da un confronto fra numeri, e un confronto e' logica.
+    Cosi' si verifica con pytest, ed e' l'unico modo in cui il criterio della
+    task — «cambiando competizione la frase cambia da sola con i numeri
+    giusti» — si puo' davvero controllare.
 
     Args:
-        numeri: Il risultato di :func:`panoramica.kpi`.
-        zone: Il risultato di :func:`panoramica.per_zona`.
-        quarti: Il risultato di :func:`panoramica.per_quarto_dora`.
-        quota: L'xG realizzato.
+        tiri: I tiri della selezione.
+        partite: Le partite della selezione.
+        competizione: La competizione scelta, se ce n'e' una.
     """
-    # L'estrazione passa per numpy: `.loc[etichetta]` per pandas-stubs ha un
-    # tipo unione che comprende date e stringhe, e ogni conversione a float
-    # andrebbe silenziata con un `type: ignore`.
-    migliore_zona = riga_massima(zone, "xg_medio")
-    migliore_quarto = riga_massima(quarti, "xg")
-    scarto = numeri["gol_meno_xg"]
-
-    voci = [
-        ("xG realizzato", f"{quota:.1%}".replace(".", ","), "gol contro occasioni"),
-        (
-            "Differenza gol − xG",
-            f"{'+' if scarto >= 0 else '−'}{numero(abs(scarto), 1)}",
-            "sopra le attese" if scarto >= 0 else "sotto le attese",
-        ),
-    ]
-    if migliore_zona is not None:
-        voci.append(
-            (
-                "Zona più redditizia",
-                str(migliore_zona["zona"]),
-                f"{numero(migliore_zona['xg_medio'], 3)} xG medio",
-            )
+    titolo = dati.etichetta_di(competizione) if competizione else ""
+    frasi = insights.della_selezione(tiri, partite, titolo)
+    if not frasi:
+        st.markdown(
+            '<p class="vuoto">La selezione non ha abbastanza partite per una conclusione.</p>',
+            unsafe_allow_html=True,
         )
-    if migliore_quarto is not None:
-        voci.append(
-            (
-                "Quarto d'ora migliore",
-                str(migliore_quarto["blocco"]),
-                f"{numero(migliore_quarto['xg'], 0)} xG accumulati",
-            )
-        )
-
-    for colonna, (titolo, grande, sotto) in zip(st.columns(len(voci)), voci, strict=True):
-        with colonna:
-            st.markdown(
-                f'<div class="insight"><span class="etichetta">{titolo}</span>'
-                f'<span class="grande">{grande}</span>'
-                f'<span class="nota">{sotto}</span></div>',
-                unsafe_allow_html=True,
-            )
+        return
+    st.markdown(
+        "".join(f'<div class="conclusione">{frase}</div>' for frase in frasi),
+        unsafe_allow_html=True,
+    )
 
 
 def trend(partite: pd.DataFrame, tema: Tema) -> go.Figure:
@@ -216,9 +172,12 @@ def main() -> None:
 
     st.write("")
     with st.container(border=True):
-        st.markdown("##### Insight chiave")
-        st.caption("Calcolati dai dati filtrati a ogni ricalcolo, mai scritti a mano.")
-        insight(numeri, panoramica.per_zona(tiri), panoramica.per_quarto_dora(tiri), quota)
+        st.markdown("##### Cosa dicono questi numeri")
+        conclusioni(tiri, partite, competizione)
+        st.caption(
+            "Frasi calcolate sulla selezione a ogni ricalcolo, mai scritte a mano: "
+            "cambiando competizione cambiano da sole, numeri compresi."
+        )
 
     st.markdown(f'<p class="attribuzione">{ATTRIBUZIONE}</p>', unsafe_allow_html=True)
 

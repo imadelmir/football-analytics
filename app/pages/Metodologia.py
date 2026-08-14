@@ -41,6 +41,22 @@ TETTO_MB: float = 50.0
 REPOSITORY: str = "https://github.com/imadelmir/football-analytics"
 
 
+@st.cache_data(show_spinner=False)
+def tabelle_del_magazzino() -> pd.DataFrame:
+    """Il riepilogo delle tabelle, letto una volta sola per sessione.
+
+    **In cache come tutto il resto che tocca il disco**, ed e' il criterio di
+    M6-T13. Legge solo i footer dei Parquet, quindi costa microsecondi — ma
+    Streamlit riesegue lo script a ogni interazione, e una lettura da disco non
+    in cache resta una lettura da disco a ogni click. La regola vale per tutte
+    le pagine o non vale.
+
+    Returns:
+        Il risultato di :func:`metodo.magazzino`.
+    """
+    return metodo.magazzino()
+
+
 def catena() -> None:
     """Il diagramma dei cinque stadi, dai JSON di StatsBomb alla dashboard."""
     st.markdown("#### La catena del dato")
@@ -250,7 +266,7 @@ def main() -> None:
 
     catena()
     st.divider()
-    magazzino(metodo.magazzino())
+    magazzino(tabelle_del_magazzino())
     st.divider()
     scelte()
     st.divider()
