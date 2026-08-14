@@ -132,7 +132,7 @@ MENU: tuple[tuple[str, str, str], ...] = (
     ("Partite", "M6-T7", "pages/Partite.py"),
     ("Confronto leghe", "M6-T8", "pages/Confronto.py"),
     ("Modello xG", "M6-T9", "pages/Modello.py"),
-    ("Metodologia", "M6-T11", ""),
+    ("Metodologia", "M6-T11", "pages/Metodologia.py"),
 )
 
 #: La pagina a cui torna il marchio.
@@ -881,5 +881,61 @@ h5 {{ font-size: .95rem !important; font-weight: 700; margin-bottom: .1rem; }}
   text-align: center;
   background: {tema.primario_tenue}; color: {tema.primario};
   font-size: .92rem; font-weight: 600;
+}}
+
+/* --- La catena del dato, in Metodologia (M6-T11) -------------------------
+   Cinque riquadri con una freccia in mezzo. `flex-wrap` e non una griglia a
+   cinque colonne fisse: su una finestra stretta la catena va a capo invece di
+   comprimere i riquadri fino a rendere illeggibili i percorsi dei file, che
+   sono la parte che si legge davvero. Le frecce sono `span` separati e non
+   pseudo-elementi, cosi' spariscono con il riquadro quando la riga si spezza. */
+.catena {{
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px;
+  margin: 4px 0 2px;
+}}
+.anello {{
+  flex: 1 1 170px; min-width: 170px;
+  padding: 12px 14px; border-radius: 10px;
+  background: {tema.superficie}; border: 1px solid {tema.bordo};
+  border-top: 3px solid {tema.primario};
+}}
+.anello .nome {{
+  display: block; color: {tema.testo}; font-weight: 700; font-size: .96rem;
+}}
+.anello .dove {{
+  display: block; margin: 2px 0 6px; color: {tema.primario};
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: .74rem; word-break: break-word;
+}}
+.anello .cosa {{ display: block; color: {tema.testo_tenue}; font-size: .82rem; }}
+.freccia {{
+  align-self: center; color: {tema.testo_tenue};
+  font-size: 1.1rem; line-height: 1; flex: 0 0 auto;
+}}
+
+/* --- Verifiche e limiti ---------------------------------------------------
+   Il riferimento al test e' monospaziato perche' e' un comando: chi legge deve
+   poterlo copiare e incollare dietro a `pytest`. */
+.prova {{
+  padding: 11px 0; border-bottom: 1px solid {tema.bordo};
+}}
+.prova:last-child {{ border-bottom: none; }}
+.prova .cosa {{ display: block; color: {tema.testo}; font-weight: 650; font-size: .95rem; }}
+.prova .esito {{ display: block; margin: 3px 0 5px; color: {tema.testo_tenue}; font-size: .87rem; }}
+.prova .test {{
+  display: inline-block; padding: 2px 7px; border-radius: 6px;
+  background: {tema.primario_tenue}; color: {tema.primario};
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: .72rem; word-break: break-all;
+}}
+.limite {{
+  padding: 10px 0 10px 12px; border-left: 3px solid {tema.pericolo};
+  margin-bottom: 8px;
+}}
+.limite .titolo-limite {{
+  display: block; color: {tema.testo}; font-weight: 650; font-size: .93rem;
+}}
+.limite .conseguenza {{
+  display: block; margin-top: 3px; color: {tema.testo_tenue}; font-size: .86rem;
 }}
 </style>"""

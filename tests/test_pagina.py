@@ -1335,3 +1335,90 @@ def test_la_vista_modello_e_agganciata_al_menu() -> None:
 
     assert voci["Modello xG"] == "pages/Modello.py"
     assert (Path(__file__).parents[1] / "app" / voci["Modello xG"]).exists()
+
+
+@senza_magazzino
+def test_la_metodologia_ha_le_quattro_sezioni_del_criterio() -> None:
+    """Il criterio elenca quattro cose e devono esserci tutte e quattro.
+
+    Catena del dato, cosa e' stato verificato, limiti dichiarati, attribuzione.
+    E' l'unica task di M6 il cui criterio nomina il contenuto invece del
+    comportamento, quindi il test guarda il contenuto.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Metodologia.py")
+    app.run()
+
+    assert not app.exception, [str(e.value) for e in app.exception]
+    testo = " ".join(voce.value for voce in [*app.markdown, *app.caption])
+
+    assert "La catena del dato" in testo
+    assert "Cosa è stato verificato" in testo
+    assert "Cosa i numeri non dicono" in testo
+    assert "StatsBomb" in testo, "l'attribuzione e' una condizione della licenza"
+
+
+@senza_magazzino
+def test_la_metodologia_mostra_ogni_verifica_e_ogni_limite() -> None:
+    """Nessuna voce degli elenchi puo' restare fuori dalla pagina.
+
+    Sarebbe il modo piu' silenzioso di nascondere un limite: aggiungerlo al
+    modulo e dimenticare di disegnarlo.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    from football_analytics import metodo  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Metodologia.py")
+    app.run()
+
+    testo = " ".join(voce.value for voce in [*app.markdown, *app.caption])
+
+    for prova in metodo.VERIFICHE:
+        assert prova.test in testo, f"verifica non mostrata: {prova.test}"
+    for limite in metodo.LIMITI:
+        assert limite.titolo in testo, f"limite non mostrato: {limite.titolo}"
+    for anello in metodo.ANELLI:
+        assert anello.nome in testo, f"anello non mostrato: {anello.nome}"
+
+
+@senza_magazzino
+def test_la_metodologia_non_scrive_i_numeri_a_mano() -> None:
+    """I pesi del magazzino devono venire dai file, non da una costante.
+
+    Una pagina sulla metodologia con dentro un numero copiato sarebbe la
+    smentita di se stessa. Il test confronta cio' che la pagina mostra con cio'
+    che i Parquet dicono adesso.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    from football_analytics import metodo  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Metodologia.py")
+    app.run()
+
+    tabelle = metodo.magazzino()
+    peso = f"{tabelle['megabyte'].sum():.2f}".replace(".", ",")
+    testo = " ".join(voce.value for voce in app.markdown)
+
+    assert f"{peso} MB" in testo, f"il peso totale mostrato non e' {peso} MB"
+
+
+def test_la_metodologia_e_agganciata_al_menu() -> None:
+    """Gira anche senza magazzino: e' un controllo sul codice."""
+    import guscio  # noqa: PLC0415
+
+    voci = {etichetta: pagina for etichetta, _, pagina in guscio.MENU}
+
+    assert voci["Metodologia"] == "pages/Metodologia.py"
+    assert (Path(__file__).parents[1] / "app" / voci["Metodologia"]).exists()
+    assert all(percorso for _, _, percorso in guscio.MENU), (
+        "M6 chiude con tutte le viste costruite: nessuna voce deve restare spenta"
+    )
