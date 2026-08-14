@@ -668,3 +668,76 @@ def test_la_soglia_e_in_tiri_non_in_posizione_sulla_scala() -> None:
     scarso = viz.mappa_di_calore(pochi, tema.VERDE).data[0].colorscale[1][0]
     abbondante = viz.mappa_di_calore(molti, tema.VERDE).data[0].colorscale[1][0]
     assert scarso > abbondante
+
+
+def test_la_corsa_dell_xg_sale_a_gradini() -> None:
+    """L'xG salta a ogni tiro e resta fermo in mezzo.
+
+    Con la linea diagonale il grafico direbbe che fra il minuto 12 e il 34 la
+    squadra ha creato qualcosa: e' una lettura sbagliata prodotta da una scelta
+    di disegno, non dai dati.
+    """
+    a_gradini = viz.linee([0, 10, 30], {"Alfa": [0.0, 0.3, 0.8]}, tema.VERDE, a_gradini=True)
+    normale = viz.linee([0, 10, 30], {"Alfa": [0.0, 0.3, 0.8]}, tema.VERDE)
+
+    assert a_gradini.data[0].line.shape == "hv"
+    assert normale.data[0].line.shape == "linear"
+
+
+def test_il_radar_ha_la_scala_bloccata_da_zero_a_cento() -> None:
+    """Un radar che ridimensiona gli assi fa sembrare fenomenale chiunque.
+
+    Con la scala automatica il punto piu' alto tocca sempre il bordo, quindi
+    ogni giocatore ha almeno un asse al massimo. Bloccata, la forma dice
+    qualcosa: piccola vuol dire piccola.
+    """
+    figura = viz.radar({"Tiri/90": 90.0, "xG/90": 20.0, "Gol/90": 55.0}, tema.VERDE)
+
+    assert figura.layout.polar.radialaxis.range == (0, 100)
+
+
+def test_il_radar_disegna_la_mediana_e_chiude_il_poligono() -> None:
+    """Due tracce: la mediana del reparto e il giocatore.
+
+    Il primo punto va ripetuto in fondo, o il poligono resta aperto fra
+    l'ultimo asse e il primo — e si vede.
+    """
+    assi = {"a": 10.0, "b": 80.0, "c": 40.0}
+
+    figura = viz.radar(assi, tema.VERDE)
+
+    mediana, giocatore = figura.data
+    assert set(mediana.r) == {50.0}
+    assert len(giocatore.r) == len(assi) + 1
+    assert giocatore.r[0] == giocatore.r[-1]
+    assert giocatore.theta[0] == giocatore.theta[-1]
+
+
+def test_il_radar_senza_assi_non_esplode() -> None:
+    assert len(viz.radar({}, tema.VERDE).data) == 0
+
+
+def test_la_mappa_dei_tocchi_usa_il_campo_intero() -> None:
+    """I tocchi di un terzino stanno nella sua meta'.
+
+    Con mezzo campo se ne vedrebbe la meta', e il terzino sembrerebbe un
+    attaccante che non tocca mai la palla.
+    """
+    tocchi = pd.DataFrame(
+        [
+            {"cella_x": 2, "cella_y": 3, "tocchi": 40},
+            {"cella_x": 20, "cella_y": 8, "tocchi": 5},
+        ]
+    )
+
+    figura = viz.mappa_tocchi(tocchi, tema.VERDE)
+
+    assert figura.layout.xaxis.range == (0.0, viz.LUNGHEZZA)
+    assert len(figura.data) == 1
+
+
+def test_la_mappa_dei_tocchi_vuota_resta_un_campo() -> None:
+    vuota = viz.mappa_tocchi(pd.DataFrame(columns=["cella_x", "cella_y", "tocchi"]), tema.VERDE)
+
+    assert len(vuota.data) == 0
+    assert len(forme(vuota)) > 10

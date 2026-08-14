@@ -92,6 +92,12 @@ CHIAVE_SQUADRA: str = "filtro_squadra"
 #: scrivere prima del salto e leggere dopo.
 CONSEGNA_COMPETIZIONE: str = "apri_competizione"
 CONSEGNA_SQUADRA: str = "apri_squadra"
+CONSEGNA_PARTITA: str = "apri_partita"
+CONSEGNA_GIOCATORE: str = "apri_giocatore"
+
+#: Cosa e' aperto nelle due schede di dettaglio.
+CHIAVE_PARTITA: str = "partita_scelta"
+CHIAVE_GIOCATORE: str = "giocatore_scelto"
 
 #: La memoria della sola Home, e il segnale che la sta richiamando.
 #:
@@ -123,7 +129,7 @@ MENU: tuple[tuple[str, str, str], ...] = (
     ("Home", "M6-T3", "Panoramica.py"),
     ("Squadre", "M6-T4", "pages/Squadre.py"),
     ("Giocatori", "M6-T5", "pages/Giocatori.py"),
-    ("Partite", "M6-T7", ""),
+    ("Partite", "M6-T7", "pages/Partite.py"),
     ("Confronto leghe", "M6-T8", ""),
     ("Modello xG", "M6-T9", ""),
     ("Finali Champions", "M6-T10", ""),
@@ -136,6 +142,18 @@ MENU: tuple[tuple[str, str, str], ...] = (
 #: sono due cose che possono divergere, e il giorno in cui la home cambiasse
 #: file il marchio porterebbe a una pagina che non c'e' piu'.
 CASA: str = MENU[0][2]
+
+#: Le coppie consegna-filtro, in un posto solo.
+#:
+#: Erano ripetute in due funzioni, e aggiungendo la partita ne avrei dovute
+#: toccare due: prima o poi una delle due resta indietro e una selezione
+#: sopravvive al salto mentre un'altra no.
+COPPIE_DI_CONSEGNA: tuple[tuple[str, str], ...] = (
+    (CONSEGNA_COMPETIZIONE, CHIAVE_COMPETIZIONE),
+    (CONSEGNA_SQUADRA, CHIAVE_SQUADRA),
+    (CONSEGNA_PARTITA, CHIAVE_PARTITA),
+    (CONSEGNA_GIOCATORE, CHIAVE_GIOCATORE),
+)
 
 
 #: Le icone dei sei indicatori, disegnate in linea.
@@ -515,10 +533,7 @@ def consegna_i_filtri() -> None:
     quello del marchio: il difetto non e' del marchio, e' di ogni voce che porta
     a una pagina con dei filtri.
     """
-    for consegna, filtro in (
-        (CONSEGNA_COMPETIZIONE, CHIAVE_COMPETIZIONE),
-        (CONSEGNA_SQUADRA, CHIAVE_SQUADRA),
-    ):
+    for consegna, filtro in COPPIE_DI_CONSEGNA:
         st.session_state[consegna] = st.session_state.get(filtro)
 
 
@@ -562,10 +577,7 @@ def ritira_consegna() -> None:
     ``pop`` e' la parte che evita la selezione fantasma — senza, tornando alla
     vista a mano ci si ritroverebbe la stessa squadra riaperta per sempre.
     """
-    for consegna, filtro in (
-        (CONSEGNA_COMPETIZIONE, CHIAVE_COMPETIZIONE),
-        (CONSEGNA_SQUADRA, CHIAVE_SQUADRA),
-    ):
+    for consegna, filtro in COPPIE_DI_CONSEGNA:
         if consegna in st.session_state:
             st.session_state[filtro] = st.session_state.pop(consegna)
 
@@ -749,6 +761,21 @@ section[data-testid="stSidebar"] button[kind="secondary"]:disabled p {{
 }}
 .palmares .grande {{ font-size: 1.35rem; font-weight: 800; color: {tema.testo}; }}
 .palmares .nota {{ color: {tema.testo_tenue}; font-size: .82rem; }}
+
+/* Il tabellone della scheda partita: due lati e un trattino. */
+.tabellone {{
+  display: flex; align-items: center; justify-content: center; gap: 28px;
+  padding: 18px 14px; margin-bottom: 4px; border-radius: 12px;
+  background: {tema.superficie}; border: 1px solid {tema.bordo};
+}}
+.tabellone .lato {{ display: flex; flex-direction: column; align-items: center; gap: 2px; }}
+.tabellone .squadra {{ color: {tema.testo_tenue}; font-size: .9rem; }}
+.tabellone .gol {{
+  font-size: 3rem; font-weight: 800; line-height: 1; color: {tema.testo};
+  font-variant-numeric: tabular-nums;
+}}
+.tabellone .xg {{ color: {tema.primario}; font-size: .86rem; font-weight: 700; }}
+.tabellone .separatore {{ color: {tema.testo_tenue}; font-size: 2rem; }}
 
 .scheda {{ display: flex; flex-direction: column; gap: 2px; }}
 .scheda .cima {{ display: flex; align-items: center; justify-content: space-between; }}
