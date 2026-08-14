@@ -431,7 +431,7 @@ def test_la_competizione_sopravvive_ai_rerun() -> None:
 @senza_magazzino
 @pytest.mark.parametrize("pagina", ["Panoramica.py", "pages/Squadre.py", "pages/Giocatori.py"])
 def test_il_menu_e_fatto_di_voci_tutte_uguali(pagina: str) -> None:
-    """Otto pulsanti identici, in ogni pagina.
+    """Sette pulsanti identici, in ogni pagina.
 
     La distanza fra due voci non puo' dipendere da quale sia quella attiva:
     prima la voce corrente era un ``div`` e le altre ``st.page_link``, e il

@@ -6,7 +6,7 @@ due copie di un menu divergono al primo ritocco: la voce attiva evidenziata in
 una pagina e non nell'altra, il filtro competizione che in una accetta «Tutte»
 e nell'altra no.
 
-**Il menu e' fatto di otto pulsanti identici**, non di componenti diversi a
+**Il menu e' fatto di sette pulsanti identici**, non di componenti diversi a
 seconda dello stato: quelli delle viste costruite cambiano pagina, gli altri
 sono spenti con la sigla della task. Il menu automatico che Streamlit disegna
 da solo sopra la barra e' nascosto — mostrerebbe gli stessi nomi una seconda
@@ -132,7 +132,6 @@ MENU: tuple[tuple[str, str, str], ...] = (
     ("Partite", "M6-T7", "pages/Partite.py"),
     ("Confronto leghe", "M6-T8", "pages/Confronto.py"),
     ("Modello xG", "M6-T9", "pages/Modello.py"),
-    ("Finali Champions", "M6-T10", ""),
     ("Metodologia", "M6-T11", ""),
 )
 
@@ -261,7 +260,7 @@ def barra_laterale(attiva: str) -> None:
     allineare i margini a colpi di CSS non hanno risolto niente, perche' il
     difetto non era nei valori ma nell'avere due scatole diverse.
 
-    Con otto pulsanti identici la distanza e' necessariamente la stessa: non
+    Con sette pulsanti identici la distanza e' necessariamente la stessa: non
     c'e' piu' niente da tenere allineato. Quelli delle viste da costruire sono
     disattivati e portano la sigla della task; quello della vista corrente e'
     disattivato pure lui, perche' un collegamento a se stessi non serve.
