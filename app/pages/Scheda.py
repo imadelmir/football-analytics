@@ -284,6 +284,7 @@ def main() -> None:
         panoramica.kpi(suoi_tiri, sue_partite),
         panoramica.realizzazione(suoi_tiri),
         squadra,
+        filtro=f"{competizione}|{squadra}",
     )
 
     scheda(
