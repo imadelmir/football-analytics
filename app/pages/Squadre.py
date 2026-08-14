@@ -29,7 +29,7 @@ import streamlit as st
 import dati
 import guscio
 import theme
-from football_analytics import classifica
+from football_analytics import classifica, insights
 from football_analytics.config import ATTRIBUZIONE
 from guscio import foglio, numero
 
@@ -166,6 +166,13 @@ def estremi(tabella: pd.DataFrame) -> None:
     """
     if tabella.empty:
         return
+    # La frase sta sopra le due schede e non al posto loro: le schede dicono
+    # **chi**, la frase dice **di quanto**. Il calcolo e' in `insights` perche'
+    # e' un confronto fra numeri, non un disegno.
+    frase = insights.estremi_di_classifica(tabella)
+    if frase:
+        st.markdown(f'<div class="conclusione">{frase}</div>', unsafe_allow_html=True)
+
     ordinata = tabella.sort_values("scarto_xg", ascending=False)
     voci = (
         ("Ha segnato più delle occasioni", ordinata.iloc[0]),

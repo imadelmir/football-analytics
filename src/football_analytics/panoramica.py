@@ -53,15 +53,27 @@ def tiri_di_gioco(tiri: pd.DataFrame) -> pd.DataFrame:
     chiama. In una dashboard con nove viste, prima o poi qualcuno lo
     dimenticherebbe, e il risultato sarebbe plausibile.
 
+    **``astype(bool)`` non e' ridondante**, e il motivo e' una trappola di
+    pandas che si vede solo sui casi limite. Se la colonna ha tipo ``object``
+    — cosa che accade su una tabella vuota costruita senza dichiarare i tipi —
+    ``~colonna`` non e' una maschera booleana, e ``tabella[serie_vuota]`` viene
+    interpretato come **selezione di colonne per nome** invece che come filtro
+    di righe: il risultato e' una tabella senza colonne, non una tabella vuota.
+    L'errore poi esplode altrove, quando qualcuno cerca ``xg_statsbomb`` e non
+    la trova, e da li' la causa non si risale.
+
+    Sui dati veri la colonna e' booleana e la conversione non cambia niente.
+
     Args:
         tiri: I tiri, con la colonna ``rigori_finali``.
 
     Returns:
-        I soli tiri giocati durante la partita.
+        I soli tiri giocati durante la partita, con tutte le colonne anche
+        quando non ne resta nessuno.
     """
     if "rigori_finali" not in tiri.columns:
         return tiri
-    return tiri[~tiri["rigori_finali"]]
+    return tiri[~tiri["rigori_finali"].astype(bool)]
 
 
 def kpi(tiri: pd.DataFrame, partite: pd.DataFrame) -> dict[str, float]:

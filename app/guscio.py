@@ -883,6 +883,19 @@ h5 {{ font-size: .95rem !important; font-weight: 700; margin-bottom: .1rem; }}
   font-size: .92rem; font-weight: 600;
 }}
 
+/* --- Le frasi calcolate (M6-T12) -----------------------------------------
+   Una riga di testo lunga si legge male oltre una certa larghezza, e su uno
+   schermo grande queste frasi occuperebbero tutta la finestra: `max-width` in
+   `ch` le tiene sotto le settanta battute circa, che e' la misura in cui
+   l'occhio ritrova l'inizio della riga successiva senza perdersi. */
+.conclusione {{
+  max-width: 78ch;
+  padding: 9px 0 9px 12px; margin-bottom: 6px;
+  border-left: 3px solid {tema.primario};
+  color: {tema.testo}; font-size: .93rem; line-height: 1.5;
+}}
+.conclusione:last-child {{ margin-bottom: 0; }}
+
 /* --- La catena del dato, in Metodologia (M6-T11) -------------------------
    Cinque riquadri con una freccia in mezzo. `flex-wrap` e non una griglia a
    cinque colonne fisse: su una finestra stretta la catena va a capo invece di

@@ -351,3 +351,30 @@ def test_si_possono_chiedere_solo_alcune_serie(colonne: Sequence[str]) -> None:
     curva = panoramica.andamento(partite_finte(), colonne)
 
     assert set(curva.columns) == {"data", *colonne}
+
+
+def test_una_tabella_vuota_e_senza_tipi_conserva_le_colonne() -> None:
+    """Una trappola di pandas che produce un errore lontano dalla causa.
+
+    Se ``rigori_finali`` ha tipo ``object`` — cosa che accade costruendo una
+    tabella vuota senza dichiarare i tipi — allora ``~colonna`` non e' una
+    maschera booleana, e ``tabella[serie]`` viene letto come **selezione di
+    colonne per nome** invece che come filtro di righe. Il risultato e' una
+    tabella senza colonne, e l'errore esplode molto dopo, quando qualcuno
+    cerca ``xg_statsbomb`` e non la trova piu'.
+
+    **C'era gia' un test sulla selezione vuota e non l'aveva preso**, perche'
+    costruisce il vuoto con ``.iloc[0:0]`` su una tabella tipizzata: cosi' i
+    tipi sopravvivono e il caso non si presenta. La differenza e' fra «vuota» e
+    «vuota e senza tipi», e il difetto viveva esattamente li' in mezzo. Il
+    fallimento e' arrivato dai test delle frasi calcolate di M6-T12.
+    """
+    colonne = ["competizione", "xg_statsbomb", "gol", "x", "minuto", "rigori_finali"]
+    vuoti = pd.DataFrame(columns=colonne)
+    nessuna = pd.DataFrame(columns=["gol_casa", "gol_ospite"])
+
+    giocati = panoramica.tiri_di_gioco(vuoti)
+
+    assert list(giocati.columns) == colonne, "il filtro ha perso le colonne"
+    assert giocati.empty
+    assert all(valore == 0.0 for valore in panoramica.kpi(vuoti, nessuna).values())
