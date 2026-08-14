@@ -43,7 +43,12 @@ if TYPE_CHECKING:
 st.set_page_config(page_title="Football Analytics — Panoramica", layout="wide")
 
 
-def conclusioni(tiri: pd.DataFrame, partite: pd.DataFrame, competizione: str | None) -> None:
+def conclusioni(
+    tiri: pd.DataFrame,
+    partite: pd.DataFrame,
+    competizione: str | None,
+    squadra: str | None = None,
+) -> None:
     """Le frasi calcolate sulla selezione corrente (M6-T12).
 
     **Erano quattro riquadri con dei numeri, e adesso sono frasi.** I numeri
@@ -61,9 +66,11 @@ def conclusioni(tiri: pd.DataFrame, partite: pd.DataFrame, competizione: str | N
         tiri: I tiri della selezione.
         partite: Le partite della selezione.
         competizione: La competizione scelta, se ce n'e' una.
+        squadra: La squadra scelta, se ce n'e' una. Senza, l'etichetta nomina
+            la sola competizione e i numeri sono quelli di tutto il campionato.
     """
-    titolo = dati.etichetta_di(competizione) if competizione else ""
-    frasi = insights.della_selezione(tiri, partite, titolo)
+    etichetta = guscio.etichetta_selezione(competizione, squadra)
+    frasi = insights.della_selezione(tiri, partite, etichetta)
     if not frasi:
         st.markdown(
             '<p class="vuoto">La selezione non ha abbastanza partite per una conclusione.</p>',
@@ -173,7 +180,7 @@ def main() -> None:
     st.write("")
     with st.container(border=True):
         st.markdown("##### Cosa dicono questi numeri")
-        conclusioni(tiri, partite, competizione)
+        conclusioni(tiri, partite, competizione, squadra)
         st.caption(
             "Frasi calcolate sulla selezione a ogni ricalcolo, mai scritte a mano: "
             "cambiando competizione cambiano da sole, numeri compresi."
