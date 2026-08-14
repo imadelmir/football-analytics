@@ -662,6 +662,69 @@ def mappa_tocchi(tocchi: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.
     return figura
 
 
+def densita(
+    curve: pd.DataFrame,
+    colori: Mapping[str, str],
+    tema: Tema,
+    *,
+    etichette: Mapping[str, str] | None = None,
+    altezza: int = 340,
+) -> go.Figure:
+    """Curve di densita' sovrapposte, una per serie.
+
+    **Ogni serie ha il colore della propria competizione**, non un colore di
+    comodo: la stessa Serie A e' verde qui, nella fascia in cima e nel riquadro
+    di scelta, quindi l'occhio non deve ricostruire la legenda ogni volta.
+
+    **L'asse verticale non ha numeri.** Sono densita' normalizzate a somma uno:
+    il valore su un asse non significa niente da solo, e stamparlo
+    suggerirebbe una precisione che non c'e'. Conta la forma, e il confronto
+    fra le forme.
+
+    Args:
+        curve: Una colonna ``xg`` con i centri delle fasce, e una colonna per
+            serie con la densita'.
+        colori: Il colore di ciascuna serie, per chiave.
+        tema: La palette attiva.
+        etichette: Il nome leggibile di ciascuna serie. Senza, si usa la
+            chiave.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    figura = go.Figure()
+    if curve.empty or "xg" not in curve.columns:
+        return _sfondo(figura, tema, altezza)
+
+    nomi = etichette or {}
+    for chiave in curve.columns:
+        if chiave == "xg":
+            continue
+        figura.add_trace(
+            go.Scatter(
+                x=curve["xg"].to_numpy(),
+                y=curve[chiave].to_numpy(),
+                mode="lines",
+                name=nomi.get(str(chiave), str(chiave)),
+                line={"color": colori.get(str(chiave), tema.primario), "width": 2.4},
+                hovertemplate="%{fullData.name}<br>xG per tiro %{x:.2f}<extra></extra>",
+            )
+        )
+
+    figura.update_layout(
+        legend={"orientation": "h", "y": 1.18, "x": 0, "xanchor": "left"},
+        hovermode="x unified",
+    )
+    figura.update_xaxes(
+        title={"text": "xG del singolo tiro", "font": {"size": 11}},
+        gridcolor=tema.bordo,
+        zeroline=False,
+    )
+    figura.update_yaxes(showticklabels=False, gridcolor=tema.bordo, zeroline=False)
+    return _sfondo(figura, tema, altezza)
+
+
 def per_esito(tiri: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.Figure:
     """I tiri di una squadra, distinti solo fra gol e non gol.
 

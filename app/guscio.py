@@ -130,7 +130,7 @@ MENU: tuple[tuple[str, str, str], ...] = (
     ("Squadre", "M6-T4", "pages/Squadre.py"),
     ("Giocatori", "M6-T5", "pages/Giocatori.py"),
     ("Partite", "M6-T7", "pages/Partite.py"),
-    ("Confronto leghe", "M6-T8", ""),
+    ("Confronto leghe", "M6-T8", "pages/Confronto.py"),
     ("Modello xG", "M6-T9", ""),
     ("Finali Champions", "M6-T10", ""),
     ("Metodologia", "M6-T11", ""),
@@ -582,7 +582,15 @@ def ritira_consegna() -> None:
             st.session_state[filtro] = st.session_state.pop(consegna)
 
 
-def barre(righe: pd.DataFrame, chiave: str, nome: str, tema: Tema, *, decimali: int) -> str:
+def barre(
+    righe: pd.DataFrame,
+    chiave: str,
+    nome: str,
+    tema: Tema,
+    *,
+    decimali: int,
+    con_distintivo: bool = True,
+) -> str:
     """Compone una classifica a barre, con distintivo e barra proporzionale.
 
     Si chiama ``barre`` e non ``classifica`` perche' non ha niente a che vedere
@@ -595,6 +603,12 @@ def barre(righe: pd.DataFrame, chiave: str, nome: str, tema: Tema, *, decimali: 
         nome: La colonna del nome da mostrare.
         tema: La palette attiva.
         decimali: Quante cifre decimali nel valore.
+        con_distintivo: Se disegnare il cerchio con la sigla. Va spento quando
+            le righe non sono squadre: il distintivo leggeva sempre la colonna
+            ``squadra``, e chiamare questa funzione con una graduatoria di
+            campionati sollevava ``KeyError: 'squadra'``. Il nome della colonna
+            era gia' un parametro, il distintivo no — una meta' del disaccordo
+            era configurabile e l'altra no.
 
     Returns:
         Il markup della classifica.
@@ -608,9 +622,10 @@ def barre(righe: pd.DataFrame, chiave: str, nome: str, tema: Tema, *, decimali: 
         larghezza = float(riga[chiave]) / massimo if massimo else 0.0
         scarto = float(riga.get("gol_meno_xg", 0.0))
         segno = "positivo" if scarto >= 0 else "negativo"
+        sigla = distintivo(str(riga["squadra"])) if con_distintivo else ""
         pezzi.append(
             f'<div class="riga"><span class="posto">{posizione}</span>'
-            f"{distintivo(str(riga['squadra']))}"
+            f"{sigla}"
             f'<span class="nome">{riga[nome]}</span>'
             f'<div class="traccia"><div class="riempimento" '
             f'style="width:{larghezza:.1%};background:{tema.primario}"></div></div>'
