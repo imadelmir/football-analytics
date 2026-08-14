@@ -75,3 +75,150 @@ def test_nessun_documento_rimanda_a_un_immagine_che_non_esiste() -> None:
                 mancanti.append(f"{documento.relative_to(docs)} → {riferimento}")
 
     assert mancanti == [], "immagini citate e non presenti:\n  " + "\n  ".join(mancanti)
+
+
+#: Le sei tabelle che un clone deve contenere, e il peso oltre il quale una di
+#: esse smette di essere comoda in git.
+#:
+#: Cinquanta megabyte e' il limite che il progetto si e' dato a M3: sopra, un
+#: binario che git non sa confrontare diventa un peso permanente nella
+#: cronologia, perche' `main` e' protetto contro il force push.
+TABELLE = ("matches", "shots", "passes", "touches", "player_stats", "freeze_frames")
+TETTO_MB = 50.0
+
+#: I due modelli che `scripts/train_model.py` produce.
+MODELLI = ("xg_base", "xg_360")
+
+
+def test_un_clone_pulito_contiene_il_magazzino() -> None:
+    """Il criterio di M7-T1, e la rete che protegge gli altri ottantacinque test.
+
+    Fino a M6 i Parquet erano fuori da git, e ottantacinque test si saltavano
+    da soli con ``skipif``. Adesso i file ci sono e quei test girano — ma il
+    marcatore e' rimasto, ed e' un'arma a doppio taglio: se un giorno il
+    magazzino sparisse, quegli ottantacinque tornerebbero a **saltare in
+    silenzio** e la CI resterebbe verde su un progetto che non funziona.
+
+    Questo test toglie il silenzio. Non si salta mai: se le tabelle non ci
+    sono, e' rosso.
+    """
+    mancanti = [
+        nome for nome in TABELLE if not (config.DATA_PROCESSED / f"{nome}.parquet").exists()
+    ]
+
+    assert mancanti == [], (
+        f"il magazzino e' incompleto: {mancanti}. "
+        "Ricostruiscilo con `uv run python scripts/build_dataset.py`."
+    )
+
+
+def test_i_modelli_addestrati_sono_nel_repository() -> None:
+    """Le due schede JSON servono alla vista Modello, i pickle a chi riusa.
+
+    La dashboard **non carica nessun pickle** — legge solo i JSON, perche' un
+    `.pkl` e' Python serializzato e caricarlo esegue codice. I pickle stanno in
+    git perche' chi clona possa ispezionare i modelli, e questo test verifica
+    che ci siano entrambe le forme.
+    """
+    mancanti = [
+        f"{nome}{estensione}"
+        for nome in MODELLI
+        for estensione in (".pkl", ".json")
+        if not (config.MODELS_DIR / f"{nome}{estensione}").exists()
+    ]
+
+    assert mancanti == [], (
+        f"mancano dei modelli: {mancanti}. Rigenerali con `uv run python -m scripts.train_model`."
+    )
+
+
+def test_nessun_file_del_magazzino_sfora_il_tetto() -> None:
+    """Sopra i cinquanta megabyte un binario diventa un peso permanente.
+
+    Git non sa fare diff dei binari: ogni versione e' una copia intera, e da
+    `main` non si toglie senza riscrivere la cronologia — che questo progetto
+    ha deciso di non fare mai.
+    """
+    pesanti = {
+        percorso.name: round(percorso.stat().st_size / 1024**2, 2)
+        for percorso in config.DATA_PROCESSED.glob("*.parquet")
+        if percorso.stat().st_size / 1024**2 > TETTO_MB
+    }
+
+    assert pesanti == {}, f"oltre i {TETTO_MB} MB: {pesanti}"
+
+
+def dipendenze_dichiarate() -> dict[str, str]:
+    """Le dipendenze di produzione lette da ``pyproject.toml``.
+
+    Returns:
+        Il nome normalizzato di ogni pacchetto e la versione bloccata.
+    """
+    import tomllib  # noqa: PLC0415
+
+    with (config.PROJECT_ROOT / "pyproject.toml").open("rb") as flusso:
+        progetto = tomllib.load(flusso)
+
+    fissate = {}
+    for voce in progetto["project"]["dependencies"]:
+        nome, _, versione = str(voce).partition("==")
+        fissate[nome.strip().lower().replace("_", "-")] = versione.strip()
+    return fissate
+
+
+def test_requirements_esiste_e_non_diverge_da_pyproject() -> None:
+    """Due elenchi di dipendenze sono due cose che possono divergere.
+
+    ``pyproject.toml`` e' la fonte per chi sviluppa con ``uv``;
+    ``requirements.txt`` serve a Streamlit Cloud, che ``pyproject.toml`` non lo
+    legge, e a chiunque installi con ``pip``. Il secondo si **genera** dal
+    primo:
+
+        uv export --no-dev --no-hashes --no-emit-project -o requirements.txt
+
+    Rigenerarlo e' un comando; dimenticarsene e' una riga sola, e il risultato
+    e' un'app pubblica che gira con una versione di pandas diversa da quella su
+    cui i test sono verdi. Questo test lo impedisce.
+    """
+    requisiti = config.PROJECT_ROOT / "requirements.txt"
+
+    assert requisiti.exists(), (
+        "manca requirements.txt. Generalo con: "
+        "uv export --no-dev --no-hashes --no-emit-project -o requirements.txt"
+    )
+
+    esportate = {}
+    for riga in requisiti.read_text(encoding="utf-8").splitlines():
+        pulita = riga.split("#")[0].strip()
+        if not pulita or pulita.startswith("-"):
+            continue
+        nome, _, resto = pulita.partition("==")
+        esportate[nome.strip().lower().replace("_", "-")] = resto.split(";")[0].strip()
+
+    discordanti = {
+        nome: (attesa, esportate.get(nome, "assente"))
+        for nome, attesa in dipendenze_dichiarate().items()
+        if esportate.get(nome) != attesa
+    }
+
+    assert discordanti == {}, (
+        f"pyproject.toml e requirements.txt non concordano: {discordanti}. "
+        "Rigenera con `uv export --no-dev --no-hashes --no-emit-project -o requirements.txt`."
+    )
+
+
+def test_requirements_non_porta_dentro_gli_strumenti_di_sviluppo() -> None:
+    """Streamlit Cloud non ha bisogno di jupyterlab, mypy e pytest.
+
+    Sono decine di megabyte e minuti di installazione a ogni avvio, per far
+    girare un'app che non li usa. L'``--no-dev`` dell'export serve a questo, e
+    qui si verifica che ci fosse.
+    """
+    requisiti = config.PROJECT_ROOT / "requirements.txt"
+    if not requisiti.exists():
+        pytest.skip("requirements.txt non ancora generato")
+
+    testo = requisiti.read_text(encoding="utf-8").lower()
+    intrusi = [nome for nome in ("jupyterlab", "mypy", "pytest", "ruff") if nome in testo]
+
+    assert intrusi == [], f"strumenti di sviluppo in requirements.txt: {intrusi}"
