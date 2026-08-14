@@ -662,6 +662,178 @@ def mappa_tocchi(tocchi: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.
     return figura
 
 
+def calibrazione(
+    curve: pd.DataFrame,
+    colori: Mapping[str, str],
+    tema: Tema,
+    *,
+    altezza: int = 420,
+) -> go.Figure:
+    """Le curve di calibrazione, con la bisettrice e le barre d'errore (M6-T9).
+
+    **La bisettrice e' il grafico.** Un modello calibrato dice «trenta per
+    cento» sui tiri che finiscono in rete tre volte su dieci: i suoi punti
+    stanno sulla retta ``previsto = osservato``. Sopra la retta il modello
+    sottostima, sotto sovrastima, e la distanza si legge a occhio solo se la
+    retta e' a quarantacinque gradi — per questo gli assi sono agganciati.
+
+    **Le barre d'errore non sono un ornamento.** Ogni punto e' un decile da
+    circa ottocento tiri, e su ottocento tiri con una quota di gol del dieci
+    per cento la fluttuazione statistica vale gia' un punto percentuale. Senza
+    le barre, un punto fuori dalla retta sembra un difetto del modello anche
+    quando e' solo rumore: con le barre si vede quando lo scarto e' piu' grande
+    dell'incertezza e quando non lo e'.
+
+    Args:
+        curve: Il risultato di
+            :func:`~football_analytics.rendiconto.calibrazione`, in forma
+            lunga.
+        colori: Il colore di ciascun modello, per nome.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    figura = go.Figure()
+    if curve.empty:
+        return _sfondo(figura, tema, altezza)
+
+    limite = float(max(curve["xg_previsto"].max(), curve["gol_osservati"].max())) * 1.08
+    figura.add_shape(
+        type="line",
+        x0=0.0,
+        y0=0.0,
+        x1=limite,
+        y1=limite,
+        line={"color": tema.linee, "width": 1.4, "dash": "dash"},
+        layer="below",
+    )
+
+    for nome in curve["modello"].unique():
+        suo = curve[curve["modello"] == nome]
+        figura.add_trace(
+            go.Scatter(
+                x=suo["xg_previsto"].to_numpy(),
+                y=suo["gol_osservati"].to_numpy(),
+                error_y={
+                    "type": "data",
+                    "array": suo["errore_standard"].to_numpy(),
+                    "color": colori.get(str(nome), tema.primario),
+                    "thickness": 1.2,
+                    "width": 3,
+                },
+                mode="markers+lines",
+                name=str(nome),
+                line={"color": colori.get(str(nome), tema.primario), "width": 1.6},
+                marker={
+                    "size": 8,
+                    "color": colori.get(str(nome), tema.primario),
+                    "line": {"color": tema.superficie, "width": 1},
+                },
+                customdata=suo["tiri"].to_numpy(),
+                hovertemplate=(
+                    "%{fullData.name}<br>previsto %{x:.1%} · osservato %{y:.1%}"
+                    "<br>%{customdata} tiri<extra></extra>"
+                ),
+            )
+        )
+
+    figura.update_layout(
+        legend={"orientation": "h", "y": 1.14, "x": 0, "xanchor": "left"},
+    )
+    figura.update_xaxes(
+        title={"text": "probabilità prevista dal modello", "font": {"size": 11}},
+        range=[0, limite],
+        tickformat=".0%",
+        gridcolor=tema.bordo,
+        zeroline=False,
+    )
+    figura.update_yaxes(
+        title={"text": "gol effettivamente segnati", "font": {"size": 11}},
+        range=[0, limite],
+        tickformat=".0%",
+        gridcolor=tema.bordo,
+        zeroline=False,
+        scaleanchor="x",
+        scaleratio=1,
+    )
+    return _sfondo(figura, tema, altezza)
+
+
+def barre_divergenti(
+    etichette: Sequence[str],
+    pesi: Sequence[float],
+    colori: Sequence[str],
+    testi: Sequence[str],
+    tema: Tema,
+    *,
+    titolo_x: str = "",
+    altezza: int = 320,
+) -> go.Figure:
+    """Barre orizzontali che partono da zero e vanno nei due versi (M6-T9).
+
+    Serve ai coefficienti, dove il valore neutro e' l'unita' e non lo zero:
+    chi chiama passa i pesi gia' in logaritmo base due, cosi' dimezzare e
+    raddoppiare le probabilita' relative danno barre lunghe uguali e di verso
+    opposto. Con l'odds ratio grezzo non succederebbe, e il grafico
+    schiaccerebbe sistematicamente tutto cio' che riduce.
+
+    **Il numero vero resta scritto sulla barra.** La scala logaritmica e'
+    corretta ma non si legge: la barra dice quanto, l'etichetta dice quanto in
+    unita' che si possono ripetere a voce.
+
+    Args:
+        etichette: Il nome di ciascuna barra, dall'alto verso il basso.
+        pesi: La lunghezza di ciascuna barra, con segno.
+        colori: Il colore di ciascuna barra.
+        testi: Cosa scrivere in fondo a ciascuna barra.
+        tema: La palette attiva.
+        titolo_x: L'etichetta dell'asse orizzontale.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    figura = go.Figure()
+    if not etichette:
+        return _sfondo(figura, tema, altezza)
+
+    figura.add_trace(
+        go.Bar(
+            x=list(pesi),
+            y=list(etichette),
+            orientation="h",
+            marker={"color": list(colori)},
+            text=list(testi),
+            textposition="outside",
+            textfont={"size": 11, "color": tema.testo},
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+    massimo = max(abs(valore) for valore in pesi) or 1.0
+    figura.update_layout(bargap=0.35)
+    figura.update_xaxes(
+        title={"text": titolo_x, "font": {"size": 11}},
+        # Il margine del 45 % lascia posto alle etichette in fondo alle barre:
+        # senza, quella piu' lunga esce dal riquadro e Plotly la taglia.
+        range=[-massimo * 1.45, massimo * 1.45],
+        showticklabels=False,
+        gridcolor=tema.bordo,
+        zeroline=True,
+        zerolinecolor=tema.testo_tenue,
+        zerolinewidth=1.2,
+    )
+    figura.update_yaxes(
+        autorange="reversed",
+        gridcolor=tema.bordo,
+        zeroline=False,
+        tickfont={"color": tema.testo, "size": 11},
+    )
+    return _sfondo(figura, tema, altezza)
+
+
 def densita(
     curve: pd.DataFrame,
     colori: Mapping[str, str],
