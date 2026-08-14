@@ -1179,3 +1179,63 @@ def test_senza_scelta_la_scheda_mostra_ancora_le_prime() -> None:
     testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
 
     assert "Confronto con le prime del campionato" in testo
+
+
+@senza_magazzino
+def test_il_confronto_leghe_mostra_le_quattro_schede() -> None:
+    """Quattro campionati, la frase calcolata e le curve di densita'."""
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Confronto.py")
+    app.run()
+
+    assert not app.exception, [str(e.value) for e in app.exception]
+    testo = " ".join(voce.value for voce in app.markdown)
+    assert testo.count('class="targa"') == 4
+    assert 'class="evidenza"' in testo
+    assert len(app.get("plotly_chart")) == 1
+
+
+@senza_magazzino
+def test_il_confronto_leghe_avverte_sul_360() -> None:
+    """E' il criterio di chiusura di M6-T8, riscritto su cio' che i dati dicono.
+
+    Il backlog chiedeva di segnalare che «la Serie A usa il modello base». La
+    copertura misurata e' zero in tutti e quattro i campionati, quindi
+    l'avvertenza corretta riguarda il confronto verso i **tornei**. Il test
+    pretende che la nota nomini i 360 e i tornei, non una lega sola.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Confronto.py")
+    app.run()
+
+    avvisi = " ".join(voce.value for voce in app.warning)
+
+    assert "360" in avvisi
+    assert "tornei" in avvisi
+    assert "377" in avvisi, "il buco della Ligue 1 va dichiarato dove i numeri si confrontano"
+
+
+@senza_magazzino
+def test_la_frase_del_confronto_nasce_dai_numeri() -> None:
+    """Nessun testo fisso: la frase nomina la metrica piu' distante e la misura.
+
+    Con i dati veri la distanza maggiore e' sulla conversione, il 16 % fra il
+    primo e l'ultimo. Se qualcuno cambiasse il calcolo, una frase scritta a
+    mano resterebbe li' a dire il falso.
+    """
+    import dati  # noqa: PLC0415
+    from football_analytics import leghe as logica  # noqa: PLC0415
+    from football_analytics import panoramica as base  # noqa: PLC0415
+
+    riassunto = logica.riassunto(dati.leggi("matches"), base.tiri_di_gioco(dati.leggi("shots")))
+    rapporti = logica.scarti(riassunto)
+
+    peggiore = max(rapporti, key=lambda chiave: rapporti[chiave])
+    assert peggiore == "conversione"
+    assert rapporti[peggiore] == pytest.approx(1.16, abs=0.01)
