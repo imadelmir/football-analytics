@@ -222,3 +222,27 @@ def test_gli_estremi_di_classifica_nominano_due_squadre_diverse() -> None:
     assert prima != ultima
     assert prima in frase
     assert ultima in frase
+
+
+def test_l_etichetta_nomina_anche_la_squadra() -> None:
+    """Un difetto trovato guardando una schermata, non eseguendo un test.
+
+    Con il Real Madrid scelto dentro la Liga, la frase diceva «La Liga
+    2015/16 — in 38 partite si sono visti 144 gol». I numeri sono del Real
+    Madrid; l'etichetta li attribuiva al campionato, che di partite ne ha 380.
+
+    **Nessun test poteva prenderlo** perche' i numeri erano giusti e la frase
+    era ben formata: sbagliato era solo il nome che le stava davanti. Adesso
+    l'etichetta si costruisce dai due filtri insieme.
+    """
+    import sys  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    sys.path.insert(0, str(Path(__file__).parents[1] / "app"))
+    import Panoramica  # noqa: PLC0415
+
+    assert Panoramica.etichetta_selezione(None, None) == ""
+    assert Panoramica.etichetta_selezione(None, "Real Madrid") == "Real Madrid"
+    assert "Real Madrid" in Panoramica.etichetta_selezione("la_liga_2015_16", "Real Madrid")
+    assert "La Liga" in Panoramica.etichetta_selezione("la_liga_2015_16", "Real Madrid")
+    assert Panoramica.etichetta_selezione("la_liga_2015_16", None) == "La Liga · 2015/2016"

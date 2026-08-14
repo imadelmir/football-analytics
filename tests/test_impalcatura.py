@@ -47,3 +47,31 @@ def test_assicura_cartelle_e_idempotente() -> None:
     assert config.DATA_RAW.is_dir()
     assert config.DATA_PROCESSED.is_dir()
     assert config.MODELS_DIR.is_dir()
+
+
+def test_nessun_documento_rimanda_a_un_immagine_che_non_esiste() -> None:
+    """Un collegamento rotto in una relazione di milestone non lo vede nessuno.
+
+    Su GitHub un'immagine mancante compare come icona spezzata, e chi legge il
+    documento pensa che il progetto sia trascurato — o peggio, che la vista
+    descritta non esista. Il controllo e' generale e vale per tutte le
+    milestone, presenti e future.
+
+    **Per M6 e' anche il criterio della task.** M6-T14 chiede una schermata per
+    vista: finche' le sette immagini non sono al loro posto, questo test e'
+    rosso e la milestone non e' conclusa. E' voluto — un criterio che si puo'
+    dichiarare soddisfatto senza che nulla lo controlli non e' un criterio.
+    """
+    import re  # noqa: PLC0415
+
+    docs = config.PROJECT_ROOT / "docs"
+    mancanti = []
+    for documento in sorted(docs.rglob("*.md")):
+        testo = documento.read_text(encoding="utf-8")
+        for riferimento in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", testo):
+            if riferimento.startswith(("http://", "https://")):
+                continue
+            if not (documento.parent / riferimento).resolve().exists():
+                mancanti.append(f"{documento.relative_to(docs)} → {riferimento}")
+
+    assert mancanti == [], "immagini citate e non presenti:\n  " + "\n  ".join(mancanti)

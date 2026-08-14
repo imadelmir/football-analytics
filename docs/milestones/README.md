@@ -20,7 +20,7 @@ più.
 | M3 | Trasformazione | 8 | 🟢 conclusa | [M3-trasformazione.md](M3-trasformazione.md) |
 | M4 | Esplorazione | 3 | 🟢 conclusa | [M4-esplorazione.md](M4-esplorazione.md) |
 | M5 | Modello xG | 12 | 🟢 conclusa | [M5-modello-xg.md](M5-modello-xg.md) |
-| M6 | Dashboard | 14 | ⚪ da fare | — |
+| M6 | Dashboard | 14 | 🟢 conclusa | [M6-dashboard.md](M6-dashboard.md) |
 | M7 | Pubblicazione | 7 | ⚪ da fare | — |
 | M8 | Portfolio | 6 | ⚪ da fare | — |
 
@@ -59,6 +59,14 @@ ricalcolano a mano.
 | Riproducibilità, due addestramenti | scarto 0,0 | M5 |
 | Errore di calibrazione, modello spaziale | 0,00964 — il migliore dei tre | M5 |
 | Test automatici | 223 | M5 |
+| Viste della dashboard | 7 nel menu, 10 script | M6 |
+| Palette del tema | 9, una per competizione | M6 |
+| Righe in `app/` | 4.612 | M6 |
+| Peso del magazzino letto dalla dashboard | 6,29 MB | M6 |
+| Letture dal disco per sessione | 1 per tabella | M6 |
+| Limiti dichiarati in pagina | 11 | M6 |
+| Verifiche citate con il proprio test | 10 | M6 |
+| Test automatici | *da compilare a fine M6* | M6 |
 
 > I valori vengono da [`M5-risultati.md`](M5-risultati.md), generato da
 > `scripts/train_model.py`. Sono stati rigenerati a M5-T9, quando le finali
