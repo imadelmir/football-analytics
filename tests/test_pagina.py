@@ -985,3 +985,197 @@ def test_la_tabella_dei_giocatori_tiene_anche_chi_sta_sotto_la_soglia() -> None:
 
     assert mostrati == len(tutti)
     assert mostrati > len(logica.qualificati(tutti))
+
+
+def su_partite(chiave: str) -> object:
+    """La vista Partite con una competizione aperta.
+
+    Args:
+        chiave: La chiave della competizione.
+
+    Returns:
+        L'applicazione.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.switch_page("pages/Partite.py")
+    app.run()
+    app.button(key=f"apri_{chiave}").click().run()
+    return app
+
+
+@senza_magazzino
+def test_la_vista_partite_elenca_tutto_il_campionato() -> None:
+    """Trecentottanta partite, e le due liste dei casi notevoli."""
+    app = su_partite("serie_a_2015_16")
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    assert len(app.dataframe[0].value) == 380  # type: ignore[attr-defined]
+    testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
+    assert "Vinte da chi aveva creato meno" in testo
+    assert "Le più aperte" in testo
+
+
+@senza_magazzino
+def test_la_scheda_di_una_partita_si_apre_con_i_suoi_tre_grafici() -> None:
+    """Due mappe dei tiri e la corsa dell'xG.
+
+    La scheda e' l'unico posto della dashboard dove due valori di xG stanno
+    accanto senza cautele: stesso campo, stesso arbitro, stessi novanta minuti.
+    """
+    import guscio  # noqa: PLC0415
+
+    app = su_partite("serie_a_2015_16")
+    import dati  # noqa: PLC0415
+    from football_analytics import partite as logica  # noqa: PLC0415
+
+    tutte = dati.filtra(dati.leggi("matches"), "serie_a_2015_16")
+    scelta = int(logica.elenco(tutte).iloc[0]["match_id"])
+    app.session_state[guscio.CONSEGNA_PARTITA] = scelta  # type: ignore[attr-defined]
+    app.switch_page("pages/Incontro.py")  # type: ignore[attr-defined]
+    app.run()  # type: ignore[attr-defined]
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    assert len(app.get("plotly_chart")) == 3  # type: ignore[attr-defined]
+    testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
+    assert 'class="tabellone"' in testo
+    assert 'class="evidenza"' in testo
+
+
+def scheda_giocatore(chiave: str, nome_breve: str) -> object:
+    """La scheda di un giocatore, raggiunta come la raggiunge chi usa l'app.
+
+    Args:
+        chiave: La chiave della competizione.
+        nome_breve: Il nome con cui il giocatore e' noto.
+
+    Returns:
+        L'applicazione sulla scheda.
+    """
+    import dati  # noqa: PLC0415
+    import guscio  # noqa: PLC0415
+    from football_analytics import giocatori as logica  # noqa: PLC0415
+
+    tutti = logica.per_giocatore(dati.filtra(dati.leggi("player_stats"), chiave))
+    suo = tutti[tutti["giocatore_breve"] == nome_breve]
+    assert not suo.empty, nome_breve
+
+    app = su_giocatori(chiave)
+    app.session_state[guscio.CONSEGNA_GIOCATORE] = int(  # type: ignore[attr-defined]
+        suo.iloc[0]["giocatore_id"]
+    )
+    app.switch_page("pages/Giocatore.py")  # type: ignore[attr-defined]
+    app.run()  # type: ignore[attr-defined]
+    return app
+
+
+@senza_magazzino
+def test_il_clic_su_una_riga_apre_la_scheda_del_giocatore() -> None:
+    """E' il criterio di chiusura di M6-T5, e per due task non era soddisfatto.
+
+    La tabella era un tabellone da leggere; il backlog chiede che sia il modo
+    di scegliere un giocatore. Il test riconosce la scheda dal radar, che
+    esiste solo la'.
+    """
+    app = scheda_giocatore("serie_a_2015_16", "Gonzalo Higuaín")
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
+    assert "Confronto con il reparto Attacco" in testo
+    assert "Higuaín" in testo
+
+
+@senza_magazzino
+def test_la_tabella_dei_giocatori_ha_reparto_e_posizione() -> None:
+    """Il backlog chiede «ruolo»: il reparto filtra, la posizione informa.
+
+    Con il solo reparto due attaccanti sono indistinguibili anche quando uno
+    e' un centravanti e l'altro un'ala.
+    """
+    app = su_giocatori("serie_a_2015_16")
+
+    colonne = list(app.dataframe[0].value.columns)  # type: ignore[attr-defined]
+
+    assert "reparto" in colonne
+    assert "ruolo" in colonne
+    assert "giocatore_id" not in colonne, "l'identificativo non va mostrato"
+
+
+@senza_magazzino
+def test_la_scheda_del_portiere_e_ridotta_e_lo_dichiara() -> None:
+    """Senza parate ne' clean sheet, un radar direbbe solo che non segna.
+
+    Il limite e' dei dati, non della vista: la pagina lo scrive invece di
+    mostrare grafici vuoti che sembrano un difetto.
+    """
+    import dati  # noqa: PLC0415
+    from football_analytics import giocatori as logica  # noqa: PLC0415
+
+    tutti = logica.con_reparto(
+        logica.per_giocatore(dati.filtra(dati.leggi("player_stats"), "serie_a_2015_16"))
+    )
+    portiere = logica.qualificati(tutti[tutti["reparto"] == "Portiere"]).nlargest(1, "minuti")
+
+    app = scheda_giocatore("serie_a_2015_16", str(portiere.iloc[0]["giocatore_breve"]))
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    avvisi = " ".join(voce.value for voce in app.info)  # type: ignore[attr-defined]
+    assert "parate" in avvisi
+    testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
+    assert "Confronto con il reparto" not in testo
+    # Resta la mappa dei tocchi: e' l'unica cosa che i dati sanno dirci.
+    assert len(app.get("plotly_chart")) == 1  # type: ignore[attr-defined]
+
+
+@senza_magazzino
+def test_dalla_scheda_squadra_si_arriva_alle_sue_partite() -> None:
+    """Il criterio di chiusura di M6-T7, che la prima stesura non soddisfaceva.
+
+    Non basta arrivare alla vista Partite: chi ci arriva dalla Juventus deve
+    trovarci la Juventus, non tutta la Serie A.
+    """
+    app = scheda_di("serie_a_2015_16", "Juventus")
+
+    app.button(key="vai_a_partite").click().run()  # type: ignore[attr-defined]
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    assert app.selectbox(key="filtro_squadra").value == "Juventus"  # type: ignore[attr-defined]
+    assert len(app.dataframe[0].value) == 38  # type: ignore[attr-defined]
+
+
+@senza_magazzino
+def test_la_scheda_squadra_confronta_con_una_squadra_scelta() -> None:
+    """Il criterio di chiusura di M6-T4, mancato dalla prima stesura.
+
+    Le prime cinque per xG sono un confronto utile, ma non rispondono a «come
+    siamo messi rispetto a chi ci sta davanti»: per quello serve scegliere.
+    """
+    import re  # noqa: PLC0415
+
+    app = scheda_di("serie_a_2015_16", "Juventus")
+
+    app.selectbox(key="confronta_con").set_value("Napoli").run()  # type: ignore[attr-defined]
+
+    assert not app.exception, [str(e.value) for e in app.exception]  # type: ignore[attr-defined]
+    blocco = next(
+        voce.value
+        for voce in app.markdown  # type: ignore[attr-defined]
+        if 'class="classifica"' in voce.value
+    )
+    assert re.findall(r'class="nome">([^<]+)<', blocco) == ["Juventus", "Napoli"]
+
+
+@senza_magazzino
+def test_senza_scelta_la_scheda_mostra_ancora_le_prime() -> None:
+    """Il comportamento precedente resta quello predefinito.
+
+    Chi non chiede un confronto preciso deve trovare quello sensato, non un
+    riquadro vuoto in attesa di una scelta.
+    """
+    app = scheda_di("serie_a_2015_16", "Juventus")
+
+    testo = " ".join(voce.value for voce in app.markdown)  # type: ignore[attr-defined]
+
+    assert "Confronto con le prime del campionato" in testo
