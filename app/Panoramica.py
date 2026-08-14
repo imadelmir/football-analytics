@@ -43,26 +43,6 @@ if TYPE_CHECKING:
 st.set_page_config(page_title="Football Analytics — Panoramica", layout="wide")
 
 
-def etichetta_selezione(competizione: str | None, squadra: str | None) -> str:
-    """Come si chiama la selezione corrente, competizione **e** squadra.
-
-    **Nominare solo la competizione era un errore, e si vedeva.** Con il Real
-    Madrid scelto dentro la Liga, la frase diceva «La Liga 2015/16 — in 38
-    partite si sono visti 144 gol»: quei numeri sono del Real Madrid, ma
-    l'etichetta li attribuiva al campionato, che di partite ne ha 380. Un
-    lettore non aveva modo di accorgersene.
-
-    Args:
-        competizione: La competizione scelta, se ce n'e' una.
-        squadra: La squadra scelta, se ce n'e' una.
-
-    Returns:
-        L'etichetta, vuota se non c'e' nessun filtro.
-    """
-    pezzi = [dati.etichetta_di(competizione) if competizione else "", squadra or ""]
-    return " · ".join(pezzo for pezzo in pezzi if pezzo)
-
-
 def conclusioni(
     tiri: pd.DataFrame,
     partite: pd.DataFrame,
@@ -89,7 +69,8 @@ def conclusioni(
         squadra: La squadra scelta, se ce n'e' una. Senza, l'etichetta nomina
             la sola competizione e i numeri sono quelli di tutto il campionato.
     """
-    frasi = insights.della_selezione(tiri, partite, etichetta_selezione(competizione, squadra))
+    etichetta = guscio.etichetta_selezione(competizione, squadra)
+    frasi = insights.della_selezione(tiri, partite, etichetta)
     if not frasi:
         st.markdown(
             '<p class="vuoto">La selezione non ha abbastanza partite per una conclusione.</p>',

@@ -235,14 +235,10 @@ def test_l_etichetta_nomina_anche_la_squadra() -> None:
     era ben formata: sbagliato era solo il nome che le stava davanti. Adesso
     l'etichetta si costruisce dai due filtri insieme.
     """
-    import sys  # noqa: PLC0415
-    from pathlib import Path  # noqa: PLC0415
+    import guscio  # noqa: PLC0415
 
-    sys.path.insert(0, str(Path(__file__).parents[1] / "app"))
-    import Panoramica  # noqa: PLC0415
-
-    assert Panoramica.etichetta_selezione(None, None) == ""
-    assert Panoramica.etichetta_selezione(None, "Real Madrid") == "Real Madrid"
-    assert "Real Madrid" in Panoramica.etichetta_selezione("la_liga_2015_16", "Real Madrid")
-    assert "La Liga" in Panoramica.etichetta_selezione("la_liga_2015_16", "Real Madrid")
-    assert Panoramica.etichetta_selezione("la_liga_2015_16", None) == "La Liga · 2015/2016"
+    assert guscio.etichetta_selezione(None, None) == ""
+    assert guscio.etichetta_selezione(None, "Real Madrid") == "Real Madrid"
+    assert "Real Madrid" in guscio.etichetta_selezione("la_liga_2015_16", "Real Madrid")
+    assert "La Liga" in guscio.etichetta_selezione("la_liga_2015_16", "Real Madrid")
+    assert guscio.etichetta_selezione("la_liga_2015_16", None) == "La Liga · 2015/2016"

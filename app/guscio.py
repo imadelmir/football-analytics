@@ -375,6 +375,32 @@ MEMORIA_FILTRO: str = "filtro_precedente"
 _MAI: str = "\x00mai"
 
 
+def etichetta_selezione(competizione: str | None, squadra: str | None) -> str:
+    """Come si chiama la selezione corrente, competizione **e** squadra.
+
+    **Nominare solo la competizione era un errore, e si vedeva.** Con il Real
+    Madrid scelto dentro la Liga, la frase diceva «La Liga 2015/16 — in 38
+    partite si sono visti 144 gol»: quei numeri sono del Real Madrid, ma
+    l'etichetta li attribuiva al campionato, che di partite ne ha 380. Un
+    lettore non aveva modo di accorgersene.
+
+    **Sta qui e non nella Home**, dove era nata, per una ragione che riguarda i
+    test: ``app/Panoramica.py`` e' uno *script* e finisce con ``main()``, quindi
+    importarlo esegue la pagina e legge il magazzino. Un test che voleva
+    verificare questa funzione faceva cadere tutta la CI, dove i Parquet non ci
+    sono ancora. ``guscio`` e' un modulo e si importa senza effetti.
+
+    Args:
+        competizione: La competizione scelta, se ce n'e' una.
+        squadra: La squadra scelta, se ce n'e' una.
+
+    Returns:
+        L'etichetta, vuota se non c'e' nessun filtro.
+    """
+    pezzi = [dati.etichetta_di(competizione) if competizione else "", squadra or ""]
+    return " · ".join(pezzo for pezzo in pezzi if pezzo)
+
+
 def aiuto_di(etichetta: str) -> str:
     """L'attributo del suggerimento, se per quel numero ne esiste uno.
 
