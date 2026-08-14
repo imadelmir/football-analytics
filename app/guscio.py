@@ -347,7 +347,83 @@ def _riquadri() -> None:
                     st.rerun()
 
 
-def indicatori(numeri: dict[str, float], quota: float, squadra: str | None = None) -> None:
+#: Cosa significa ciascun numero della striscia, in una riga.
+#:
+#: **Sono i termini che un visitatore non tecnico non conosce.** «Gol» non ha
+#: bisogno di spiegazioni e infatti non ce l'ha: un suggerimento su ogni cosa
+#: e' rumore, e chi lo incontra due volte a vuoto smette di leggerli.
+AIUTI: dict[str, str] = {
+    "xG totale": (
+        "Expected goals: la somma delle probabilità di gol di ogni tiro. "
+        "Dieci tiri da 0,1 fanno 1 xG."
+    ),
+    "Conversione": "Quanti tiri su cento finiscono in rete.",
+    "xG per tiro": (
+        "Quanto vale in media un tiro di questa selezione: dice da che "
+        "posizioni si tira, non quanto si tira."
+    ),
+    "Trofei": "Ricostruiti dalle 17 finali presenti nell'Open Data, non l'albo d'oro completo.",
+}
+
+#: Dove la memoria del filtro vive, per accorgersi che e' cambiato.
+MEMORIA_FILTRO: str = "filtro_precedente"
+
+#: Il valore che distingue «non c'era ancora niente» da «era vuoto».
+#:
+#: Serve a non far lampeggiare la striscia al primo caricamento: un risalto
+#: senza un cambiamento a monte e' un segnale che non segnala niente.
+_MAI: str = "\x00mai"
+
+
+def aiuto_di(etichetta: str) -> str:
+    """L'attributo del suggerimento, se per quel numero ne esiste uno.
+
+    Restituisce l'attributo intero e non solo il testo perche' la scheda va
+    lasciata **senza** ``data-aiuto`` quando spiegazione non ce n'e': il CSS
+    accende il riquadro sull'attributo, e un attributo vuoto darebbe un
+    fumetto nero senza niente dentro.
+
+    Args:
+        etichetta: Il nome del numero, per esempio ``"xG totale"``.
+
+    Returns:
+        L'attributo pronto da inserire nel tag, oppure stringa vuota.
+    """
+    aiuto = AIUTI.get(etichetta)
+    return f' data-aiuto="{aiuto}"' if aiuto else ""
+
+
+def risalto(filtro: str) -> str:
+    """Il foglio che fa lampeggiare la striscia quando il filtro cambia.
+
+    **Il confronto e' con il giro precedente, non con un valore fisso.**
+    Streamlit riesegue lo script a ogni interazione senza dire cosa l'ha
+    scatenata: l'unico modo di sapere che il filtro e' cambiato e' ricordarsi
+    che cosa c'era prima.
+
+    Al primo caricamento non lampeggia niente. Un'animazione che parte da sola
+    all'apertura non conferma nessuna azione dell'utente, e la prima volta che
+    la si vede si cerca il motivo invece di leggere i numeri.
+
+    Args:
+        filtro: La selezione corrente, in una stringa sola.
+
+    Returns:
+        Un blocco ``<style>`` da stampare, oppure stringa vuota.
+    """
+    precedente = st.session_state.get(MEMORIA_FILTRO, _MAI)
+    st.session_state[MEMORIA_FILTRO] = filtro
+    if precedente in (_MAI, filtro):
+        return ""
+    return "<style>.st-key-indicatori { animation: lampo .9s ease-out; }</style>"
+
+
+def indicatori(
+    numeri: dict[str, float],
+    quota: float,
+    squadra: str | None = None,
+    filtro: str | None = None,
+) -> None:
     """La striscia dei riquadri con i numeri principali.
 
     Stava in ``Panoramica.py`` finche' l'ha usata una pagina sola. Con Squadre
@@ -365,6 +441,8 @@ def indicatori(numeri: dict[str, float], quota: float, squadra: str | None = Non
         quota: L'xG realizzato, da
             :func:`football_analytics.panoramica.realizzazione`.
         squadra: La squadra scelta, se ce n'e' una. Serve solo ai trofei.
+        filtro: La selezione corrente in una stringa, per il lampo di
+            :func:`risalto`. Senza, la striscia non segnala i cambiamenti.
     """
     xg_per_tiro = numeri["xg"] / numeri["tiri"] if numeri["tiri"] else 0.0
     voci = [
@@ -398,15 +476,21 @@ def indicatori(numeri: dict[str, float], quota: float, squadra: str | None = Non
             nota = "nessuna finale nei dati"
         voci.append(("Trofei", numero(coppe.vinte if coppe else 0), nota))
 
-    for colonna, (etichetta, valore, nota) in zip(st.columns(len(voci)), voci, strict=True):
-        with colonna, st.container(border=True):
-            st.markdown(
-                f'<div class="scheda"><div class="cima">'
-                f'<span class="etichetta">{etichetta}</span>{icona(etichetta)}</div>'
-                f'<span class="numero">{valore}</span>'
-                f'<span class="nota">{nota}</span></div>',
-                unsafe_allow_html=True,
-            )
+    if filtro is not None:
+        st.markdown(risalto(filtro), unsafe_allow_html=True)
+
+    # Il contenitore con chiave produce la classe `st-key-indicatori`, che e'
+    # il bersaglio del lampo: senza, l'animazione non avrebbe a cosa attaccarsi.
+    with st.container(key="indicatori"):
+        for colonna, (etichetta, valore, nota) in zip(st.columns(len(voci)), voci, strict=True):
+            with colonna, st.container(border=True):
+                st.markdown(
+                    f'<div class="scheda"{aiuto_di(etichetta)}><div class="cima">'
+                    f'<span class="etichetta">{etichetta}</span>{icona(etichetta)}</div>'
+                    f'<span class="numero">{valore}</span>'
+                    f'<span class="nota">{nota}</span></div>',
+                    unsafe_allow_html=True,
+                )
 
     if squadra is not None:
         # La cautela sta qui e non nella pagina: attaccata al riquadro non si
@@ -881,6 +965,103 @@ h5 {{ font-size: .95rem !important; font-weight: 700; margin-bottom: .1rem; }}
   text-align: center;
   background: {tema.primario_tenue}; color: {tema.primario};
   font-size: .92rem; font-weight: 600;
+}}
+
+/* --- Movimento (M6, rifinitura fuori backlog) ---------------------------------------------------
+   **Tutto sotto i 300 ms e tutto disattivabile.** Un'animazione lenta su una
+   dashboard che si rilancia a ogni clic non e' eleganza, e' attesa: Streamlit
+   riesegue lo script da capo ogni volta, quindi qualunque durata la si paga a
+   ogni interazione. Le durate stanno in variabili per poterle cambiare in un
+   punto solo invece che in venti regole.
+
+   **Si muovono ombra, colore e due pixel di posizione, mai le dimensioni.**
+   Animare `width`, `height` o `padding` costringe il browser a rifare il
+   calcolo del layout a ogni fotogramma; `transform` e `opacity` viaggiano
+   sulla scheda grafica e non spostano niente attorno. E' anche il motivo per
+   cui i riquadri non crescono al passaggio del mouse: con sei schede in fila,
+   una che si allarga sposta le altre cinque. */
+:root {{
+  --st-svelto: 140ms;
+  --st-medio: 220ms;
+  --st-curva: cubic-bezier(.22, .61, .36, 1);
+}}
+
+@keyframes comparsa {{
+  from {{ opacity: 0; transform: translateY(6px); }}
+  to   {{ opacity: 1; transform: none; }}
+}}
+
+/* Il lampo che segnala «questi numeri sono cambiati»: il fondo si accende per
+   un istante e torna com'era. Non lampeggia due volte — un secondo impulso
+   sembrerebbe un errore invece di una conferma. */
+@keyframes lampo {{
+  0%   {{ box-shadow: 0 0 0 0 {tema.primario_tenue}; }}
+  35%  {{ box-shadow: 0 0 0 6px {tema.primario_tenue}; }}
+  100% {{ box-shadow: 0 0 0 0 rgba(0,0,0,0); }}
+}}
+
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stPlotlyChart"] {{
+  animation: comparsa var(--st-medio) var(--st-curva) both;
+}}
+
+/* I riquadri con il bordo, le mie schede e le voci degli elenchi: stessa
+   reazione al passaggio del mouse in tutta l'app, perche' due modi diversi di
+   rispondere allo stesso gesto si notano subito. */
+[data-testid="stVerticalBlockBorderWrapper"] {{
+  transition: border-color var(--st-svelto) ease, box-shadow var(--st-svelto) ease;
+}}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {{
+  border-color: {tema.primario};
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .10);
+}}
+
+.anello, .prova, .limite, .conclusione, .voce-scheda, .insight, .scheda {{
+  transition: transform var(--st-svelto) var(--st-curva),
+              color var(--st-svelto) ease,
+              border-color var(--st-svelto) ease;
+}}
+.anello:hover, .limite:hover, .conclusione:hover {{ transform: translateX(2px); }}
+.prova:hover .cosa, .voce-scheda:hover b {{ color: {tema.primario}; }}
+.scheda:hover .numero, .insight:hover .grande {{ color: {tema.primario}; }}
+
+/* --- Il suggerimento sulle schede (M6, rifinitura) --------------------------------
+   Nasce da `data-aiuto` sulla scheda, quindi il testo sta nell'HTML e non in
+   una regola CSS: cosi' e' leggibile da chi legge il sorgente della pagina e
+   non si perde nel foglio di stile.
+
+   `visibility` oltre a `opacity` non e' ridondanza: con la sola opacita' a
+   zero il riquadro resta cliccabile e intercetta il mouse anche quando non si
+   vede, e su schede affiancate ruberebbe il passaggio a quella accanto. */
+.scheda[data-aiuto], .insight[data-aiuto] {{ position: relative; }}
+.scheda[data-aiuto]::after, .insight[data-aiuto]::after {{
+  content: attr(data-aiuto);
+  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 30;
+  width: max-content; max-width: 250px;
+  padding: 7px 10px; border-radius: 8px;
+  background-color: {tema.testo}; color: {tema.sfondo};
+  font-size: .78rem; font-weight: 500; line-height: 1.35; text-align: left;
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity var(--st-medio) var(--st-curva),
+              transform var(--st-medio) var(--st-curva),
+              visibility var(--st-medio);
+  pointer-events: none;
+}}
+.scheda[data-aiuto]:hover::after, .insight[data-aiuto]:hover::after {{
+  opacity: 1; visibility: visible; transform: none;
+}}
+
+/* Chi ha chiesto al sistema operativo di ridurre le animazioni ha una ragione
+   — vertigini, emicrania, o semplicemente un computer lento. Qui il movimento
+   sparisce e resta il colore, che comunica lo stesso senza muovere niente. */
+@media (prefers-reduced-motion: reduce) {{
+  *, *::before, *::after {{
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }}
+  [data-testid="stVerticalBlockBorderWrapper"],
+  [data-testid="stPlotlyChart"] {{ animation: none; }}
 }}
 
 /* --- Le frasi calcolate (M6-T12) -----------------------------------------

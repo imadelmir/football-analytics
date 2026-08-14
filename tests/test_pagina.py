@@ -1422,3 +1422,142 @@ def test_la_metodologia_e_agganciata_al_menu() -> None:
     assert all(percorso for _, _, percorso in guscio.MENU), (
         "M6 chiude con tutte le viste costruite: nessuna voce deve restare spenta"
     )
+
+
+# ---------------------------------------------------------------------------
+# Il movimento (M6, rifinitura fuori backlog)
+# ---------------------------------------------------------------------------
+
+
+def foglio_del_tema() -> str:
+    """Il foglio di stile vestito di un tema, senza far girare una pagina.
+
+    Returns:
+        Il blocco ``<style>`` completo.
+    """
+    import guscio  # noqa: PLC0415
+    from football_analytics import tema  # noqa: PLC0415
+
+    return guscio.foglio(tema.VERDE)
+
+
+def test_il_movimento_resta_sotto_i_trecento_millisecondi() -> None:
+    """Una dashboard si rilancia a ogni clic: la durata la si paga ogni volta.
+
+    Non e' una preferenza estetica. Streamlit riesegue lo script da capo a
+    ogni interazione, quindi mezzo secondo di animazione diventa mezzo secondo
+    di attesa fra il clic e i numeri nuovi.
+    """
+    import re  # noqa: PLC0415
+
+    foglio = foglio_del_tema()
+    durate = [int(valore) for valore in re.findall(r"(\d+)ms", foglio)]
+
+    assert durate, "nessuna durata dichiarata: le variabili del movimento sono sparite"
+    assert max(durate) <= 300, f"animazione troppo lenta: {max(durate)} ms"
+
+
+def test_si_animano_solo_le_proprieta_che_non_ricalcolano_il_layout() -> None:
+    """``transform`` e ``opacity`` viaggiano sulla scheda grafica, il resto no.
+
+    Animare larghezza, altezza o spaziatura costringe il browser a rifare il
+    layout a ogni fotogramma, e con sei schede in fila una che cresce sposta
+    le altre cinque. Il test guarda cosa compare nelle transizioni dichiarate.
+    """
+    import re  # noqa: PLC0415
+
+    proprieta: set[str] = set()
+    for regola in re.findall(r"transition:\s*([^;]+);", foglio_del_tema()):
+        proprieta.update(voce.strip().split()[0] for voce in regola.split(",") if voce.strip())
+
+    vietate = {"width", "height", "padding", "margin", "font-size", "all"}
+
+    assert not (proprieta & vietate), f"animano il layout: {sorted(proprieta & vietate)}"
+
+
+def test_chi_chiede_meno_movimento_lo_ottiene() -> None:
+    """Vertigini, emicrania o un computer lento: le ragioni non ci riguardano.
+
+    Il sistema operativo espone la preferenza e il foglio la deve rispettare,
+    o l'animazione diventa un ostacolo per chi l'ha chiesta disattivata.
+    """
+    foglio = foglio_del_tema()
+
+    assert "prefers-reduced-motion: reduce" in foglio
+    assert "animation-duration: .01ms !important" in foglio
+
+
+def test_il_suggerimento_non_intercetta_il_mouse_quando_e_nascosto() -> None:
+    """Con la sola opacita' a zero il fumetto resta li' e ruba il passaggio.
+
+    Su schede affiancate significa che avvicinandosi alla scheda accanto si
+    incontra il fumetto invisibile di quella precedente, e il suggerimento
+    giusto non compare mai.
+    """
+    foglio = foglio_del_tema()
+
+    assert "visibility: hidden" in foglio
+    assert "pointer-events: none" in foglio
+
+
+def test_ogni_suggerimento_spiega_un_termine_che_non_si_capisce_da_solo() -> None:
+    """Un aiuto su ogni cosa e' rumore, e chi ne trova due a vuoto smette.
+
+    «Gol» non ha bisogno di spiegazioni; «xG per tiro» si'. Il test impedisce
+    che l'elenco cresca fino a coprire anche l'ovvio.
+    """
+    import guscio  # noqa: PLC0415
+
+    assert set(guscio.AIUTI) <= set(guscio.ICONE), "un aiuto su un numero che non esiste"
+    for ovvio in ("Partite", "Gol", "Tiri totali"):
+        assert ovvio not in guscio.AIUTI, f"«{ovvio}» si capisce da solo"
+
+
+def test_l_attributo_del_suggerimento_manca_dove_non_serve() -> None:
+    """Un ``data-aiuto`` vuoto darebbe un fumetto nero senza niente dentro."""
+    import guscio  # noqa: PLC0415
+
+    assert guscio.aiuto_di("Gol") == ""
+    assert guscio.aiuto_di("xG totale").startswith(' data-aiuto="')
+
+
+@senza_magazzino
+def test_il_lampo_scatta_al_cambio_e_non_all_apertura() -> None:
+    """Un'animazione che parte da sola all'apertura non conferma nessuna azione.
+
+    La prima volta che la si vede si cerca il motivo invece di leggere i
+    numeri. Deve accendersi quando l'utente ha cambiato qualcosa, e mai prima.
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+
+    primo = " ".join(str(voce.value) for voce in app.markdown)
+    assert "animation: lampo" not in primo, "ha lampeggiato senza che nessuno toccasse niente"
+
+    app.selectbox[0].set_value("serie_a_2015_16").run()
+
+    dopo = " ".join(str(voce.value) for voce in app.markdown)
+    assert "animation: lampo" in dopo, "il cambio di competizione non si e' fatto notare"
+
+
+@senza_magazzino
+def test_il_lampo_non_si_ripete_se_il_filtro_non_cambia() -> None:
+    """Un rerun senza cambiamenti non deve accendere niente.
+
+    Streamlit riesegue lo script per molte ragioni — un clic su una riga, un
+    cambio di pagina — e un lampo a ogni giro smetterebbe di significare
+    «guarda, i numeri sono cambiati».
+    """
+    from streamlit.testing.v1 import AppTest  # noqa: PLC0415
+
+    app = AppTest.from_file(str(PAGINA), default_timeout=ATTESA)
+    app.run()
+    app.selectbox[0].set_value("premier_2015_16").run()
+    assert "animation: lampo" in " ".join(str(voce.value) for voce in app.markdown)
+
+    app.selectbox[0].set_value("premier_2015_16").run()
+
+    ancora = " ".join(str(voce.value) for voce in app.markdown)
+    assert "animation: lampo" not in ancora, "ha lampeggiato su un filtro immutato"

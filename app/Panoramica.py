@@ -164,7 +164,7 @@ def main() -> None:
     quota = panoramica.realizzazione(tiri)
     giocati = panoramica.tiri_di_gioco(tiri)
 
-    guscio.indicatori(numeri, quota, squadra)
+    guscio.indicatori(numeri, quota, squadra, filtro=f"{competizione}|{squadra}")
     st.write("")
 
     grafici(giocati, partite, numeri, quota, tema)
