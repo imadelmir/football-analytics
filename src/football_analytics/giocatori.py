@@ -155,9 +155,9 @@ def per_giocatore(tabella: pd.DataFrame) -> pd.DataFrame:
     )
     unito["ruolo"] = gruppi["ruolo"].first().to_numpy()
 
-    minuti = unito["minuti"].replace(0, pd.NA)
+    minuti = unito["minuti"].astype(float)
     for metrica in ("tiri", "gol", "xg"):
-        unito[f"{metrica}_90"] = (unito[metrica] / minuti * NOVANTA).fillna(0.0)
+        unito[f"{metrica}_90"] = (unito[metrica] / minuti.where(minuti > 0) * NOVANTA).fillna(0.0)
     unito["sopra_soglia"] = unito["minuti"] >= config.SOGLIA_MINUTI
     return unito
 
@@ -300,3 +300,137 @@ def scheda(tabella: pd.DataFrame, giocatore: str) -> dict[str, float]:
         "xg_90": float(riga["xg_90"]),
         "xg_per_tiro": float(riga["xg"]) / tiri if tiri else 0.0,
     }
+
+
+#: Gli assi del radar: etichetta, colonna, quante cifre mostrare.
+#:
+#: Cinque metriche gia' nel magazzino, tutte normalizzate sui minuti tranne
+#: ``xg_per_tiro``, che e' un rapporto e quindi lo e' per costruzione. Insieme
+#: separano le tre cose che l'xG permette di distinguere: **quanto** si tira,
+#: **da dove** — cioe' la qualita' delle occasioni — e **quanto si realizza**.
+ASSI_RADAR: Final[tuple[tuple[str, str, int], ...]] = (
+    ("Tiri/90", "tiri_90", 2),
+    ("xG/90", "xg_90", 2),
+    ("Gol/90", "gol_90", 2),
+    ("xG per tiro", "xg_per_tiro", 3),
+    ("Gol − xG", "gol_meno_xg", 1),
+)
+
+#: Quanti giocatori servono in un reparto perche' un percentile significhi qualcosa.
+#:
+#: Con meno di questi il percentile diventa una posizione in una fila corta:
+#: «meglio del 66 %» su quattro giocatori vuol dire «terzo su quattro», che e'
+#: un'informazione diversa e molto piu' debole.
+MINIMO_CONFRONTO: Final[int] = 20
+
+
+def con_xg_per_tiro(tabella: pd.DataFrame) -> pd.DataFrame:
+    """Aggiunge ``xg_per_tiro``, che il magazzino non ha.
+
+    Args:
+        tabella: Le statistiche dei giocatori.
+
+    Returns:
+        Una copia con la colonna in piu'. Chi non ha tirato vale zero, non
+        indefinito: sul radar un buco e un valore basso si leggono allo stesso
+        modo, ma un ``NaN`` farebbe sparire l'asse.
+    """
+    copia = tabella.copy()
+    # La divisione con `where` invece di `replace(0, pd.NA)`: quest'ultimo
+    # rende la colonna di tipo oggetto, e il `fillna` che segue emette un
+    # avviso di deprecazione a ogni chiamata.
+    tiri = copia["tiri"].astype(float)
+    copia["xg_per_tiro"] = (copia["xg"] / tiri.where(tiri > 0)).fillna(0.0)
+    return copia
+
+
+def percentili(tabella: pd.DataFrame, giocatore_id: int) -> dict[str, float]:
+    """Dove sta un giocatore rispetto al proprio reparto, asse per asse.
+
+    **Percentile e non rapporto sulla media.** Gli assi hanno unita' diverse —
+    tiri, gol, xG, differenze — e un rapporto le renderebbe incomparabili; peggio,
+    su ``gol_meno_xg`` la media di reparto e' vicina a zero e il rapporto
+    esploderebbe. Il percentile porta tutto su una scala 0-100 che si legge come
+    «meglio dell'85 % del reparto».
+
+    **Il confronto e' dentro il reparto e fra i soli qualificati.** Un attaccante
+    misurato contro i portieri risulterebbe fenomenale su ogni asse, e chi ha
+    giocato duecento minuti sporcherebbe la distribuzione con valori per novanta
+    fuori scala.
+
+    Args:
+        tabella: Le statistiche di **una sola competizione**.
+        giocatore_id: L'identificativo del giocatore.
+
+    Returns:
+        Il percentile 0-100 per ogni asse di :data:`ASSI_RADAR`, piu'
+        ``confronto`` con quanti giocatori compongono la distribuzione. Vuoto se
+        il giocatore non c'e' o se il suo reparto ha meno di
+        :data:`MINIMO_CONFRONTO` qualificati.
+    """
+    completa = con_xg_per_tiro(con_reparto(tabella))
+    suo = completa[completa["giocatore_id"] == giocatore_id]
+    if suo.empty:
+        return {}
+
+    reparto_suo = str(suo.iloc[0]["reparto"])
+    pari = qualificati(completa[completa["reparto"] == reparto_suo])
+    if len(pari) < MINIMO_CONFRONTO:
+        return {}
+
+    riga = suo.iloc[0]
+    posizioni: dict[str, float] = {"confronto": float(len(pari))}
+    for _, colonna, _ in ASSI_RADAR:
+        valori = pari[colonna].to_numpy()
+        # Chi vale quanto la mediana sta al 50: contare i pari a meta' evita
+        # che una colonna con molti zeri — i difensori su gol/90 — mandi tutti
+        # al percentile zero o cento a seconda del verso della disuguaglianza.
+        sotto = float((valori < riga[colonna]).sum())
+        uguali = float((valori == riga[colonna]).sum())
+        posizioni[colonna] = (sotto + uguali / 2) / len(pari) * 100
+    return posizioni
+
+
+def andamento(tiri: pd.DataFrame, giocatore_id: int) -> pd.DataFrame:
+    """Gol e xG accumulati partita dopo partita.
+
+    Args:
+        tiri: I tiri della competizione.
+        giocatore_id: L'identificativo del giocatore.
+
+    Returns:
+        Una riga per partita con ``gol`` e ``xg`` cumulati. Vuota se non ha
+        mai tirato.
+    """
+    suoi = tiri[tiri["giocatore_id"] == giocatore_id]
+    if "rigori_finali" in suoi.columns:
+        suoi = suoi[~suoi["rigori_finali"]]
+    if suoi.empty:
+        return pd.DataFrame(columns=["match_id", "gol", "xg"])
+
+    per_partita = (
+        suoi.groupby("match_id", observed=True)
+        .agg(gol=("gol", "sum"), xg=("xg_statsbomb", "sum"))
+        .reset_index()
+    )
+    per_partita[["gol", "xg"]] = per_partita[["gol", "xg"]].cumsum()
+    return per_partita
+
+
+def tiri_di(tiri: pd.DataFrame, giocatore_id: int) -> pd.DataFrame:
+    """Il dettaglio dei tiri di un giocatore, dal piu' pericoloso.
+
+    Args:
+        tiri: I tiri della competizione.
+        giocatore_id: L'identificativo del giocatore.
+
+    Returns:
+        Le colonne che la scheda mostra, ordinate per xG.
+    """
+    suoi = tiri[tiri["giocatore_id"] == giocatore_id]
+    if suoi.empty:
+        return suoi
+    colonne = ["minuto", "avversario", "esito", "xg_statsbomb", "parte_corpo", "tipo"]
+    return suoi[[c for c in colonne if c in suoi.columns]].sort_values(
+        "xg_statsbomb", ascending=False
+    )

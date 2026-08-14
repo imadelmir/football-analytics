@@ -357,3 +357,143 @@ def test_la_somma_per_giocatore_non_perde_ne_inventa_gol() -> None:
     assert unito["gol"].sum() == serie_a["gol"].sum()
     assert unito["minuti"].sum() == serie_a["minuti"].sum()
     assert len(unito) == serie_a["giocatore_id"].nunique()
+
+
+def reparto_finto(quanti: int, reparto_ruolo: str, *, gol_extra: int = 0) -> pd.DataFrame:
+    """Un reparto popolato quanto basta a calcolare percentili.
+
+    Args:
+        quanti: Quanti giocatori generare.
+        reparto_ruolo: La posizione StatsBomb da assegnare a tutti.
+        gol_extra: Gol in piu' dati all'ultimo, per creare un fuoriclasse.
+
+    Returns:
+        La tabella di prova.
+    """
+    righe = []
+    for i in range(quanti):
+        gol = i + (gol_extra if i == quanti - 1 else 0)
+        righe.append(
+            {
+                "giocatore_id": 1000 + i,
+                "giocatore": f"Tale {i}",
+                "giocatore_breve": f"Tale {i}",
+                "squadra": "Alfa",
+                "ruolo": reparto_ruolo,
+                "partite": 30,
+                "minuti": 2700,
+                "tiri": 20 + i,
+                "gol": gol,
+                "xg": 5.0 + i * 0.1,
+                "gol_meno_xg": gol - (5.0 + i * 0.1),
+                "tiri_90": (20 + i) / 30,
+                "gol_90": gol / 30,
+                "xg_90": (5.0 + i * 0.1) / 30,
+                "sopra_soglia": True,
+            }
+        )
+    return pd.DataFrame(righe)
+
+
+def test_il_percentile_confronta_dentro_il_reparto() -> None:
+    """Un attaccante misurato contro i portieri risulta fenomenale su tutto.
+
+    E' il difetto che il criterio di M6-T6 esiste per impedire: il radar deve
+    dire «meglio dell'85 % degli attaccanti», non «meglio dell'85 % di chiunque
+    giochi a calcio».
+    """
+    attacco = reparto_finto(25, "Center Forward")
+    difesa = reparto_finto(25, "Left Back")
+    difesa["giocatore_id"] += 100
+    difesa["gol"] = 0
+    difesa["gol_90"] = 0.0
+    insieme = pd.concat([attacco, difesa], ignore_index=True)
+
+    ultimo_attaccante = int(attacco.iloc[-1]["giocatore_id"])
+    posizioni = giocatori.percentili(insieme, ultimo_attaccante)
+
+    # Il confronto e' sui 25 attaccanti, non sui 50 giocatori.
+    assert posizioni["confronto"] == 25.0
+    assert posizioni["gol_90"] > 90
+
+
+def test_il_percentile_di_chi_sta_in_mezzo_e_cinquanta() -> None:
+    """Chi vale quanto la mediana deve stare a 50, non a 0 o a 100.
+
+    Contare solo i valori strettamente minori manderebbe al percentile zero
+    tutti i difensori con zero gol, che sono la maggioranza del reparto: la
+    meta' dei pari conta meta'.
+    """
+    pari = reparto_finto(24, "Left Back")
+    pari["gol"] = 0
+    pari["gol_90"] = 0.0
+
+    posizioni = giocatori.percentili(pari, 1000)
+
+    assert posizioni["gol_90"] == pytest.approx(50.0)
+
+
+def test_senza_abbastanza_pari_il_radar_non_si_disegna() -> None:
+    """Un percentile su quattro persone e' una posizione in una fila corta.
+
+    «Meglio del 66 %» su quattro giocatori vuol dire «terzo su quattro», che e'
+    un'informazione diversa e molto piu' debole. Meglio non disegnare niente
+    che disegnare un radar che sembra dire qualcosa.
+    """
+    pochi = reparto_finto(giocatori.MINIMO_CONFRONTO - 1, "Center Forward")
+
+    assert giocatori.percentili(pochi, 1000) == {}
+
+
+def test_chi_non_ha_tirato_non_ha_un_xg_per_tiro_indefinito() -> None:
+    """Zero e non ``NaN``: sul radar un buco e un valore basso si leggono uguali."""
+    senza_tiri = reparto_finto(21, "Goalkeeper")
+    senza_tiri["tiri"] = 0
+    senza_tiri["xg"] = 0.0
+
+    completa = giocatori.con_xg_per_tiro(senza_tiri)
+
+    assert completa["xg_per_tiro"].notna().all()
+    assert (completa["xg_per_tiro"] == 0.0).all()
+
+
+def test_l_andamento_cumula_e_salta_i_rigori_dei_tiebreak() -> None:
+    """La cumulata di un giocatore e' per partita, e i tiebreak non sono partita."""
+    tiri = pd.DataFrame(
+        [
+            {
+                "match_id": 1,
+                "giocatore_id": 7,
+                "gol": True,
+                "xg_statsbomb": 0.4,
+                "rigori_finali": False,
+            },
+            {
+                "match_id": 2,
+                "giocatore_id": 7,
+                "gol": False,
+                "xg_statsbomb": 0.2,
+                "rigori_finali": False,
+            },
+            {
+                "match_id": 3,
+                "giocatore_id": 7,
+                "gol": True,
+                "xg_statsbomb": 0.76,
+                "rigori_finali": True,
+            },
+            {
+                "match_id": 1,
+                "giocatore_id": 9,
+                "gol": True,
+                "xg_statsbomb": 0.9,
+                "rigori_finali": False,
+            },
+        ]
+    )
+
+    curva = giocatori.andamento(tiri, 7)
+
+    assert len(curva) == 2
+    assert list(curva["gol"]) == [1, 1]
+    assert curva.iloc[-1]["xg"] == pytest.approx(0.6)

@@ -390,6 +390,8 @@ def linee(
     serie: Mapping[str, Sequence[float]],
     tema: Tema,
     altezza: int = 240,
+    *,
+    a_gradini: bool = False,
 ) -> go.Figure:
     """Un grafico a linee con i colori del tema.
 
@@ -398,6 +400,11 @@ def linee(
         serie: Nome della serie e i suoi valori.
         tema: La palette attiva.
         altezza: Altezza in pixel.
+        a_gradini: Se vero la linea sale di scatto invece che in diagonale.
+            Serve all'xG accumulato durante una partita: **l'xG non cresce di
+            continuo, salta a ogni tiro**. Una diagonale fra due tiri
+            suggerirebbe che fra il minuto 12 e il 34 la squadra abbia creato
+            qualcosa, e in quei ventidue minuti non e' successo niente.
 
     Returns:
         La figura.
@@ -411,7 +418,7 @@ def linee(
                 y=list(valori),
                 mode="lines",
                 name=nome,
-                line={"color": colore, "width": 2.2},
+                line={"color": colore, "width": 2.2, "shape": "hv" if a_gradini else "linear"},
             )
         )
     figura.update_layout(
@@ -519,6 +526,140 @@ def attese_contro_realizzato(
         scaleratio=1,
     )
     return _sfondo(figura, tema, altezza)
+
+
+def radar(
+    valori: Mapping[str, float],
+    tema: Tema,
+    *,
+    altezza: int = 340,
+) -> go.Figure:
+    """Un radar su scala 0-100, con la mediana del reparto segnata.
+
+    **La scala e' fissa da 0 a 100 e non si adatta ai dati.** Un radar che
+    ridimensiona gli assi fa sembrare fenomenale chiunque, perche' il punto
+    piu' alto tocca sempre il bordo. Con la scala bloccata la forma dice
+    qualcosa: piccola vuol dire piccola.
+
+    **Il cerchio a 50 e' la mediana del reparto**, disegnato come seconda
+    traccia invece che come griglia: cosi' si vede *dove* il giocatore sta
+    sopra e dove sotto, che e' l'unica lettura per cui un radar serve.
+
+    Args:
+        valori: Etichetta dell'asse e percentile, da 0 a 100.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        La figura.
+    """
+    etichette = list(valori)
+    figura = go.Figure()
+    if not etichette:
+        return _sfondo(figura, tema, altezza)
+
+    # Il primo punto va ripetuto in fondo, o il poligono resta aperto fra
+    # l'ultimo asse e il primo.
+    chiuse = [*etichette, etichette[0]]
+    figura.add_trace(
+        go.Scatterpolar(
+            r=[50.0] * len(chiuse),
+            theta=chiuse,
+            mode="lines",
+            line={"color": tema.linee, "width": 1.2, "dash": "dot"},
+            name="mediana del reparto",
+            hoverinfo="skip",
+        )
+    )
+    punti = [float(valori[nome]) for nome in etichette]
+    figura.add_trace(
+        go.Scatterpolar(
+            r=[*punti, punti[0]],
+            theta=chiuse,
+            mode="lines+markers",
+            fill="toself",
+            fillcolor=tema.primario_tenue,
+            line={"color": tema.primario, "width": 2.2},
+            marker={"size": 7, "color": tema.primario},
+            name="giocatore",
+            hovertemplate="%{theta}<br>percentile %{r:.0f}<extra></extra>",
+        )
+    )
+    figura.update_layout(
+        polar={
+            "bgcolor": TRASPARENTE,
+            "radialaxis": {
+                "range": [0, 100],
+                "showticklabels": False,
+                "gridcolor": tema.bordo,
+                "linecolor": tema.bordo,
+            },
+            "angularaxis": {
+                "gridcolor": tema.bordo,
+                "linecolor": tema.bordo,
+                "tickfont": {"size": 11, "color": tema.testo_tenue},
+            },
+        },
+        showlegend=False,
+    )
+    return _sfondo(figura, tema, altezza)
+
+
+def mappa_tocchi(tocchi: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.Figure:
+    """Dove un giocatore tocca il pallone, dalla griglia gia' aggregata.
+
+    **Non riusa** :func:`mappa_di_calore`: quella parte dai tiri e li conta in
+    celle, questa riceve celle gia' contate. Costringere le due cose nella
+    stessa funzione vorrebbe dire un parametro che cambia il significato del
+    primo argomento, e nessuno se ne ricorderebbe.
+
+    **Il campo e' intero.** I tocchi di un terzino stanno nella propria meta',
+    e mezzo campo ne mostrerebbe la meta' facendolo sembrare un attaccante
+    che non tocca mai la palla.
+
+    Args:
+        tocchi: Le celle con ``cella_x``, ``cella_y`` e ``tocchi``.
+        tema: La palette attiva.
+        altezza: Altezza in pixel.
+
+    Returns:
+        Il campo con sopra la densita' dei tocchi.
+    """
+    figura = campo(tema, altezza=altezza, meta_campo=False, linee_sopra=True)
+    if tocchi.empty:
+        return figura
+
+    lato_x = LUNGHEZZA / (int(tocchi["cella_x"].max()) + 1)
+    lato_y = LARGHEZZA / (int(tocchi["cella_y"].max()) + 1)
+    # `fill_value` intero e non ``0.0``: la colonna dei tocchi e' un conteggio,
+    # e pandas avvisa che riempire un intero con un float e' deprecato.
+    griglia = tocchi.pivot_table(
+        index="cella_y", columns="cella_x", values="tocchi", aggfunc="sum", fill_value=0
+    )
+    conteggi = _sfoca(griglia.to_numpy().astype(np.float64))
+    massimo = float(conteggi.max())
+    if massimo <= 0:
+        return figura
+
+    # Gli indici passano da `int()`: per pandas-stubs le etichette di colonna
+    # sono stringhe, e `i + 0.5` non compila anche se a runtime sono numeri.
+    figura.add_trace(
+        go.Heatmap(
+            x=[(int(i) + 0.5) * lato_x for i in griglia.columns],
+            y=[(int(j) + 0.5) * lato_y for j in griglia.index],
+            z=np.sqrt(conteggi),
+            zmin=0.0,
+            zmax=float(np.sqrt(massimo)),
+            colorscale=[
+                list(gradino)
+                for gradino in scala_calore(tema, math.sqrt(min(SOGLIA_CALORE / massimo, 1.0)))
+            ],
+            zsmooth="best",
+            showscale=False,
+            hoverinfo="skip",
+        )
+    )
+    return figura
 
 
 def per_esito(tiri: pd.DataFrame, tema: Tema, *, altezza: int = 420) -> go.Figure:

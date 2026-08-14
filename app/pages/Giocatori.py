@@ -143,7 +143,7 @@ def reparti(tabella: pd.DataFrame) -> None:
     st.markdown(f'<div class="voci">{righe}</div>', unsafe_allow_html=True)
 
 
-def tabella_completa(tabella: pd.DataFrame) -> None:
+def tabella_completa(tabella: pd.DataFrame) -> int | None:
     """Tutti i giocatori, soglia compresa, in una tabella ordinabile.
 
     **Anche chi sta sotto i 500 minuti.** Le graduatorie lo escludono per una
@@ -151,13 +151,22 @@ def tabella_completa(tabella: pd.DataFrame) -> None:
     spiegazione: qui i minuti sono in chiaro e ognuno vede perche' un nome non
     compare piu' in alto.
 
+    **Il clic su una riga apre la scheda**, ed e' il criterio di chiusura di
+    M6-T5: la tabella non e' un tabellone da leggere, e' il modo di scegliere
+    un giocatore.
+
     Args:
         tabella: I giocatori della selezione.
+
+    Returns:
+        L'identificativo del giocatore scelto, oppure ``None``.
     """
     colonne = [
+        "giocatore_id",
         "giocatore_breve",
         "squadra",
         "reparto",
+        "ruolo",
         "partite",
         "minuti",
         "tiri",
@@ -166,14 +175,19 @@ def tabella_completa(tabella: pd.DataFrame) -> None:
         "gol_meno_xg",
         "xg_90",
     ]
-    st.dataframe(
-        tabella[colonne].sort_values("gol", ascending=False),
+    ordinata = tabella[colonne].sort_values("gol", ascending=False)
+    scelta = st.dataframe(
+        ordinata.drop(columns=["giocatore_id"]),
         width="stretch",
         hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="riga_giocatore",
         column_config={
             "giocatore_breve": st.column_config.TextColumn("Giocatore"),
             "squadra": st.column_config.TextColumn("Squadra"),
             "reparto": st.column_config.TextColumn("Reparto"),
+            "ruolo": st.column_config.TextColumn("Posizione"),
             "partite": st.column_config.NumberColumn("PG", format="%d"),
             "minuti": st.column_config.NumberColumn("Minuti", format="%d"),
             "tiri": st.column_config.NumberColumn("Tiri", format="%d"),
@@ -183,6 +197,12 @@ def tabella_completa(tabella: pd.DataFrame) -> None:
             "xg_90": st.column_config.NumberColumn("xG/90", format="%.2f"),
         },
     )
+    righe = scelta["selection"]["rows"]
+    if not righe:
+        return None
+    # L'indice e' posizionale sulla tabella **mostrata**, che non ha piu'
+    # `giocatore_id`: va riportato su quella ordinata, che ce l'ha ancora.
+    return int(ordinata.iloc[righe[0]]["giocatore_id"])
 
 
 def main() -> None:
@@ -308,7 +328,12 @@ def _corpo(competizione: str | None, tema: Tema) -> None:
 
     with st.container(border=True):
         st.markdown("##### Tutti i giocatori")
-        tabella_completa(selezione)
+        premuto = tabella_completa(selezione)
+    st.caption("Premi una riga per aprire la scheda del giocatore.")
+
+    if premuto is not None:
+        st.session_state[guscio.CONSEGNA_GIOCATORE] = premuto
+        st.switch_page("pages/Giocatore.py")
 
     st.markdown(f'<p class="attribuzione">{ATTRIBUZIONE}</p>', unsafe_allow_html=True)
 
