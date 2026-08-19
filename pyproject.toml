@@ -54,7 +54,7 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/AVENA50/football-analytics"
+Repository = "https://github.com/imadelmir/football-analytics"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/football_analytics"]
