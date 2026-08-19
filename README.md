@@ -1,298 +1,307 @@
 # Football Analytics
 
-[![CI](https://github.com/AVENA50/football-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/AVENA50/football-analytics/actions/workflows/ci.yml)
+[![CI](https://github.com/imadelmir/football-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/imadelmir/football-analytics/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Licenza MIT](https://img.shields.io/badge/licenza-MIT-green.svg)](LICENSE)
 
-Una pipeline che legge i dati evento per evento di StatsBomb su tre campionati,
-li riduce a tabelle compatte, addestra un modello che stima la probabilita' di
-gol di ogni tiro, e li mette in una dashboard dove si possono esplorare
-squadre, partite e giocatori.
+**Quanto vale, davvero, sapere dove sono i difensori quando parte un tiro?**
+Questo progetto risponde misurando: 43.849 tiri di StatsBomb, due modelli di
+expected goals addestrati sulle stesse identiche partite — uno che vede il
+fotogramma del tiro e uno no — e una dashboard per guardarci dentro.
 
-> **Stato:** M5 — Modello xG. Le prime quattro milestone sono chiuse: 1.753
-> partite scaricate, 43.849 tiri in sei tabelle Parquet, e il primo modello
-> addestrato. Le relazioni sono in
-> [`docs/milestones/README.md`](docs/milestones/README.md).
+> **In English.** An end-to-end football analytics project built on StatsBomb
+> Open Data: ingestion of 1,753 matches, reduction to six compact Parquet
+> tables, two expected-goals models, and a seven-view Streamlit dashboard. The
+> question it answers, measured: how much is it worth to know where the
+> defenders are? **+2.9 Brier points, +18 % relative — 62 % of the gap to
+> StatsBomb's own xG model.** Everything below is in Italian.
 
----
+![La Home della dashboard](docs/immagini/m6/home.png)
 
-## Attribuzione dei dati
+| | |
+| --- | --- |
+| **La risposta** | Vedere difensori e portiere vale **+2,9 punti di Brier score** (16,3 % → 19,2 % di guadagno sul riferimento), e colma il **62 %** del divario dall'xG ufficiale di StatsBomb |
+| **I dati** | 9 competizioni, 1.753 partite, **43.849 tiri**, 4.578 gol — 6,25 GB di JSON ridotti a **6,3 MB** di Parquet |
+| **La dashboard** | 7 viste Streamlit, tema che cambia con la competizione, nessuna lettura dei dati grezzi |
+| **Il codice** | Tipizzato in `mypy --strict`, lint `ruff`, oltre 500 test automatici, CI su ogni push |
 
-Questo progetto usa **[StatsBomb Open Data](https://github.com/statsbomb/open-data)**,
-resi disponibili gratuitamente da StatsBomb. La citazione della fonte e' una
-**condizione d'uso**, non una cortesia: compare qui, nel piede di ogni pagina
-della dashboard e nella pagina Metodologia.
-
-I dati sono soggetti alla licenza pubblicata nel repository di StatsBomb.
-
-**Nessuno stemma di club e nessuna fotografia di agenzia e' usato in questo
-progetto**: al posto degli stemmi c'e' la sigla della squadra in un cerchio,
-generata dal nome.
-
-I **loghi delle competizioni** in `app/assets/loghi/` sono invece presenti, e
-sono marchi registrati dei rispettivi titolari — UEFA, FIFA, CAF, LaLiga, Lega
-Serie A, Premier League, LFP. Compaiono a titolo puramente descrittivo, per
-identificare la competizione di cui si stanno mostrando i dati; questo
-progetto non e' affiliato ne' sponsorizzato da nessuno di loro, e i marchi
-restano dei rispettivi proprietari.
-
----
-
-## Cosa contiene
-
-| Strato | Cartella | Cosa fa |
-| --- | --- | --- |
-| 1. Ingestione | `src/football_analytics/ingest.py` | Scarica i JSON in `data/raw/`, in modo incrementale e ripartibile |
-| 2. Trasformazione | `src/football_analytics/transform.py` | Riduce gli eventi a Parquet compatti in `data/processed/` |
-| 3. Modello | `src/football_analytics/model.py` | Due modelli xG: base e con dati 360 |
-| 4. Dashboard | `app/` | Nove viste Streamlit, tema che cambia con la competizione |
-
-**La regola che governa l'architettura:** l'app non legge mai i dati grezzi,
-legge solo tabelle gia' preparate. Streamlit Community Cloud da' 1 GB di RAM, e
-caricare i JSON a ogni visita significherebbe un'app che muore al primo utente.
-
----
-
-## Installazione
+## Provalo
 
 Serve **Python 3.12** e **[uv](https://docs.astral.sh/uv/)**.
 
 ```bash
-git clone https://github.com/AVENA50/football-analytics.git
+git clone https://github.com/imadelmir/football-analytics.git
 cd football-analytics
 
-uv sync --all-extras      # crea .venv e installa le versioni bloccate da uv.lock
+uv sync --all-extras
+uv run streamlit run app/Panoramica.py
 ```
 
-Il file `uv.lock` blocca l'intero albero delle dipendenze, non solo quelle
-dirette: e' cio' che rende l'installazione identica su una macchina diversa.
-
-Verifica che tutto sia a posto:
-
-```bash
-uv run python -c "import football_analytics; print(football_analytics.__version__)"
-```
-
-## Controlli di qualita'
-
-```bash
-uv run ruff format .        # formatta
-uv run ruff check --fix .   # lint, con le correzioni automatiche
-uv run mypy                 # tipi, in modalita' strict
-uv run pytest               # test con misura della copertura
-```
-
-Gli stessi comandi girano in CI a ogni push e a ogni pull request, in due job
-separati: **Lint e tipi** e **Test**.
-
-### Se Windows blocca i comandi
-
-Su un sistema con **Smart App Control** o una policy WDAC attiva, comandi come
-`uv run mypy` o `uv run pytest` falliscono con
-`Un criterio di controllo dell'applicazione ha bloccato il file`.
-
-Non e' un problema del progetto: uv genera in `.venv\Scripts\` un piccolo
-eseguibile per ogni comando dichiarato da un pacchetto, e quei binari non sono
-firmati. **Vengono rigenerati a ogni `uv sync`**, quindi il blocco puo'
-ripresentarsi anche dopo essere stato aggirato una volta.
-
-La regola che li risolve tutti — invocare il **modulo**, non l'eseguibile:
-
-```powershell
-uv run python -m mypy
-uv run python -m pytest -m "not rete"
-uv run python -m nbconvert --to notebook --execute --inplace notebooks/esplorazione.ipynb
-uv run python -m jupyterlab
-```
-
-Funziona perche' gira `python.exe`, che e' una copia del Python ufficiale ed e'
-firmato. `ruff` invece va sempre: e' un unico binario Rust senza librerie da
-caricare.
-
-In piu' `mypy` viene distribuito compilato con mypyc, e quei binari sono
-bloccati anche quando li si importa. Serve costruirlo da sorgente, una volta
-sola:
-
-```powershell
-[System.Environment]::SetEnvironmentVariable('UV_NO_BINARY_PACKAGE','mypy','User')
-uv sync --all-extras --reinstall-package mypy
-```
-
-Se scrivi del Python direttamente nel terminale, usa una **here-string**:
-PowerShell non interpreta `\"` come escape e manderebbe all'interprete una
-stringa mai chiusa.
-
-```powershell
-@'
-import pandas as pd
-print(pd.read_parquet("data/processed/shots.parquet").shape)
-'@ | uv run python -
-```
+**Non serve scaricare niente.** Le sei tabelle Parquet che la dashboard legge
+sono nel repository: pesano 6,3 MB in tutto e l'app parte da un clone pulito.
+I 6,25 GB di JSON grezzi servono solo a rigenerarle.
 
 ---
 
-## Struttura
+## Le tre domande, e le risposte
 
-```
-football-analytics/
-├── src/football_analytics/   config, ingest, transform, features, model, metriche, viz
-├── scripts/                  build_dataset.py e train_model.py
-├── app/                      la dashboard Streamlit
-├── tests/                    test automatici, senza rete
-├── notebooks/                esplorazione (M4), fuori dal pacchetto
-├── data/raw/                 JSON scaricati — fuori da git
-├── data/processed/           Parquet — versionati, sono cio' che l'app legge
-├── models/                   xg_base.pkl e xg_360.pkl
-└── docs/milestones/          una relazione per ogni milestone conclusa
-```
-
----
-
-## Le competizioni
-
-Nove competizioni, 1.753 partite, divise per scopo. I conteggi sono **misurati**
-con `scripts/esplora_open_data.py`, non stimati: il piano iniziale ne assumeva
-altri e si e' rivelato sbagliato su meta' delle fonti — il racconto e' in
-[`docs/milestones/M2-ingestione.md`](docs/milestones/M2-ingestione.md).
-
-**Campionati 2015/16** — viste esplorative e modello base. Stessa stagione per
-tutti e quattro, cosi' il confronto fra leghe non confonde la differenza fra i
-campionati con quella fra le epoche.
-
-| Competizione | id | Partite | Dati 360 |
-| --- | --- | ---: | --- |
-| La Liga 2015/16 | 11, 27 | 380 | no |
-| Premier League 2015/16 | 2, 27 | 380 | no |
-| Serie A 2015/16 | 12, 27 | 380 | no |
-| Ligue 1 2015/16 | 7, 27 | 377 | no |
-
-**Tornei per nazionali** — competizioni complete, con in piu' i file 360 di
-contesto su quasi tutte le partite.
-
-| Competizione | id | Partite | File 360 |
-| --- | --- | ---: | ---: |
-| Coppa del Mondo 2022 | 43, 106 | 64 | 64 |
-| Coppa d'Africa 2023 | 1267, 107 | 52 | 1 |
-| Campionato Europeo 2024 | 55, 282 | 51 | 51 |
-| Campionato Europeo 2020 | 55, 43 | 51 | 51 |
-
-**Finali di Champions League** — 18 finali dal 1971 al 2019, `competition_id`
-16. Il modello vi viene **applicato**, non addestrato: escono da addestramento
-e verifica in `features.separa_applicazione`, prima della divisione e quindi
-prima che qualunque numero venga misurato.
-
-> Fino a M5-T9 questa sezione diceva «senza freeze frame», e non era vero: il
-> 99,8 % di quei tiri ce l'ha. Diceva anche che il modello vi veniva applicato
-> e non addestrato, mentre la divisione casuale per partita ne aveva messi 437
-> su 561 dentro l'addestramento. Entrambe le cose sono state corrette misurando,
-> non rileggendo.
-
-## Le tre domande
-
-Scelte dopo aver guardato i dati, non prima. Il ragionamento completo e' nel
+Scelte dopo aver guardato i dati, non prima. Il ragionamento è nel
 [notebook di esplorazione](notebooks/esplorazione.ipynb) e in
 [`docs/milestones/M4-esplorazione.md`](docs/milestones/M4-esplorazione.md).
 
 ### 1. Quanto vale sapere dove sono i difensori?
 
 Sui 41.179 tiri su azione, la conversione passa dal **38,9 %** con due
-avversari inquadrati al **7,2 %** con otto o piu' — un fattore cinque **a
-distanza di tiro quasi costante**, fra i 16 e i 18 metri. Non e' che con pochi
-difensori si tira da piu' vicino: si tira da lontano uguale e si segna molto
-di piu'.
+avversari inquadrati al **7,2 %** con otto o più — un fattore cinque **a
+distanza di tiro quasi costante**, fra i 16 e i 18 metri. Non è che con pochi
+difensori si tira da più vicino: si tira da lontano uguale e si segna molto
+di più.
 
-Due modelli addestrati sulle stesse partite, uno con le variabili ricavate dal
-fotogramma e uno senza, misurano quanto di quel segnale un modello riesce
-davvero a catturare.
+Quello è il segnale nei dati. La domanda vera è quanto un modello riesca a
+catturarne, e per rispondere se ne addestrano **due sulle stesse partite**:
+uno con le variabili ricavate dal fotogramma del tiro — difensori nel cono,
+distanza del portiere — e uno senza.
 
-**La risposta: +2,9 punti di guadagno sul Brier score**, da 16,3 % a 19,2 %
-rispetto a un modello che risponde sempre la media — cioe' **+18 % di capacita'
-esplicativa**. Il divario dall'xG di StatsBomb si riduce del 62 %.
+| Modello | Brier | AUC | Guadagno sul riferimento |
+| --- | ---: | ---: | ---: |
+| Riferimento (risponde sempre la media) | 0,08728 | 0,500 | 0,0 % |
+| Base — posizione, angolo, parte del corpo | 0,07305 | 0,799 | 16,3 % |
+| **Spaziale — in più il fotogramma del tiro** | **0,07050** | **0,819** | **19,2 %** |
+| xG ufficiale di StatsBomb | 0,06894 | 0,823 | 21,0 % |
 
-Il modello regge anche fuori campione: applicato alle **18 finali di Champions
-dal 1971 al 2019**, mai viste in addestramento, tiene il 18,2 % contro il
-19,2 % della verifica.
+**+2,9 punti**, cioè **+18 % di capacità esplicativa** — e il **62 %** della
+distanza che separava il modello base dall'xG di StatsBomb.
+
+**Regge fuori dal campione.** Applicato alle 18 partite delle finali di
+Champions, escluse dall'addestramento *e* dalla verifica, il modello spaziale
+tiene il **18,2 %** contro il 19,2 % della verifica, mentre il base scende dal
+16,3 % al 13,0 %: fuori campione il fotogramma conta di più, non di meno.
 
 I numeri escono da `scripts/train_model.py` e stanno in
-[`docs/milestones/M5-risultati.md`](docs/milestones/M5-risultati.md). Non sono
-ricopiati a mano da nessuna parte.
+[`docs/milestones/M5-risultati.md`](docs/milestones/M5-risultati.md), che il
+comando riscrive. **Non sono ricopiati a mano da nessuna parte.**
 
-### 2. Chi segna piu' di quanto dovrebbe, e per quanto tempo?
+### 2. Chi segna più di quanto dovrebbe, e per quanto tempo?
 
-La differenza fra gol e xG e' la misura piu' fraintesa del calcio analitico: su
-un giocatore e mezza stagione e' quasi solo fortuna. Su 43.849 tiri si puo'
-guardare quanto quello scarto persista davvero.
+La differenza fra gol e xG è la misura più fraintesa del calcio analitico: su
+un giocatore e mezza stagione è quasi solo rumore. Su 43.849 tiri si può
+guardare quanto quello scarto persista davvero — e la dashboard lo mostra
+senza chiamarlo mai né bravura né fortuna.
 
-La soglia dei 500 minuti non e' cosmetica — senza, il miglior marcatore per
-novanta minuti e' sempre uno entrato al 90°.
+La soglia dei 500 minuti non è cosmetica: senza, il miglior marcatore per
+novanta minuti è sempre uno entrato al 90°.
 
 ### 3. Le leghe giocano davvero in modo diverso?
 
 Si somigliano nei gol — da 2,52 a 2,74 per partita — ma non nel modo di
-arrivarci: **Serie A e Premier tirano di piu' della Liga e producono meno xG**.
-Si tira di piu' da posizioni peggiori.
+arrivarci: **Serie A e Premier tirano di più della Liga e producono meno xG.**
+Si tira di più da posizioni peggiori.
 
 Quattro campionati della **stessa stagione** permettono di dirlo senza che
 l'epoca faccia da variabile nascosta.
 
-### La domanda che regge il progetto
+---
 
-> **Quanto vale, davvero, sapere dove sono i difensori?**
+## Com'è fatto
 
-Si addestrano **due modelli** sulle stesse identiche partite: uno con le
-variabili ricavate dal fotogramma del tiro — difensori nel cono, distanza del
-portiere — e uno senza. La differenza fra i loro punteggi, misurata sullo
-stesso insieme di verifica, e' la risposta.
+Quattro strati, e una regola che li tiene separati.
 
-Il piano prevedeva di poterlo fare su poche centinaia di partite. Si e' poi
-scoperto che `shot.freeze_frame` — la posizione di ogni giocatore al momento
-del tiro, **dentro l'evento** — e' presente nel 95-99 % dei tiri di tutte le
-competizioni, campionati del 2015/16 compresi. Il confronto gira quindi su
-circa 44.000 tiri invece di 5.500.
+| Strato | Dove | Cosa fa |
+| --- | --- | --- |
+| 1. Ingestione | `src/football_analytics/ingest.py` | Scarica i JSON in `data/raw/`, in modo incrementale e ripartibile |
+| 2. Trasformazione | `src/football_analytics/transform.py` | Riduce gli eventi a sei Parquet compatti in `data/processed/` |
+| 3. Modello | `src/football_analytics/model.py` | I due modelli xG, base e spaziale, con divisione per partita |
+| 4. Dashboard | `app/` | Sette viste Streamlit, tema che cambia con la competizione |
 
-E' una cosa diversa dai file `three-sixty/`, che coprono tutti gli eventi della
-partita ma non riportano nomi ne' ruoli. Il dettaglio e' in
-[`docs/milestones/M3-trasformazione.md`](docs/milestones/M3-trasformazione.md).
+**La regola: l'app non legge mai i dati grezzi.** Streamlit Community Cloud dà
+1 GB di RAM, e caricare i JSON a ogni visita significherebbe un'app che muore
+al primo utente. La lettura dal disco avviene in un solo file (`app/dati.py`),
+è in cache, e un test conta le letture per dimostrarlo invece di dedurlo.
 
-## Stato dello scaricamento
-
-Generato da `data/raw/manifest.json`, che l'ingestione aggiorna da sola.
-Rigenerabile con `uv run python scripts/scarica_dati.py --riepilogo`.
-
-| Competizione | Gruppo | Partite | File 360 | Peso |
-| --- | --- | ---: | ---: | ---: |
-| La Liga 2015/2016 | campionato | 380 | 0 | 1.076 MB |
-| Premier League 2015/2016 | campionato | 380 | 0 | 1.083 MB |
-| Serie A 2015/2016 | campionato | 380 | 0 | 1.111 MB |
-| Ligue 1 2015/2016 | campionato | 377 | 0 | 1.115 MB |
-| Coppa del Mondo 2022 | torneo | 64 | 64 | 630 MB |
-| Coppa d'Africa 2023 | torneo | 52 | 1 | 134 MB |
-| Campionato Europeo 2024 | torneo | 51 | 51 | 535 MB |
-| Campionato Europeo 2020 | torneo | 51 | 51 | 517 MB |
-| Finali di Champions League | finali | 18 | 0 | 54 MB |
-| **Totale** | | **1.753** | **167** | **6.255 MB** |
-
-Lo scaricamento e' incrementale e ripartibile: rilanciarlo su dati gia' presenti
-non produce nessuna richiesta di contenuto e termina in meno di un secondo.
-Da zero richiede circa dieci minuti e **6,25 GB** di spazio libero.
-
-```bash
-uv run python scripts/scarica_dati.py --tutte           # tutto
-uv run python scripts/scarica_dati.py --gruppo torneo   # solo un gruppo
-uv run python scripts/scarica_dati.py --riepilogo       # rigenera questa tabella
+```
+football-analytics/
+├── src/football_analytics/   config, ingest, transform, features, model, metriche, viz…
+├── scripts/                  scarica_dati.py, build_dataset.py, train_model.py
+├── app/                      la dashboard: Panoramica.py + pages/
+├── tests/                    oltre 500 test, senza rete
+├── notebooks/                esplorazione (M4), fuori dal pacchetto
+├── data/raw/                 JSON scaricati — fuori da git, 6,25 GB
+├── data/processed/           sei Parquet, 6,3 MB — versionati, sono ciò che l'app legge
+├── models/                   xg_base e xg_360, .pkl e scheda .json
+└── docs/milestones/          una relazione per ogni milestone conclusa
 ```
 
-Poi il magazzino:
+### La divisione dei dati
 
-```bash
-uv run python scripts/build_dataset.py
-```
+Train e test sono separati **per partita**, mai per tiro: due tiri della stessa
+partita condividono avversario, campo e arbitro, e finire uno di qua e uno di
+là gonfierebbe il punteggio senza che nessuna metrica se ne accorga.
 
-I numeri del modello (log loss, Brier score, AUC, scarto dall'xG di StatsBomb)
-compariranno qui quando M5 sara' conclusa. Non prima: in questo repository non
-si scrivono numeri che non siano stati misurati.
+- **Addestramento:** 34.160 tiri su 1.388 partite
+- **Verifica:** 8.425 tiri su 347 partite, mai viste
+- **Applicazione:** 560 tiri su 18 partite di Champions, fuori da entrambi
+
+La scelta fra classi di modello si fa in validazione incrociata raggruppata,
+dove l'insieme di verifica non entra. Il test si guarda **una volta sola**,
+alla fine. E l'accuratezza non compare mai: su un evento che accade nel 9,7 %
+dei casi, rispondere sempre «no gol» dà il 90 % di accuratezza e zero
+informazione.
 
 ---
+
+## Le competizioni
+
+Nove competizioni, 1.753 partite. I conteggi sono **misurati** con
+`scripts/esplora_open_data.py`, non stimati: il piano iniziale ne assumeva
+altri e si è rivelato sbagliato su metà delle fonti — il racconto è in
+[`docs/milestones/M2-ingestione.md`](docs/milestones/M2-ingestione.md).
+
+**Quattro campionati, stagione 2015/16** — la stessa stagione per tutti, così
+il confronto fra leghe non scambia la differenza fra i campionati con quella
+fra le epoche.
+
+| Competizione | Partite | File 360 |
+| --- | ---: | ---: |
+| La Liga 2015/16 | 380 | 0 |
+| Premier League 2015/16 | 380 | 0 |
+| Serie A 2015/16 | 380 | 0 |
+| Ligue 1 2015/16 | 377 | 0 |
+
+**Tornei per nazionali** — competizioni complete, con in più i file 360 di
+contesto su quasi tutte le partite.
+
+| Competizione | Partite | File 360 |
+| --- | ---: | ---: |
+| Coppa del Mondo 2022 | 64 | 64 |
+| Campionato Europeo 2024 | 51 | 51 |
+| Campionato Europeo 2020 | 51 | 51 |
+| Coppa d'Africa 2023 | 52 | 1 |
+
+**Finali di Champions League** — 18 partite dal 1971 al 2019, di cui **17
+finali vere**: la diciottesima è Fiorentina–Manchester United del 1999, una
+partita di girone che l'Open Data tiene nella stessa competizione ed è filtrata
+per fase in tutte le viste.
+
+### 360 e fotogramma del tiro sono due cose diverse
+
+Vale la pena dirlo, perché è la distinzione su cui questo progetto ha sbagliato
+una volta e l'errore è arrivato fino a `main`.
+
+I file `three-sixty/` coprono **tutti gli eventi** della partita e nei
+campionati non ci sono. Il `shot.freeze_frame` è **dentro l'evento del tiro**,
+dà la posizione di ogni giocatore in quell'istante, e c'è sul **99 %** dei
+tiri di tutte le competizioni, campionati del 2015/16 compresi.
+
+Il modello spaziale legge il **secondo**, non il primo. È per questo che il
+confronto gira su circa 44.000 tiri invece che su 5.500. Il dettaglio è in
+[`docs/milestones/M3-trasformazione.md`](docs/milestones/M3-trasformazione.md).
+
+---
+
+## Le schermate
+
+Sette viste, tutte raggiungibili dal menu. Le immagini a piena risoluzione sono
+in [`docs/immagini/m6/`](docs/immagini/m6/).
+
+| | |
+| --- | --- |
+| **Squadre** — classifica, xG, scarto | **Giocatori** — radar per reparto |
+| ![Squadre](docs/immagini/m6/squadre.png) | ![Giocatori](docs/immagini/m6/giocatori.png) |
+| **Modello xG** — calibrazione e pesi | **Metodologia** — la catena del dato |
+| ![Modello](docs/immagini/m6/modello.png) | ![Metodologia](docs/immagini/m6/metodologia.png) |
+
+Il tema cambia con la competizione: verde per i campionati, blu per le finali
+di Champions. Non è decorazione — è il segnale che i dati sotto sono cambiati.
+
+| Serie A | Finali di Champions |
+| --- | --- |
+| ![Tema campionato](docs/immagini/m6/tema-serie-a.png) | ![Tema Champions](docs/immagini/m6/tema-champions.png) |
+
+---
+
+## I limiti
+
+La dashboard ne dichiara **undici** nella pagina Metodologia, scritti in
+`src/football_analytics/metodo.py`. I quattro che cambiano come si leggono i
+numeri:
+
+- **L'xG mostrato nelle viste è quello di StatsBomb, non il nostro.** I due
+  modelli servono a capire come si costruisce un xG e quanto vale il
+  fotogramma, non a sostituire quello ufficiale, addestrato su molti più dati.
+  Solo la vista «Modello xG» mostra i nostri.
+- **L'albo d'oro non è quello della Champions League.** Diciassette finali su
+  oltre settanta edizioni: qui il Liverpool risulta con due coppe invece di
+  sei.
+- **Le finali non sono una serie storica.** Tre sono del 1971-73 e quattordici
+  del 2004-2019; fra il 1974 e il 2003 non c'è niente. Nessun confronto fra
+  epoche, in nessuna vista.
+- **Un xG non prevede una partita.** Dice quanto valevano le occasioni create,
+  a cose fatte. Una squadra con più xG non era destinata a vincere: aveva
+  tirato da posizioni migliori.
+
+---
+
+## Attribuzione dei dati
+
+Questo progetto usa **[StatsBomb Open Data](https://github.com/statsbomb/open-data)**,
+resi disponibili gratuitamente da StatsBomb. La citazione della fonte è una
+**condizione d'uso**, non una cortesia: compare qui, nel piede di ogni pagina
+della dashboard e nella pagina Metodologia.
+
+I dati sono soggetti alla licenza pubblicata nel repository di StatsBomb.
+
+**Nessuno stemma di club e nessuna fotografia di agenzia è usato in questo
+progetto:** al posto degli stemmi c'è la sigla della squadra in un cerchio,
+generata dal nome.
+
+I **loghi delle competizioni** in `app/assets/loghi/` sono invece presenti, e
+sono marchi registrati dei rispettivi titolari — UEFA, FIFA, CAF, LaLiga, Lega
+Serie A, Premier League, LFP. Compaiono a titolo puramente descrittivo, per
+identificare la competizione di cui si stanno mostrando i dati; questo progetto
+non è affiliato né sponsorizzato da nessuno di loro, e i marchi restano dei
+rispettivi proprietari.
+
+---
+
+## Sviluppo
+
+```bash
+uv run ruff format .        # formatta
+uv run ruff check --fix .   # lint, con le correzioni automatiche
+uv run mypy                 # tipi, in modalità strict
+uv run pytest               # test, con misura della copertura
+```
+
+Gli stessi comandi girano in CI a ogni push e a ogni pull request, in due job
+separati: **Lint e tipi** e **Test**. Il file `uv.lock` blocca l'intero albero
+delle dipendenze, non solo quelle dirette: è ciò che rende l'installazione
+identica su una macchina diversa.
+
+Per rigenerare i dati da zero — dieci minuti e 6,25 GB di spazio libero:
+
+```bash
+uv run python scripts/scarica_dati.py --tutte   # i JSON in data/raw/
+uv run python scripts/build_dataset.py          # i sei Parquet
+uv run python scripts/train_model.py            # i modelli e M5-risultati.md
+```
+
+Su Windows con Smart App Control attivo alcuni comandi vengono bloccati:
+la spiegazione e la soluzione sono in [`docs/windows.md`](docs/windows.md).
+
+## Come è stato costruito
+
+Otto milestone, ognuna chiusa con la sua relazione — quanto è stato misurato,
+cosa si è rotto e perché, cosa è stato deciso di non fare. L'indice con tutti i
+numeri chiave è in
+[`docs/milestones/README.md`](docs/milestones/README.md).
+
+| | | |
+| --- | --- | --- |
+| [M1 — Fondamenta](docs/milestones/M1-fondamenta.md) | [M2 — Ingestione](docs/milestones/M2-ingestione.md) | [M3 — Trasformazione](docs/milestones/M3-trasformazione.md) |
+| [M4 — Esplorazione](docs/milestones/M4-esplorazione.md) | [M5 — Modello xG](docs/milestones/M5-modello-xg.md) | [M6 — Dashboard](docs/milestones/M6-dashboard.md) |
+
+> **Stato:** M6 conclusa, M7 (pubblicazione) in corso.
 
 ## Licenza
 
