@@ -169,7 +169,11 @@ testpaths = ["tests"]
 # quindi bastava che un test di pagina fosse girato prima. In CI quei test sono
 # saltati — il magazzino non c'e' fino a M7-T1 — e sette test sono morti con
 # ``ModuleNotFoundError``. Sulla macchina di sviluppo passavano tutti.
-pythonpath = ["src", "app"]
+# `scripts` accanto agli altri due da M7-T5: `misura_memoria.py` contiene le
+# funzioni che misurano il magazzino in memoria, e un misuratore non verificato
+# non e' una misura. I nomi dei file di `scripts/` sono distinti da quelli di
+# `src/` e `app/`, quindi non si oscurano a vicenda.
+pythonpath = ["src", "app", "scripts"]
 addopts = [
   "-ra",
   "--strict-markers",
