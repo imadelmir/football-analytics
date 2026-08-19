@@ -1416,6 +1416,80 @@ scelta. **Fra i due, quello da temere e' il secondo.**
 
 ---
 
+## M8 — Portfolio
+
+### 2026-08-19 · M8-T5 · ho sovrascritto un file funzionante
+
+**Cosa:** ho concluso che la pagina di dettaglio dei progetti non esistesse nel
+portfolio, l'ho fatto notare come un difetto grave — «tutto il frontmatter
+ricco non lo legge nessuno» — ho chiesto se costruirla, e l'ho scritta
+sovrascrivendo quella vera.
+
+**Come si e' capito:** da `git status`, che mostrava ` M` invece di `??`. Un
+file non tracciato e' nuovo; un file modificato c'era gia'. Nella stessa
+cartella stavano anche `loading.tsx` e `opengraph-image.tsx`, che da soli
+dicevano che quella rotta era abitata.
+
+**La causa:** avevo cercato le rotte con
+`find src/app -maxdepth 4 -name "page.tsx"`. Il percorso vero,
+`[locale]/(site)/projects/[slug]/page.tsx`, sta a profondita' **cinque**.
+
+**Risolto:** `git checkout --` sul file. Niente perso, ma solo perche' era
+committato.
+
+**Cosa insegna:** il `maxdepth` sbagliato e' un refuso e non e' l'errore.
+L'errore e' aver trattato **«non l'ho trovato» come «non c'e'»**, e averci poi
+costruito sopra tre paragrafi di diagnosi convincente, una domanda a scelta
+multipla e un file intero. Nessuno dei passaggi successivi ha rimesso in
+discussione la premessa, perche' ognuno tornava coerente con quello prima.
+
+Due regole operative: **una ricerca che non trova qualcosa e' un'informazione
+sulla ricerca, non sul progetto**; e prima di scrivere un file bisogna sapere
+se esiste — `git status` lo dice in due caratteri, e `Write` non lo chiede.
+
+Il file originale, per inciso, era migliore del mio: non dichiara `image` nei
+metadati, perche' accanto c'e' un `opengraph-image.tsx` che quella
+dichiarazione sovrascriverebbe. Un dettaglio della piattaforma che avevo
+ignorato mentre riscrivevo il lavoro di qualcun altro.
+
+### 2026-08-19 · M8 · lo stesso errore, in piccolo, tre ore prima
+
+**Cosa:** avevo trovato `AVENA50` nel `site.ts` del portfolio e l'avevo
+segnalato come un residuo, per analogia con il badge sbagliato che avevo
+corretto nel README a M7-T4.
+
+**Come si e' capito:** leggendo `.git/config` del portfolio. Il repository e'
+`AVENA50/Portfolio-imad-el-mir`: quel nome li' e' **corretto**, ed e' il
+progetto football-analytics a stare su un altro account.
+
+**Cosa insegna:** e' la versione piccola dell'inciampo qui sopra — una
+conclusione tratta da una somiglianza invece che da una verifica. Costava una
+riga di `grep` sul file di configurazione, e l'ho fatta solo dopo aver gia'
+detto la cosa sbagliata. La segnalazione utile restava (i due account
+raccontano storie diverse a chi visita il portfolio), ma la diagnosi era
+rovesciata.
+
+### 2026-08-19 · M8-T2 · la copertina sforava il tetto che avevo appena imposto
+
+**Cosa:** la prima copertina 16:9 ricavata dalla Home pesava **345 KB**, contro
+il criterio di 200 KB che M8-T1 impone a ogni immagine della cartella.
+
+**Come si e' capito:** stampando il peso invece di dare per buono che un
+ritaglio pesasse meno dell'originale. Il ritaglio toglie pixel ma
+l'ingrandimento a 1600×900 li rimette, e la PNG a colori pieni non e' la stessa
+cosa delle schermate gia' quantizzate da cui partivo.
+
+**Risolto:** la stessa quantizzazione a 256 colori usata per le altre — 345 KB
+diventano **125 KB** senza perdita visibile, perche' l'interfaccia ha poche
+tinte piatte.
+
+**Cosa insegna:** avevo applicato il tetto alle dieci schermate e non alla
+copertina, che stava nella stessa cartella e sotto la stessa regola. Un criterio
+che vale «per ogni immagine» va verificato su ogni immagine, compresa quella
+aggiunta dopo — ed e' esattamente il momento in cui non lo si fa.
+
+---
+
 <!--
 Le milestone successive aggiungono qui la loro sezione.
 Almeno un'annotazione per milestone: e' il criterio di M7-T6.

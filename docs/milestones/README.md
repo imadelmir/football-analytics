@@ -1,5 +1,32 @@
 # Relazioni di milestone
 
+## Il progetto in due minuti
+
+**Domanda:** quanto vale, davvero, sapere dove sono i difensori quando parte un
+tiro?
+
+**Metodo:** due modelli di expected goals addestrati sulle **stesse identiche
+partite** — uno che legge il fotogramma del tiro e uno no — su 43.849 tiri di
+StatsBomb Open Data, con divisione train/test sempre per partita e mai per
+tiro.
+
+**Risposta:** vedere difensori e portiere vale **+2,9 punti di Brier score**
+(16,3 % → 19,2 % di guadagno sul riferimento), cioè il **62 %** della distanza
+che separava il modello base dall'xG ufficiale di StatsBomb. E regge fuori dal
+campione: sulle finali di Champions, mai viste, il modello spaziale tiene il
+18,2 % mentre il base scende al 13,0 %.
+
+**Cosa esiste adesso:** una pipeline in quattro strati, sei tabelle Parquet da
+6,3 MB versionate nel repository, due modelli addestrati, una
+[dashboard pubblica](https://football-analytics-imadelmir.streamlit.app) a sette
+viste, 703 test automatici con copertura del 94 %, otto relazioni di milestone,
+cinquanta annotazioni sugli inciampi e un case study bilingue nel portfolio.
+
+**Quanto è durato:** dal 7 al 19 agosto 2026, tredici giorni, otto milestone,
+sessantaquattro task.
+
+---
+
 Ogni milestone si chiude con il suo file. Non è documentazione di cortesia:
 l'ultimo task di ciascuna milestone è esattamente questo, e **la milestone non
 è completa finché il file non esiste**.
@@ -22,7 +49,7 @@ più.
 | M5 | Modello xG | 12 | 🟢 conclusa | [M5-modello-xg.md](M5-modello-xg.md) |
 | M6 | Dashboard | 14 | 🟢 conclusa | [M6-dashboard.md](M6-dashboard.md) |
 | M7 | Pubblicazione | 7 | 🟢 conclusa | [M7-pubblicazione.md](M7-pubblicazione.md) |
-| M8 | Portfolio | 6 | ⚪ da fare | — |
+| M8 | Portfolio | 6 | 🟢 conclusa | [M8-portfolio.md](M8-portfolio.md) |
 
 Legenda: ⚪ da fare · 🟡 in corso · 🟢 conclusa
 
@@ -72,6 +99,12 @@ ricalcolano a mano.
 | Margine sul tetto di Streamlit Cloud | 791 MB | M7 |
 | Annotazioni in `NOTES.md` | 50, su sette milestone | M7 |
 | Autogol, che non sono tiri di nessuno | 156 | M7 |
+| Schermate nel case study | 10 convertite, 6 in pagina | M8 |
+| Peso delle schermate | 677 KB — 59 % in meno delle PNG | M8 |
+| Copertina | 1600×900, 125 KB | M8 |
+| Campi condivisi fra italiano e inglese | 7 su 7 identici | M8 |
+| Lingue del case study | 2 | M8 |
+| Annotazioni in `NOTES.md` | 53, su otto milestone | M8 |
 
 > **Il conteggio dei test è di M7, non di M6.** Alla chiusura di M6 non era
 > stato annotato, e ricostruirlo sottraendo i test aggiunti dopo darebbe un

@@ -272,7 +272,7 @@ def test_il_diario_ha_un_annotazione_per_ogni_milestone_conclusa() -> None:
     sezioni = re.split(r"^## ", diario, flags=re.MULTILINE)[1:]
     annotazioni = {blocco.split(" ", 1)[0].strip(): blocco.count("\n### ") for blocco in sezioni}
 
-    mute = [nome for nome in [*concluse, "M7"] if annotazioni.get(nome, 0) == 0]
+    mute = [nome for nome in concluse if annotazioni.get(nome, 0) == 0]
 
     assert mute == [], f"milestone senza annotazioni in NOTES.md: {mute}. Trovate: {annotazioni}"
 
