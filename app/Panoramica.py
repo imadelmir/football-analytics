@@ -233,7 +233,7 @@ def grafici(
                 viz.ciambella(
                     quota,
                     f"{quota:.1%}".replace(".", ","),
-                    f"{numero(numeri['gol'])} gol / {numero(numeri['xg'])} xG",
+                    f"{numero(numeri['gol_da_tiro'])} gol / {numero(numeri['xg'])} xG",
                     tema,
                     altezza=165,
                 ),
