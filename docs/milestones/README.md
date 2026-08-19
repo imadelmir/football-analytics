@@ -21,7 +21,7 @@ più.
 | M4 | Esplorazione | 3 | 🟢 conclusa | [M4-esplorazione.md](M4-esplorazione.md) |
 | M5 | Modello xG | 12 | 🟢 conclusa | [M5-modello-xg.md](M5-modello-xg.md) |
 | M6 | Dashboard | 14 | 🟢 conclusa | [M6-dashboard.md](M6-dashboard.md) |
-| M7 | Pubblicazione | 7 | ⚪ da fare | — |
+| M7 | Pubblicazione | 7 | 🟢 conclusa | [M7-pubblicazione.md](M7-pubblicazione.md) |
 | M8 | Portfolio | 6 | ⚪ da fare | — |
 
 Legenda: ⚪ da fare · 🟡 in corso · 🟢 conclusa
@@ -66,7 +66,17 @@ ricalcolano a mano.
 | Letture dal disco per sessione | 1 per tabella | M6 |
 | Limiti dichiarati in pagina | 11 | M6 |
 | Verifiche citate con il proprio test | 10 | M6 |
-| Test automatici | *da compilare a fine M6* | M6 |
+| Test automatici | 703, copertura 94 % | M7 |
+| Peso del magazzino in memoria | 49,6 MB — 7,9× il Parquet | M7 |
+| Processo con il magazzino letto | 231 MB su 1.024 di tetto | M7 |
+| Margine sul tetto di Streamlit Cloud | 791 MB | M7 |
+| Annotazioni in `NOTES.md` | 50, su sette milestone | M7 |
+| Autogol, che non sono tiri di nessuno | 156 | M7 |
+
+> **Il conteggio dei test è di M7, non di M6.** Alla chiusura di M6 non era
+> stato annotato, e ricostruirlo sottraendo i test aggiunti dopo darebbe un
+> numero calcolato invece che misurato. Vale la regola di sempre: si scrive
+> quando è stato preso.
 
 > I valori vengono da [`M5-risultati.md`](M5-risultati.md), generato da
 > `scripts/train_model.py`. Sono stati rigenerati a M5-T9, quando le finali

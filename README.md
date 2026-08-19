@@ -4,6 +4,9 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Licenza MIT](https://img.shields.io/badge/licenza-MIT-green.svg)](LICENSE)
+[![Dashboard online](https://img.shields.io/badge/dashboard-online-15803d.svg)](https://football-analytics-imadelmir.streamlit.app)
+
+### → **[Apri la dashboard](https://football-analytics-imadelmir.streamlit.app)**
 
 **Quanto vale, davvero, sapere dove sono i difensori quando parte un tiro?**
 Questo progetto risponde misurando: 43.849 tiri di StatsBomb, due modelli di
@@ -24,7 +27,7 @@ fotogramma del tiro e uno no — e una dashboard per guardarci dentro.
 | **La risposta** | Vedere difensori e portiere vale **+2,9 punti di Brier score** (16,3 % → 19,2 % di guadagno sul riferimento), e colma il **62 %** del divario dall'xG ufficiale di StatsBomb |
 | **I dati** | 9 competizioni, 1.753 partite, **43.849 tiri**, 4.578 gol — 6,25 GB di JSON ridotti a **6,3 MB** di Parquet |
 | **La dashboard** | 7 viste Streamlit, tema che cambia con la competizione, nessuna lettura dei dati grezzi |
-| **Il codice** | Tipizzato in `mypy --strict`, lint `ruff`, oltre 500 test automatici, CI su ogni push |
+| **Il codice** | Tipizzato in `mypy --strict`, lint `ruff`, **oltre 700 test** con copertura del 94 %, CI su ogni push |
 
 ## Provalo
 
@@ -124,7 +127,7 @@ football-analytics/
 ├── src/football_analytics/   config, ingest, transform, features, model, metriche, viz…
 ├── scripts/                  scarica_dati.py, build_dataset.py, train_model.py
 ├── app/                      la dashboard: Panoramica.py + pages/
-├── tests/                    oltre 500 test, senza rete
+├── tests/                    oltre 700 test, senza rete
 ├── notebooks/                esplorazione (M4), fuori dal pacchetto
 ├── data/raw/                 JSON scaricati — fuori da git, 6,25 GB
 ├── data/processed/           sei Parquet, 6,3 MB — versionati, sono ciò che l'app legge
@@ -300,8 +303,13 @@ numeri chiave è in
 | --- | --- | --- |
 | [M1 — Fondamenta](docs/milestones/M1-fondamenta.md) | [M2 — Ingestione](docs/milestones/M2-ingestione.md) | [M3 — Trasformazione](docs/milestones/M3-trasformazione.md) |
 | [M4 — Esplorazione](docs/milestones/M4-esplorazione.md) | [M5 — Modello xG](docs/milestones/M5-modello-xg.md) | [M6 — Dashboard](docs/milestones/M6-dashboard.md) |
+| [M7 — Pubblicazione](docs/milestones/M7-pubblicazione.md) | | |
 
-> **Stato:** M6 conclusa, M7 (pubblicazione) in corso.
+Il diario degli inciampi è in [`NOTES.md`](NOTES.md): cinquanta annotazioni su
+cosa si è rotto, come si è capito e cosa ha insegnato. È la parte che un
+lettore tecnico guarda per capire come si è lavorato, non solo cosa è uscito.
+
+> **Stato:** M7 conclusa, M8 (portfolio) da fare.
 
 ## Licenza
 

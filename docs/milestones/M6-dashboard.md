@@ -348,7 +348,7 @@ fallimento arriva adesso invece che al prossimo aggiornamento.
 | Durata massima di un'animazione | 220 ms | variabili CSS, con un test che le tiene sotto 300 |
 | Limiti dichiarati in Metodologia | 11 | `metodo.LIMITI` |
 | Verifiche citate con il loro test | 10 | `metodo.VERIFICHE`, nessuna orfana |
-| Test automatici | *da compilare* | `uv run python -m pytest -q -m "not rete"` |
+| Test automatici | 703 — misurati a M7 | `uv run python -m pytest -q -m "not rete"` |
 
 ---
 
