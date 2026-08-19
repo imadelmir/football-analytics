@@ -249,6 +249,34 @@ def test_requirements_installa_anche_il_pacchetto() -> None:
     assert assoluti == [], f"percorsi della macchina di sviluppo in requirements.txt: {assoluti}"
 
 
+def test_il_diario_ha_un_annotazione_per_ogni_milestone_conclusa() -> None:
+    """Il criterio di M7-T6, verificato invece che dichiarato.
+
+    ``NOTES.md`` diventa la sezione «learnings» del case study, ed e' la parte
+    che distingue un case study da una brochure. Una milestone senza
+    annotazioni non vuol dire che sia filata liscia: vuol dire che nessuno ha
+    scritto cosa e' andato storto, e chi legge non puo' distinguere i due casi.
+
+    La lista delle milestone non e' scritta qui: si ricava dall'indice in
+    ``docs/milestones/README.md``, che si aggiorna a ogni chiusura perche' e'
+    l'ultimo task di ognuna. Chiudere M8 senza annotarne gli inciampi fara'
+    fallire questo test senza che nessuno debba ricordarsene.
+    """
+    import re  # noqa: PLC0415
+
+    milestone = config.PROJECT_ROOT / "docs" / "milestones" / "README.md"
+    concluse = re.findall(r"\| (M\d) \|[^|]*\|[^|]*\| 🟢", milestone.read_text(encoding="utf-8"))
+    assert concluse, "l'indice non segna nessuna milestone conclusa"
+
+    diario = (config.PROJECT_ROOT / "NOTES.md").read_text(encoding="utf-8")
+    sezioni = re.split(r"^## ", diario, flags=re.MULTILINE)[1:]
+    annotazioni = {blocco.split(" ", 1)[0].strip(): blocco.count("\n### ") for blocco in sezioni}
+
+    mute = [nome for nome in [*concluse, "M7"] if annotazioni.get(nome, 0) == 0]
+
+    assert mute == [], f"milestone senza annotazioni in NOTES.md: {mute}. Trovate: {annotazioni}"
+
+
 def test_requirements_non_porta_dentro_gli_strumenti_di_sviluppo() -> None:
     """Streamlit Cloud non ha bisogno di jupyterlab, mypy e pytest.
 

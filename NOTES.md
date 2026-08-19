@@ -612,7 +612,7 @@ e' una soglia che prima o poi verra' allentata a caso.
 
 ---
 
-## M5-T4 — Avevo silenziato mypy invece di ascoltarlo
+### M5-T4 — Avevo silenziato mypy invece di ascoltarlo
 
 **Il sintomo:** sette errori tutti uguali, `Unused "type: ignore" comment`, in
 `tests/test_modello.py`.
@@ -634,7 +634,7 @@ dichiarato era sbagliato, non che mypy fosse pedante. Il fatto che sia stato
 mypy stesso a farmele notare, quando sono diventate inutili, e' il motivo per
 cui `warn_unused_ignores` va tenuto acceso.
 
-## M5-T4 — Il numero che dice se il modello e' calibrato
+### M5-T4 — Il numero che dice se il modello e' calibrato
 
 **Non e' un problema, e' il primo risultato del progetto**, ma vale la pena
 annotarlo perche' conferma una scelta fatta al buio settimane fa.
@@ -663,7 +663,7 @@ generale. Dipende da cosa deve produrre il modello: un'etichetta o un numero.
 La domanda «cosa mi serve in uscita» va fatta prima di scegliere gli
 iperparametri, non dopo aver guardato le metriche.
 
-## M5-T4 — Un Brier score da solo non vuol dire niente
+### M5-T4 — Un Brier score da solo non vuol dire niente
 
 **Il sintomo:** il modello dava Brier 0,0739 e StatsBomb 0,0686. Stavo per
 scrivere «siamo vicini» senza sapere cosa volesse dire vicini.
@@ -690,7 +690,7 @@ stupido possibile. E' l'unica cosa che trasforma un numero in
 un'informazione — e nel caso del Brier score il modello stupido e' bravissimo,
 perche' rispondere sempre «quasi mai» su un evento raro e' quasi sempre giusto.
 
-## M5-T5 — Ho scritto un numero che non avevo calcolato
+### M5-T5 — Ho scritto un numero che non avevo calcolato
 
 **Il sintomo:** nella tabella di M5-T4 il log loss del modello di riferimento
 era **0,31703**. Il valore vero e' **0,31418**.
@@ -716,7 +716,7 @@ accorgersene. La regola operativa e' piu' semplice del principio: **se un
 numero ha una formula, la formula va nel codice**, anche quando e' cosi'
 elementare che sembra piu' veloce farla a mente. Soprattutto allora.
 
-## M5-T5 — La terza soglia scritta senza derivarla
+### M5-T5 — La terza soglia scritta senza derivarla
 
 **Il sintomo:** il test che verifica la previsione registrata — «gli alberi
 battono la logistica su una relazione a U» — chiedeva agli alberi un guadagno
@@ -746,7 +746,7 @@ Vale anche per i dati veri: il 14,2 % del modello base non e' su 100, e' su un
 massimo che non conosciamo. Il numero utile e' il 70 % di StatsBomb, che e' il
 miglior tetto misurabile che abbiamo.
 
-## M5-T5 — Misurare la calibrazione nel posto sbagliato
+### M5-T5 — Misurare la calibrazione nel posto sbagliato
 
 **Il sintomo:** `test_gli_alberi_restano_calibrati` falliva con uno scarto di
 **-0,056**, dieci volte la soglia. Sembrava che il gradient boosting fosse
@@ -791,7 +791,7 @@ C'e' anche una conseguenza pratica per M5-T6: il confronto fra modello base e
 modello 360 deve avvenire **sullo stesso identico insieme di verifica**, o la
 differenza misurata sara' in parte quella fra due divisioni.
 
-## M5-T5 — La previsione registrata era giusta, ma per difetto
+### M5-T5 — La previsione registrata era giusta, ma per difetto
 
 **Non e' un problema: e' il risultato del task**, e vale la pena scriverlo
 perche' e' negativo.
@@ -838,7 +838,7 @@ correttamente in validazione incrociata, ma il punteggio in CV della logistica
 non l'ho registrato — quindi la conclusione e' giusta ma dimostrata nel posto
 sbagliato. Va colmato prima della relazione finale di M5.
 
-## M5-T6 — La previsione registrata era sbagliata, e l'ho scoperto perche' era scritta
+### M5-T6 — La previsione registrata era sbagliata, e l'ho scoperto perche' era scritta
 
 **Scritto prima di addestrare qualunque modello spaziale.**
 
@@ -890,7 +890,7 @@ accorto di aver sbagliato **il verso**. Una previsione vaga si conferma sempre;
 una precisa si puo' rompere, e questa si e' rotta su un dettaglio che cambia la
 spiegazione.
 
-## M5-T6 — Ho scambiato «non serve un albero» per «non serve»
+### M5-T6 — Ho scambiato «non serve un albero» per «non serve»
 
 **Il sintomo:** la previsione registrata poche ore prima diceva che il guadagno
 delle variabili spaziali sarebbe venuto **dai difensori nel cono, non dal
@@ -925,7 +925,7 @@ complesso si finisce per misurare **la forma** di una relazione invece della
 solo dopo, in che forma. Avevo invertito l'ordine perche' stavo cercando un
 argomento per il gradient boosting, non una descrizione dei dati.
 
-## M5-T6 — La logistica e' identica fra le versioni, gli alberi no
+### M5-T6 — La logistica e' identica fra le versioni, gli alberi no
 
 **Non e' un problema, e' un'osservazione** emersa confrontando la mia
 esecuzione di prova con quella nell'ambiente coi pin del progetto.
@@ -955,7 +955,7 @@ riscrivere la relazione a ogni `uv lock`. E' il motivo per cui questo file di
 risultati **registra le versioni** con cui e' stato prodotto: senza, una
 differenza fra due esecuzioni sarebbe un mistero invece di un'informazione.
 
-## M5-T7 — La curva di calibrazione si rompeva sul modello di riferimento
+### M5-T7 — La curva di calibrazione si rompeva sul modello di riferimento
 
 **Il sintomo:** quattro test gia' esistenti passati da giorni hanno iniziato a
 fallire tutti insieme con `ZeroDivisionError: Weights sum to zero`. Nessuno dei
@@ -987,7 +987,7 @@ calibrazione. Sono i test del riferimento e delle due trappole, scritti a
 M5-T5 per ragioni completamente diverse. E' il motivo per cui vale la pena
 scrivere test su casi banali che «ovviamente funzionano».
 
-## M5-T8 — Un test scritto su un'intuizione che non regge
+### M5-T8 — Un test scritto su un'intuizione che non regge
 
 **Il sintomo:** avevo scritto `test_sommare_per_partita_riduce_il_disaccordo_
 casuale`, dando per scontato che aggregando i tiri per partita la correlazione
@@ -1021,7 +1021,7 @@ prima di saperla dimostrare. Ma il fallimento ha prodotto **piu' informazione
 del successo**: mi ha costretto a distinguere due situazioni che confondevo, e a
 scoprire in quale delle due stanno i dati.
 
-## M5-T8 — Un modello salvato e' legato alla versione che l'ha scritto
+### M5-T8 — Un modello salvato e' legato alla versione che l'ha scritto
 
 **Il sintomo:** caricando `xg_360.pkl` con scikit-learn 1.7.2, dopo che era
 stato scritto con la 1.9.0:
@@ -1049,7 +1049,7 @@ logistica in produzione: quattro chilobyte di coefficienti si potrebbero
 riscrivere in un formato neutro il giorno in cui servisse. I 368 KB di alberi
 del gradient boosting no.
 
-## M5-T9 — Il progetto dichiarava una cosa e ne faceva un'altra
+### M5-T9 — Il progetto dichiarava una cosa e ne faceva un'altra
 
 **Il sintomo:** il README e il docstring di `config.Gruppo` dicevano da M2 che
 le finali di Champions servono come **prova fuori campione**, «dati che il
@@ -1079,7 +1079,7 @@ docstring del gruppo, piano di progetto — e in nessuno di quei tre posti
 qualcosa la faceva rispettare. **La documentazione descrive le intenzioni, il
 codice descrive i fatti**, e quando divergono ha ragione il codice.
 
-## M5-T9 — Una conclusione che si e' ribaltata togliendo l'1,3 % dei dati
+### M5-T9 — Una conclusione che si e' ribaltata togliendo l'1,3 % dei dati
 
 **Il sintomo:** rigenerando i numeri senza le finali, l'ablazione di M5-T6 si
 inverte.
@@ -1111,7 +1111,7 @@ La cosa che mi ha salvato non e' stata la prudenza, e' stato **aver dovuto
 rigenerare i numeri per un altro motivo**. Se M5-T9 non avesse toccato la
 divisione, quella frase sarebbe finita nel case study.
 
-## M5-T10 — Il segno si inverte quando si condiziona
+### M5-T10 — Il segno si inverte quando si condiziona
 
 **Non e' un difetto, e' il risultato piu' istruttivo della milestone.**
 
@@ -1142,6 +1142,277 @@ La regola operativa che ne esce: **quando una variabile e' correlata con quella
 dominante, la sua relazione marginale non dice quasi nulla**, e stratificare a
 mano in due o tre fasce non e' un sostituto del modello. Il modello condiziona
 su tutto insieme, ed e' per questo che esiste.
+
+---
+
+## M6 — Dashboard
+
+> **Queste voci sono state scritte a M7-T6, non mentre succedeva.** Il file
+> dice in apertura che ricostruito alla fine non vale, e ha ragione: sono
+> ricavate dalle correzioni nel codice e da `docs/milestones/M6-dashboard.md`,
+> quindi conservano il fatto e la lezione ma hanno perso le ore passate a
+> capirci qualcosa. **E' un difetto di processo, non di contenuto**, e sta
+> scritto qui perche' e' esattamente il tipo di cosa che questo file esiste per
+> registrare.
+
+### 2026-08-14 · M6-T8 · una cosa falsa scritta in pagina, arrivata fino a `main`
+
+**Cosa:** la vista Confronto leghe avvisava che senza i dati 360 «l'xG e'
+stimato senza sapere dove fossero difensori e portiere». E' falso.
+
+**Come si e' capito:** rileggendo `config.Copertura360` per un'altra ragione.
+Quell'enumerazione documentava la distinzione **da M2**: i file
+`three-sixty/` coprono tutti gli eventi e nei campionati non ci sono, ma il
+`shot.freeze_frame` sta dentro l'evento del tiro e c'e' sul 99 % dei tiri di
+ogni competizione. Il modello spaziale legge il secondo. La documentazione era
+giusta e non l'avevo letta.
+
+**Risolto:** corretti `leghe.py`, `Confronto.py`, `rendiconto.py`, `Modello.py`
+e i test, piu' un test nuovo — `test_il_fotogramma_del_tiro_invece_c_e_quasi_sempre` —
+che misura la copertura invece di fidarsi di una frase.
+
+**Cosa insegna:** e' il difetto peggiore di tutto il progetto, e non ha rotto
+niente. Il codice funzionava, i test erano verdi, e la dashboard diceva a chi
+la leggeva una cosa non vera sul proprio metodo. **Nessun test copriva le
+affermazioni del testo**, ed era l'unica parte che non poteva essere sbagliata
+senza che qualcuno se ne accorgesse — perche' e' l'unica che il lettore non
+puo' verificare.
+
+### 2026-08-14 · M6-T3 · una colonna `object` e una tabella senza colonne
+
+**Cosa:** `tiri_di_gioco` restituiva una tabella con zero colonne quando la
+selezione era vuota, e le pagine morivano piu' a valle, su un `KeyError` che
+non c'entrava niente.
+
+**Come si e' capito:** risalendo dal punto sbagliato. La riga era
+`tiri[~tiri["rigori_finali"]]`. Su una colonna di tipo `object`, `~` non
+produce una maschera booleana; produce un oggetto che pandas interpreta come
+**selezione di colonne per nome**, e con una serie vuota le colonne selezionate
+sono zero.
+
+**Risolto:** `tiri[~tiri["rigori_finali"].astype(bool)]`.
+
+**Cosa insegna:** c'era gia' un test sulla selezione vuota, ed era passato. Lo
+costruiva con `.iloc[0:0]` su una tabella tipizzata, quindi la colonna restava
+booleana e il difetto non si presentava. **Un test sul caso vuoto non basta se
+il vuoto e' costruito in un modo solo**: quello che rompeva veniva da un filtro
+su dati veri, dove i tipi si perdono.
+
+### 2026-08-14 · M6-T9 · «tipo di tiro» sopra la distanza, e non era vero
+
+**Cosa:** la classifica dei pesi del modello metteva `tipo_Open Play` al primo
+posto e la distanza al secondo. E' assurdo: la distanza domina qualunque
+modello di xG.
+
+**Come si e' capito:** sommando i coefficienti di ciascuna variabile
+categorica. Facevano **−1,0389 tutte e tre** — `parte_corpo`, `tipo`,
+`schema` — cioe' lo stesso identico valore. Con la codifica one-hot senza
+togliere un livello, i coefficienti di una categoria sono definiti a meno di
+una costante additiva, che finisce distribuita su tutti i livelli. Non erano
+pesi, era una costante travestita.
+
+**Risolto:** `pesi()` classifica solo variabili continue e booleane;
+`categorie()` mostra i livelli **centrati dentro la propria variabile**, dove
+il confronto ha senso. La limitazione e' dichiarata fra gli undici limiti.
+
+**Cosa insegna:** un numero assurdo in una classifica e' un regalo. Se il tipo
+di tiro fosse finito terzo o quarto — plausibile — la stessa costante sarebbe
+rimasta dentro e nessuno l'avrebbe cercata.
+
+### 2026-08-14 · M6-T12 · i numeri del Real Madrid attribuiti alla Liga
+
+**Cosa:** con Real Madrid scelto dentro La Liga, la frase calcolata diceva
+«La Liga · 2015/16 — in 38 partite si sono visti 144 gol». I numeri erano del
+Real Madrid; La Liga di partite ne ha 380.
+
+**Come si e' capito:** guardando una schermata. Non da un test.
+
+**Risolto:** `etichetta_selezione(competizione, squadra)` costruisce il titolo
+dai due filtri insieme.
+
+**Cosa insegna:** **nessun test poteva prenderlo.** I numeri erano giusti, la
+frase era ben formata, il filtro funzionava. Sbagliato era solo il nome che
+stava davanti ai numeri — cioe' il pezzo che lega il dato al suo significato, e
+che nessuna asserzione stava guardando. Un secondo difetto della stessa
+famiglia di M6-T8: il testo mentiva e il codice no.
+
+### 2026-08-14 · M6-T14 · CI rossa per un `import` che eseguiva una pagina
+
+**Cosa:** un test nuovo importava `Panoramica` per usarne una funzione. In
+locale verde, in CI rosso.
+
+**Come si e' capito:** `app/Panoramica.py` e' uno script che finisce con
+`main()`. Importarlo **esegue la pagina**, che legge i Parquet — assenti in CI
+fino a M7-T1.
+
+**Risolto:** la funzione e' stata spostata in `guscio.py`, che e' un modulo.
+
+**Cosa insegna:** la correzione facile era marcare il test con
+`@senza_magazzino` e farlo saltare in CI. Sarebbe stata una toppa che spegne il
+controllo proprio dove serve. **Quando un test non gira in CI, il problema non
+e' il test: e' che la logica sta in un file che non si puo' importare.**
+
+---
+
+## M7 — Pubblicazione
+
+### 2026-08-19 · M7-T3 · Streamlit Cloud non legge `requirements.txt`
+
+**Cosa:** avevo trovato che `requirements.txt`, generato con
+`--no-emit-project`, non conteneva il pacchetto: su Cloud girerebbe solo
+`pip install -r requirements.txt`, il codice sta in `src/`, quindi
+`ModuleNotFoundError` al primo avvio. Rigenerato senza quel flag, con `-e .`
+dentro, commit, PR, merge.
+
+**Come si e' capito che era inutile:** leggendo i log del deploy.
+
+    WARN: More than one requirements file detected. Available options:
+    uv-sync uv.lock, uv requirements.txt, poetry pyproject.toml.
+    Used: uv-sync with uv.lock
+
+La piattaforma trova tre file di dipendenze e sceglie `uv.lock`.
+`requirements.txt` **non e' mai stato letto**, e infatti il pacchetto risultava
+gia' installato al primo deploy, prima della correzione.
+
+**Cosa insegna:** avevo diagnosticato un difetto reale — quel file davvero non
+installava il pacchetto — e concluso che fosse *la causa* di un problema che
+non si era ancora manifestato. Il ragionamento era corretto e la premessa
+sbagliata: **non avevo verificato quale file la piattaforma usasse davvero.**
+La correzione resta utile a chi installa con `pip`; non ha toccato il deploy.
+
+### 2026-08-19 · M7-T3 · un `git push` fa *rerun*, non *restart*
+
+**Cosa:** dopo aver corretto `panoramica.kpi` per restituire `gol_da_tiro`, la
+Home pubblica mostrava `KeyError: 'gol_da_tiro'` alla riga che quella chiave la
+chiedeva.
+
+**Come si e' capito:** dai tempi nei log. Alle 10:33 installazione completa;
+alle 10:43 `Pulling code changes` → `Processing dependencies` → `Processed
+dependencies!` **nello stesso secondo**, cioe' nessuna reinstallazione, poi
+`Updated app!`. Streamlit aveva rieseguito lo **script** — `Panoramica.py`,
+versione nuova — ma `football_analytics.panoramica` era gia' in `sys.modules`
+dal primo avvio, e Python non reimporta un modulo gia' importato. Script nuovo,
+pacchetto vecchio.
+
+**Risolto:** *Manage app* → *Reboot app*. Il processo riparte, `sys.modules` si
+svuota.
+
+**Cosa insegna:** e' la regola operativa piu' utile di tutta la milestone.
+**Ogni modifica dentro `src/` richiede un Reboot su Cloud; il push da solo non
+basta.** Senza saperlo si conclude che la correzione non abbia funzionato, e si
+va a cercare un difetto che non c'e' — che e' precisamente cio' che stavo per
+fare, avendo gia' pronta una spiegazione plausibile e sbagliata sulla copia in
+`site-packages`.
+
+### 2026-08-19 · M7-T3 · due definizioni di «gol» nello stesso riquadro
+
+**Cosa:** la ciambella «xG realizzato» mostrava **102,7 %** con sotto scritto
+«4.601 gol / 4.328 xG». 4.601 diviso 4.328 fa 106,3 %.
+
+**Come si e' capito:** confrontando i numeri della dashboard con quelli del
+README. Il README diceva 43.849 tiri e 4.578 gol, la Home 43.659 e 4.601. La
+differenza sui tiri erano i 190 rigori delle serie finali; quella sui gol non
+tornava in nessun modo, perche' **saliva** invece di scendere.
+
+La causa: `kpi()` prendeva i gol dai tabellini — dove ci sono anche i 156
+autogol — e tiri e xG dalla tabella dei tiri. La percentuale veniva da
+`realizzazione()`, che i gol li prende dai tiri. Due definizioni della stessa
+parola dentro lo stesso riquadro. Lo stesso difetto colpiva la conversione:
+10,5 % invece di 10,2 %, sotto l'etichetta «dei tiri finisce in gol».
+
+**Risolto:** `kpi()` restituisce `gol` **e** `gol_da_tiro`; chi ci divide
+qualcosa di ricavato dai tiri usa il secondo. Piu' un test che pretende che la
+didascalia ricostruisca la percentuale che le sta sopra.
+
+**Cosa insegna:** la scelta di contare i gol dai tabellini era **giusta e
+documentata** — gli autogol sono gol. Il difetto e' nato dall'applicarla anche
+dove il denominatore veniva da un'altra fonte. Una regola corretta smette di
+esserlo quando esce dal suo dominio, e la sua stessa documentazione la fa
+sembrare deliberata ovunque compaia.
+
+### 2026-08-19 · M7-T5 · «la piattaforma non lo permette» era un mio errore
+
+**Cosa:** `scripts/misura_memoria.py` stampava «memoria residente non leggibile
+su win32» e misurava solo le tabelle.
+
+**Come si e' capito:** la funzione tornava `None` perche' l'API rispondeva
+zero. `GetCurrentProcess` restituisce un `HANDLE` a 64 bit; senza dichiarare
+`restype`, ctypes lo tratta come intero a 32 bit e l'API riceve un handle
+troncato.
+
+**Risolto:** `restype` e `argtypes` dichiarati. Base 80 MB, magazzino 231 MB,
+picco 233 MB, margine 791 MB.
+
+**Cosa insegna:** la prima spiegazione era «Windows non offre questa misura
+senza dipendenze», e sarebbe finita nella relazione come un limite della
+piattaforma. Era un mio errore di due righe. **Una funzione che puo'
+restituire «non disponibile» rende invisibile la differenza fra un limite vero
+e un difetto proprio**, ed e' per questo che ora un test pretende che quel
+`None` sia raro.
+
+### 2026-08-19 · M7-T5 · pandas 3 ha cambiato il peso delle stringhe
+
+**Cosa:** un test pretendeva che `memory_usage(deep=True)` desse molto piu' di
+`deep=False` su una colonna di testo. Ha fallito con **i due numeri
+identici**, 0,229 MB.
+
+**Come si e' capito:** da pandas 3.0 il tipo predefinito delle stringhe non e'
+piu' `object` con puntatori a oggetti sparsi, ma una colonna nativa supportata
+da Arrow, contigua. Non c'e' niente da inseguire fuori dall'array.
+
+Il secondo tentativo — passare `dtype=object` al costruttore — e' fallito a sua
+volta: **con dentro delle stringhe, pandas riconverte comunque** e il tipo
+richiesto viene ignorato. Serve una colonna di liste.
+
+**Risolto:** due test invece di uno, uno per ciascuno dei due comportamenti,
+cosi' un cambio di versione li fa notare.
+
+**Cosa insegna:** avevo scritto nel commento del codice che l'espansione 7,9×
+dal Parquet alla memoria venisse dalle colonne di testo. E' falso: viene dalla
+codifica a dizionario di Parquet sulle colonne numeriche. Il consiglio che ne
+avevo tratto — convertire il testo in `category` per risparmiare memoria — non
+avrebbe recuperato quasi nulla. **Il test fallito ha corretto una spiegazione
+che stavo per scrivere nella relazione come consiglio per il futuro.**
+
+### 2026-08-19 · M7 · una pull request fantasma con l'auto-merge armato
+
+**Cosa:** la PR #85, di M5-T9, aperta da sei giorni. Il suo contenuto era gia'
+su `main`, arrivato per un'altra strada.
+
+**Come si e' capito:** verificando i tre indizi invece di fidarsi della
+somiglianza — `NOTES.md` presente, `features.separa_applicazione` presente,
+sezione `fuori_campione` in `M5-risultati.json` presente.
+
+**Risolto:** chiusa con la motivazione scritta nel commento, ramo cancellato.
+
+**Cosa insegna:** non era un residuo, era una mina. Aveva
+`Auto-merge: enabled` e nessun controllo richiesto: aspettava
+un'approvazione che non sarebbe mai arrivata, ma il giorno in cui qualcuno
+l'avesse data, GitHub avrebbe fuso un ramo di sei giorni prima **riportando
+indietro tredici file**. `--auto` su un ramo senza controlli obbligatori non
+scade: resta armato.
+
+### 2026-08-19 · M7 · due modi di rompere la cronologia con `gh`
+
+**Cosa:** due difetti di procedura nello stesso pomeriggio.
+
+`gh pr merge --auto` seguito subito da `git pull` sembra aver perso il lavoro:
+`main` risulta «already up to date» e `git branch -d` avvisa che il ramo non e'
+fuso. Il merge non era ancora avvenuto — i controlli stavano girando — e il
+commit era li', raggiungibile.
+
+`gh pr create --fill` prende il **nome del ramo** come titolo quando i commit
+sono piu' d'uno. Con lo squash il titolo della PR diventa il messaggio su
+`main`: sarebbe finito `m7 t3 gol da tiro (#104)` in mezzo a tutti gli altri
+`M7 - Tx : ...`.
+
+**Risolto:** `gh pr list --state open` prima di ogni `git pull`, e `--title`
+esplicito su ogni `gh pr create`.
+
+**Cosa insegna:** la convenzione dei messaggi di commit non e' protetta da
+niente. Il primo caso spaventa e non fa danni; il secondo non spaventa e lascia
+un segno permanente, perche' `main` e' protetto contro il force push per
+scelta. **Fra i due, quello da temere e' il secondo.**
 
 ---
 
