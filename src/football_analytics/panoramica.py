@@ -13,6 +13,23 @@ perche' vengono attribuiti a chi tira e non alla squadra che segna. Sommare i
 gol dai tiri darebbe un totale piu' basso del risultato reale, e nessuno se ne
 accorgerebbe guardando la dashboard.
 
+**Ma non ovunque, ed e' la correzione di M7-T3.** La regola qui sopra vale
+per «quanti gol sono stati segnati»; non vale per un rapporto il cui
+denominatore viene dai tiri. Su tutte le competizioni sono 4.601 gol nei
+tabellini contro 4.445 nei tiri: i 156 di differenza sono autogol, e usarli
+al numeratore di «quanti tiri finiscono in gol» significa attribuire ai
+tiratori gol che non hanno tirato.
+
+Il difetto e' arrivato in produzione ed e' stato visto **guardando una
+schermata**: la ciambella diceva 102,7 % con sotto scritto «4.601 gol / 4.328
+xG», e 4.601 diviso 4.328 fa 106,3 %. La percentuale veniva da
+:func:`realizzazione`, che i gol li prende dai tiri; la didascalia da
+:func:`kpi`, che li prendeva dalle partite. Due definizioni della stessa
+parola dentro lo stesso riquadro.
+
+Da qui in avanti :func:`kpi` restituisce **entrambi** i totali, ``gol`` e
+``gol_da_tiro``, e chi consuma sceglie in base a cosa ci divide.
+
 **Un tiro ha una squadra, una partita ne ha due.** Le aggregazioni per squadra
 partono dai tiri; quelle per partita dalla tabella delle partite. Mescolare le
 due strade e' il modo piu' rapido di contare due volte.
@@ -88,23 +105,32 @@ def kpi(tiri: pd.DataFrame, partite: pd.DataFrame) -> dict[str, float]:
         Partite, gol, tiri, xG totale, conversione, gol e xG per partita, e lo
         scarto fra gol e xG. Su selezione vuota restituisce zeri invece di
         NaN: una dashboard non deve mostrare «nan» a chi filtra troppo.
+
+        **Due totali di gol, non uno.** ``gol`` viene dai tabellini e comprende
+        gli autogol: e' la risposta a «quanti gol si sono visti». ``gol_da_tiro``
+        viene dai tiri ed e' l'unico che si puo' mettere sopra un denominatore
+        ricavato dai tiri — ``conversione`` e ``gol_meno_xg`` usano quello.
+        Perche' siano due, e cosa e' successo quando erano uno solo, sta nella
+        descrizione del modulo.
     """
     giocati = tiri_di_gioco(tiri)
     quante = len(partite)
     gol = float(partite["gol_casa"].sum() + partite["gol_ospite"].sum())
+    da_tiro = float(giocati["gol"].sum()) if len(giocati) else 0.0
     quanti_tiri = len(giocati)
     xg = float(giocati["xg_statsbomb"].sum())
 
     return {
         "partite": float(quante),
         "gol": gol,
+        "gol_da_tiro": da_tiro,
         "tiri": float(quanti_tiri),
         "xg": xg,
-        "conversione": gol / quanti_tiri if quanti_tiri else 0.0,
+        "conversione": da_tiro / quanti_tiri if quanti_tiri else 0.0,
         "gol_per_partita": gol / quante if quante else 0.0,
         "xg_per_partita": xg / quante if quante else 0.0,
         "tiri_per_partita": quanti_tiri / quante if quante else 0.0,
-        "gol_meno_xg": gol - xg,
+        "gol_meno_xg": da_tiro - xg,
     }
 
 

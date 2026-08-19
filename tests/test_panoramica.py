@@ -167,6 +167,87 @@ def test_i_gol_dei_kpi_comprendono_gli_autogol() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Due totali di gol, e il difetto nato dall'averne uno solo (M7-T3)
+# ---------------------------------------------------------------------------
+
+
+def test_un_autogol_entra_nei_gol_ma_non_nella_conversione() -> None:
+    """La correzione di M7-T3, sul caso minimo che la rende necessaria.
+
+    ``gol`` risponde a «quanti gol si sono visti» e l'autogol ci sta dentro.
+    ``conversione`` risponde a «quanti tiri finiscono in gol», e l'autogol non
+    e' un tiro di quella squadra: al numeratore va ``gol_da_tiro``.
+
+    Prima di M7-T3 la conversione usava il primo dei due, e su tutte le
+    competizioni dichiarava 10,5 % invece di 10,2 %.
+    """
+    partite = partite_finte()
+    tiri = tiri_finti()
+    dai_tiri = float(tiri["gol"].sum())
+
+    con_autogol = partite.copy()
+    aumentati = con_autogol["gol_casa"].to_numpy().copy()
+    aumentati[0] += 1
+    con_autogol["gol_casa"] = aumentati
+
+    numeri = panoramica.kpi(tiri, con_autogol)
+
+    assert numeri["gol"] == pytest.approx(dai_tiri + 1), "l'autogol deve contare fra i gol"
+    assert numeri["gol_da_tiro"] == pytest.approx(dai_tiri), "ma non fra i gol dei tiri"
+    assert numeri["conversione"] == pytest.approx(dai_tiri / numeri["tiri"])
+
+
+def test_la_ciambella_e_la_sua_didascalia_escono_dallo_stesso_numeratore() -> None:
+    """L'invariante che mancava, e il motivo per cui il difetto si e' visto.
+
+    La vista disegna la percentuale con :func:`panoramica.realizzazione` e le
+    scrive sotto «N gol / M xG» prendendo N da :func:`panoramica.kpi`. Finche'
+    nessuno pretende che N diviso M faccia la percentuale, le due possono
+    divergere senza che nulla protesti — ed e' successo: 102,7 % con sotto
+    «4.601 gol / 4.328 xG», che fa 106,3 %.
+
+    Il difetto e' stato trovato **guardando una schermata**, non eseguendo un
+    test. Questo test esiste perche' non serva piu' guardare.
+    """
+    partite = partite_finte()
+    tiri = tiri_finti()
+
+    con_autogol = partite.copy()
+    aumentati = con_autogol["gol_casa"].to_numpy().copy()
+    aumentati[0] += 1
+    con_autogol["gol_casa"] = aumentati
+
+    numeri = panoramica.kpi(tiri, con_autogol)
+    quota = panoramica.realizzazione(tiri)
+
+    assert numeri["gol_da_tiro"] / numeri["xg"] == pytest.approx(quota), (
+        "la didascalia della ciambella non ricostruisce la percentuale che le sta sopra"
+    )
+
+
+def test_lo_scarto_dai_kpi_confronta_due_grandezze_omogenee() -> None:
+    """``gol_meno_xg`` sottrae dall'xG dei tiri i gol degli stessi tiri.
+
+    L'xG esiste solo per i tiri: un autogol non ne ha, quindi metterlo al
+    minuendo produce uno scarto positivo che nessuna occasione ha generato.
+    Sui dati veri valeva 156 gol di troppo, e la frase calcolata della Home lo
+    raccontava come se le squadre avessero segnato piu' del previsto.
+    """
+    partite = partite_finte()
+    tiri = tiri_finti()
+
+    con_autogol = partite.copy()
+    aumentati = con_autogol["gol_casa"].to_numpy().copy()
+    aumentati[0] += 1
+    con_autogol["gol_casa"] = aumentati
+
+    numeri = panoramica.kpi(tiri, con_autogol)
+
+    assert numeri["gol_meno_xg"] == pytest.approx(numeri["gol_da_tiro"] - numeri["xg"])
+    assert numeri["gol_meno_xg"] != pytest.approx(numeri["gol"] - numeri["xg"])
+
+
+# ---------------------------------------------------------------------------
 # I rigori della serie finale, il difetto trovato sui dati veri
 # ---------------------------------------------------------------------------
 
