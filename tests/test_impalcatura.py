@@ -174,17 +174,20 @@ def test_requirements_esiste_e_non_diverge_da_pyproject() -> None:
     legge, e a chiunque installi con ``pip``. Il secondo si **genera** dal
     primo:
 
-        uv export --no-dev --no-hashes --no-emit-project -o requirements.txt
+        uv export --no-dev --no-hashes -o requirements.txt
 
     Rigenerarlo e' un comando; dimenticarsene e' una riga sola, e il risultato
     e' un'app pubblica che gira con una versione di pandas diversa da quella su
     cui i test sono verdi. Questo test lo impedisce.
+
+    Il comando qui sopra e' cambiato a M7-T3: fino ad allora portava anche
+    ``--no-emit-project``, e la conseguenza e' raccontata in
+    :func:`test_requirements_installa_anche_il_pacchetto`.
     """
     requisiti = config.PROJECT_ROOT / "requirements.txt"
 
     assert requisiti.exists(), (
-        "manca requirements.txt. Generalo con: "
-        "uv export --no-dev --no-hashes --no-emit-project -o requirements.txt"
+        "manca requirements.txt. Generalo con: uv export --no-dev --no-hashes -o requirements.txt"
     )
 
     esportate = {}
@@ -203,8 +206,47 @@ def test_requirements_esiste_e_non_diverge_da_pyproject() -> None:
 
     assert discordanti == {}, (
         f"pyproject.toml e requirements.txt non concordano: {discordanti}. "
-        "Rigenera con `uv export --no-dev --no-hashes --no-emit-project -o requirements.txt`."
+        "Rigenera con `uv export --no-dev --no-hashes -o requirements.txt`."
     )
+
+
+def test_requirements_installa_anche_il_pacchetto() -> None:
+    """Il difetto che avrebbe fatto fallire il primo avvio pubblico (M7-T3).
+
+    In locale il pacchetto lo installa ``uv sync`` e nessuno ci pensa piu'. Su
+    Streamlit Cloud gira **solo** ``pip install -r requirements.txt``: il
+    codice sta in ``src/``, e senza una riga che lo dichiari nessuno mette
+    ``football_analytics`` su ``sys.path``.
+
+    Il test lega i due fatti invece di controllarne uno solo. Se le pagine
+    importano il pacchetto, allora ``requirements.txt`` deve installarlo — e
+    finche' l'implicazione e' scritta qui, chi domani rigenerasse il file con
+    ``--no-emit-project`` lo scoprirebbe dalla CI e non dalla schermata rossa
+    di un'app pubblica.
+
+    A M7-T2 quel flag c'era, con una ragione che sembrava buona: un pacchetto
+    che non sta su PyPI non e' una dipendenza. Ma ``pip`` sa installarlo da
+    ``.``, e senza quella riga tredici file su tredici non partono.
+    """
+    app = config.PROJECT_ROOT / "app"
+    importano = sorted(
+        percorso.relative_to(app).as_posix()
+        for percorso in app.rglob("*.py")
+        if "football_analytics" in percorso.read_text(encoding="utf-8")
+    )
+    if not importano:
+        pytest.skip("nessuna pagina importa il pacchetto: la riga non servirebbe")
+
+    requisiti = config.PROJECT_ROOT / "requirements.txt"
+    righe = [riga.strip() for riga in requisiti.read_text(encoding="utf-8").splitlines()]
+
+    assert "-e ." in righe or "." in righe, (
+        f"{len(importano)} file di app/ importano football_analytics, ma requirements.txt "
+        "non lo installa. Rigenera con `uv export --no-dev --no-hashes -o requirements.txt`."
+    )
+
+    assoluti = [riga for riga in righe if "file:///" in riga]
+    assert assoluti == [], f"percorsi della macchina di sviluppo in requirements.txt: {assoluti}"
 
 
 def test_requirements_non_porta_dentro_gli_strumenti_di_sviluppo() -> None:
