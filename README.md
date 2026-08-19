@@ -303,13 +303,13 @@ numeri chiave è in
 | --- | --- | --- |
 | [M1 — Fondamenta](docs/milestones/M1-fondamenta.md) | [M2 — Ingestione](docs/milestones/M2-ingestione.md) | [M3 — Trasformazione](docs/milestones/M3-trasformazione.md) |
 | [M4 — Esplorazione](docs/milestones/M4-esplorazione.md) | [M5 — Modello xG](docs/milestones/M5-modello-xg.md) | [M6 — Dashboard](docs/milestones/M6-dashboard.md) |
-| [M7 — Pubblicazione](docs/milestones/M7-pubblicazione.md) | | |
+| [M7 — Pubblicazione](docs/milestones/M7-pubblicazione.md) | [M8 — Portfolio](docs/milestones/M8-portfolio.md) | |
 
-Il diario degli inciampi è in [`NOTES.md`](NOTES.md): cinquanta annotazioni su
-cosa si è rotto, come si è capito e cosa ha insegnato. È la parte che un
+Il diario degli inciampi è in [`NOTES.md`](NOTES.md): cinquantatré annotazioni
+su cosa si è rotto, come si è capito e cosa ha insegnato. È la parte che un
 lettore tecnico guarda per capire come si è lavorato, non solo cosa è uscito.
 
-> **Stato:** M7 conclusa, M8 (portfolio) da fare.
+> **Stato:** M8 conclusa. Tutte e otto le milestone sono chiuse.
 
 ## Licenza
 
