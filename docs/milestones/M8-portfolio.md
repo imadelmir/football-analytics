@@ -139,12 +139,33 @@ dichiara `image` nei metadati, perché accanto c'è un `opengraph-image.tsx` che
 verrebbe sovrascritto da quella dichiarazione. Un dettaglio della piattaforma
 che io non conoscevo.
 
-### Il portfolio e il progetto stanno su due account diversi
+### `AVENA50` non era un altro account: era lo stesso, rinominato
 
-Il portfolio è su `AVENA50/Portfolio-imad-el-mir`, football-analytics su
-`imadelmir/football-analytics`. Chi arriva al case study e clicca sul link
-GitHub del sito finisce su un account dove questo progetto non c'è. Non è un
-difetto del lavoro fatto, ma è una cosa che chi visita il portfolio nota.
+Il `remote` del portfolio diceva `AVENA50/Portfolio-imad-el-mir`, e ne avevo
+concluso — dopo averlo *verificato* leggendo `.git/config` — che portfolio e
+progetto stessero su due account distinti.
+
+L'ha smentito l'output di un `git push` riuscito:
+
+```
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/imadelmir/Portfolio-imad-el-mir.git
+```
+
+L'account è stato rinominato e GitHub reindirizza, quindi nulla si è mai rotto
+e nessun controllo poteva accorgersene: i link vecchi rispondono, i push
+arrivano, le build passano.
+
+**Cosa resta da fare, se vuoi:** `src/config/site.ts` e `src/lib/json-ld.ts`
+del portfolio contengono ancora il nome vecchio. Funzionano per il
+reindirizzamento, ma i dati strutturati che finiscono nei motori di ricerca
+dichiarano un profilo con l'URL superato.
+
+**Cosa insegna:** avevo guardato un file di configurazione locale e l'avevo
+scambiato per lo stato del server. È la stessa classe di errore del `maxdepth`
+sbagliato qui sopra — prendere per stato del mondo la risposta dello strumento
+che si è interrogato — e la seconda diagnosi era peggio della prima, perché
+sembrava verificata.
 
 ---
 

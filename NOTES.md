@@ -1452,22 +1452,39 @@ metadati, perche' accanto c'e' un `opengraph-image.tsx` che quella
 dichiarazione sovrascriverebbe. Un dettaglio della piattaforma che avevo
 ignorato mentre riscrivevo il lavoro di qualcun altro.
 
-### 2026-08-19 · M8 · lo stesso errore, in piccolo, tre ore prima
+### 2026-08-19 · M8 · lo stesso errore tre volte, sullo stesso nome
 
-**Cosa:** avevo trovato `AVENA50` nel `site.ts` del portfolio e l'avevo
-segnalato come un residuo, per analogia con il badge sbagliato che avevo
-corretto nel README a M7-T4.
+**Cosa:** `AVENA50` compare nel `site.ts` del portfolio e nel suo `remote`.
+Su quel nome ho sbagliato **tre volte di fila**, ed e' la voce piu' istruttiva
+di questo file proprio per questo.
 
-**Come si e' capito:** leggendo `.git/config` del portfolio. Il repository e'
-`AVENA50/Portfolio-imad-el-mir`: quel nome li' e' **corretto**, ed e' il
-progetto football-analytics a stare su un altro account.
+**Primo tentativo.** L'avevo segnalato come un residuo, per analogia con il
+badge sbagliato corretto nel README a M7-T4. Conclusione tratta da una
+somiglianza, senza verifica.
 
-**Cosa insegna:** e' la versione piccola dell'inciampo qui sopra — una
-conclusione tratta da una somiglianza invece che da una verifica. Costava una
-riga di `grep` sul file di configurazione, e l'ho fatta solo dopo aver gia'
-detto la cosa sbagliata. La segnalazione utile restava (i due account
-raccontano storie diverse a chi visita il portfolio), ma la diagnosi era
-rovesciata.
+**Secondo tentativo.** Ho letto `.git/config` del portfolio, ho visto
+`AVENA50/Portfolio-imad-el-mir` e ho concluso che il nome fosse **corretto** —
+scrivendolo in questo diario e nella relazione M8. Verifica fatta, ma su un
+file che riporta l'URL configurato, non quello vero.
+
+**Come si e' capito davvero:** dall'output di `git push`, che nessuno aveva
+chiesto:
+
+    remote: This repository moved. Please use the new location:
+    remote:   https://github.com/imadelmir/Portfolio-imad-el-mir.git
+
+**I due account sono lo stesso account rinominato.** GitHub reindirizza in
+eterno, quindi tutto ha sempre funzionato e nessun controllo poteva accorgersene
+— i link vecchi rispondono, i push arrivano, le build passano.
+
+**Cosa insegna:** la seconda diagnosi era peggio della prima, perche' *sembrava*
+verificata. Avevo guardato un file di configurazione locale e l'avevo scambiato
+per lo stato del server, che e' la stessa classe di errore del `maxdepth`
+sbagliato: **prendere per stato del mondo cio' che e' solo la risposta dello
+strumento che ho interrogato.**
+
+E la cosa che l'ha risolta non e' stato un controllo: e' stata una riga di
+output che avrei potuto ignorare, perche' il comando era riuscito.
 
 ### 2026-08-19 · M8-T2 · la copertina sforava il tetto che avevo appena imposto
 
