@@ -29,6 +29,18 @@ fotogramma del tiro e uno no — e una dashboard per guardarci dentro.
 | **La dashboard** | 7 viste Streamlit, tema che cambia con la competizione, nessuna lettura dei dati grezzi |
 | **Il codice** | Tipizzato in `mypy --strict`, lint `ruff`, **oltre 700 test** con copertura del 94 %, CI su ogni push |
 
+## In breve
+
+| | |
+|---|---|
+| **Problema** | Quanto vale, in un modello di expected goals, sapere dove sono i difensori quando parte il tiro? Si ripete spesso, si misura di rado |
+| **Il mio ruolo** | Progetto personale, costruito da solo: ingestione, feature engineering, addestramento e confronto dei due modelli, dashboard |
+| **Risultato** | +2,9 punti di Brier score (+18 % relativo), il 62 % del divario dall'xG di StatsBomb, su 43.849 tiri di 1.753 partite |
+| **Stack** | Python · pandas · scikit-learn · Streamlit · Plotly · Parquet |
+| **Demo** | [Dashboard online](https://football-analytics-imadelmir.streamlit.app) · [case study](https://portfolio-imad-el-mir.vercel.app/it/projects/football-analytics) |
+| **Avvio** | `uv sync --all-extras` e `uv run streamlit run app/Panoramica.py` — [istruzioni](#provalo) |
+| **Stato** | Completato (agosto 2026) |
+
 ## Provalo
 
 Serve **Python 3.12** e **[uv](https://docs.astral.sh/uv/)**.
